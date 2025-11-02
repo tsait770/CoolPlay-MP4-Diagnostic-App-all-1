@@ -10,8 +10,9 @@ import {
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react-native';
+import { CheckCircle, XCircle, AlertCircle, RefreshCw, Chrome } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/AuthProvider';
 
 type TestStatus = 'pending' | 'running' | 'success' | 'error';
 
@@ -24,16 +25,19 @@ interface TestResult {
 
 export default function ConnectionTestScreen() {
   const insets = useSafeAreaInsets();
+  const { signInWithGoogle, user } = useAuth();
   const [tests, setTests] = useState<TestResult[]>([
     { name: '環境變數驗證', status: 'pending', message: '等待測試...' },
     { name: 'Supabase 連接測試', status: 'pending', message: '等待測試...' },
     { name: '數據庫表驗證', status: 'pending', message: '等待測試...' },
+    { name: 'Google 認證測試', status: 'pending', message: '等待測試...' },
     { name: 'tRPC API 連接測試', status: 'pending', message: '等待測試...' },
     { name: '會員系統測試', status: 'pending', message: '等待測試...' },
     { name: '設備綁定測試', status: 'pending', message: '等待測試...' },
     { name: '語音配額測試', status: 'pending', message: '等待測試...' },
   ]);
   const [isRunning, setIsRunning] = useState(false);
+  const [testingGoogle, setTestingGoogle] = useState(false);
 
   const updateTest = (index: number, updates: Partial<TestResult>) => {
     setTests(prev => prev.map((test, i) => 
@@ -140,8 +144,15 @@ export default function ConnectionTestScreen() {
         });
       }
 
-      // 測試 4: tRPC API 連接測試
-      updateTest(3, { status: 'running', message: '測試中...' });
+      // 測試 4: Google 認證測試（不自動運行）
+      updateTest(3, { 
+        status: 'pending', 
+        message: '請手動測試',
+        details: '點擊下方按鈕測試 Google 登入功能'
+      });
+
+      // 測試 5: tRPC API 連接測試
+      updateTest(4, { status: 'running', message: '測試中...' });
       try {
         const baseUrl = process.env.EXPO_PUBLIC_APP_URL || 'http://localhost:8081';
         const apiEndpoint = `${baseUrl}/api/trpc/example.hi`;
@@ -159,33 +170,33 @@ export default function ConnectionTestScreen() {
         
         if (result.ok) {
           await result.json();
-          updateTest(3, {
+          updateTest(4, {
             status: 'success',
             message: 'tRPC API 連接成功',
             details: `狀態碼: ${result.status}\nAPI URL: ${baseUrl}`,
           });
         } else {
-          updateTest(3, {
+          updateTest(4, {
             status: 'error',
             message: 'tRPC API 響應錯誤',
             details: `狀態碼: ${result.status}\nAPI URL: ${apiEndpoint}`,
           });
         }
       } catch (error) {
-        updateTest(3, {
+        updateTest(4, {
           status: 'error',
           message: 'tRPC API 連接失敗',
           details: `${error instanceof Error ? error.message : String(error)}\n請確認後端服務已啟動`,
         });
       }
 
-      // 測試 5: 會員系統測試
-      updateTest(4, { status: 'running', message: '測試中...' });
+      // 測試 6: 會員系統測試
+      updateTest(5, { status: 'running', message: '測試中...' });
       try {
         const { data: session } = await supabase.auth.getSession();
         
         if (!session?.session) {
-          updateTest(4, {
+          updateTest(5, {
             status: 'error',
             message: '未登入',
             details: '需要先登入才能測試會員系統',
@@ -198,19 +209,19 @@ export default function ConnectionTestScreen() {
             .single();
 
           if (error) {
-            updateTest(4, {
+            updateTest(5, {
               status: 'error',
               message: '會員資料查詢失敗',
               details: error.message,
             });
           } else if (!profile) {
-            updateTest(4, {
+            updateTest(5, {
               status: 'error',
               message: '會員資料不存在',
               details: '請確認 profiles 表已正確初始化',
             });
           } else {
-            updateTest(4, {
+            updateTest(5, {
               status: 'success',
               message: '會員系統正常',
               details: `會員等級: ${profile.membership_tier}\n配額: ${profile.monthly_usage_remaining}`,
@@ -218,20 +229,20 @@ export default function ConnectionTestScreen() {
           }
         }
       } catch (error) {
-        updateTest(4, {
+        updateTest(5, {
           status: 'error',
           message: '會員系統測試失敗',
           details: error instanceof Error ? error.message : String(error),
         });
       }
 
-      // 測試 6: 設備綁定測試
-      updateTest(5, { status: 'running', message: '測試中...' });
+      // 測試 7: 設備綁定測試
+      updateTest(6, { status: 'running', message: '測試中...' });
       try {
         const { data: session } = await supabase.auth.getSession();
         
         if (!session?.session) {
-          updateTest(5, {
+          updateTest(6, {
             status: 'error',
             message: '未登入',
             details: '需要先登入才能測試設備綁定',
@@ -243,13 +254,13 @@ export default function ConnectionTestScreen() {
             .eq('user_id', session.session.user.id);
 
           if (error) {
-            updateTest(5, {
+            updateTest(6, {
               status: 'error',
               message: '設備查詢失敗',
               details: error.message,
             });
           } else {
-            updateTest(5, {
+            updateTest(6, {
               status: 'success',
               message: '設備綁定系統正常',
               details: `已綁定設備數: ${devices?.length || 0}`,
@@ -257,20 +268,20 @@ export default function ConnectionTestScreen() {
           }
         }
       } catch (error) {
-        updateTest(5, {
+        updateTest(6, {
           status: 'error',
           message: '設備綁定測試失敗',
           details: error instanceof Error ? error.message : String(error),
         });
       }
 
-      // 測試 7: 語音配額測試
-      updateTest(6, { status: 'running', message: '測試中...' });
+      // 測試 8: 語音配額測試
+      updateTest(7, { status: 'running', message: '測試中...' });
       try {
         const { data: session } = await supabase.auth.getSession();
         
         if (!session?.session) {
-          updateTest(6, {
+          updateTest(7, {
             status: 'error',
             message: '未登入',
             details: '需要先登入才能測試語音配額',
@@ -284,13 +295,13 @@ export default function ConnectionTestScreen() {
             .limit(10);
 
           if (error) {
-            updateTest(6, {
+            updateTest(7, {
               status: 'error',
               message: '配額查詢失敗',
               details: error.message,
             });
           } else {
-            updateTest(6, {
+            updateTest(7, {
               status: 'success',
               message: '語音配額系統正常',
               details: `使用記錄數: ${usageLogs?.length || 0}`,
@@ -298,7 +309,7 @@ export default function ConnectionTestScreen() {
           }
         }
       } catch (error) {
-        updateTest(6, {
+        updateTest(7, {
           status: 'error',
           message: '語音配額測試失敗',
           details: error instanceof Error ? error.message : String(error),
@@ -393,6 +404,77 @@ export default function ConnectionTestScreen() {
               )}
             </View>
           ))}
+        </View>
+
+        <View style={styles.googleTestContainer}>
+          <Text style={styles.googleTestTitle}>🔵 Google 認證測試</Text>
+          <Text style={styles.googleTestDesc}>
+            {user ? '已登入，點擊測試 Google 帳號關聯' : '點擊按鈕測試 Google 登入功能'}
+          </Text>
+          <TouchableOpacity
+            style={[styles.googleTestButton, testingGoogle && styles.googleTestButtonDisabled]}
+            onPress={async () => {
+              console.log('🔵 開始測試 Google 認證...');
+              setTestingGoogle(true);
+              updateTest(3, { status: 'running', message: '測試中...' });
+              
+              try {
+                const { error } = await signInWithGoogle();
+                
+                if (error) {
+                  console.error('❌ Google 認證失敗:', error);
+                  updateTest(3, {
+                    status: 'error',
+                    message: 'Google 認證失敗',
+                    details: `錯誤: ${error.message}\n\n請檢查:\n1. Supabase > Authentication > Providers\n2. Google 提供商已啟用\n3. Redirect URLs 正確設定`,
+                  });
+                  Alert.alert(
+                    '❌ Google 認證失敗',
+                    `${error.message}\n\n請確認 Supabase 後台設定`,
+                    [{ text: '確定' }]
+                  );
+                } else {
+                  console.log('✅ Google 認證成功!');
+                  updateTest(3, {
+                    status: 'success',
+                    message: 'Google 認證成功',
+                    details: `已成功${user ? '關聯' : '登入'} Google 帳號`,
+                  });
+                  Alert.alert(
+                    '✅ 測試成功',
+                    `Google 認證功能正常！\n已成功${user ? '關聯' : '登入'}`,
+                    [{ text: '確定' }]
+                  );
+                }
+              } catch (err: any) {
+                console.error('❌ Google 認證異常:', err);
+                updateTest(3, {
+                  status: 'error',
+                  message: 'Google 認證異常',
+                  details: err.message || String(err),
+                });
+                Alert.alert('❌ 測試異常', err.message || '未知錯誤', [{ text: '確定' }]);
+              } finally {
+                setTestingGoogle(false);
+              }
+            }}
+            disabled={testingGoogle}
+          >
+            {testingGoogle ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Chrome size={20} color="#fff" />
+            )}
+            <Text style={styles.googleTestButtonText}>
+              {testingGoogle ? '測試中...' : '測試 Google 登入'}
+            </Text>
+          </TouchableOpacity>
+          {user && (
+            <View style={styles.userInfo}>
+              <Text style={styles.userInfoText}>👤 當前用戶: {user.email}</Text>
+              <Text style={styles.userInfoText}>🔑 登入方式: {user.app_metadata?.provider || 'email'}</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.footer}>
@@ -494,6 +576,53 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 14,
     color: '#64748b',
-    textAlign: 'center',
+    textAlign: 'center' as const,
+  },
+  googleTestContainer: {
+    margin: 16,
+    padding: 20,
+    backgroundColor: '#1e293b',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#4285F4',
+  },
+  googleTestTitle: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#fff',
+    marginBottom: 8,
+  },
+  googleTestDesc: {
+    fontSize: 14,
+    color: '#94a3b8',
+    marginBottom: 16,
+  },
+  googleTestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4285F4',
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  googleTestButtonDisabled: {
+    opacity: 0.6,
+  },
+  googleTestButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600' as const,
+  },
+  userInfo: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#0f172a',
+    borderRadius: 8,
+  },
+  userInfoText: {
+    fontSize: 13,
+    color: '#94a3b8',
+    marginBottom: 4,
   },
 });

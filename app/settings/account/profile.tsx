@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Mail, Lock, LogOut } from "lucide-react-native";
@@ -140,7 +141,11 @@ export default function ProfileScreen() {
             onPress={handleGoogleAuth}
             disabled={linkingGoogle}
           >
-            <Text style={styles.googleIcon}>G</Text>
+            <Image 
+              source={{ uri: "https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" }}
+              style={styles.socialIcon}
+              resizeMode="contain"
+            />
             <Text style={styles.socialButtonText}>Google</Text>
           </TouchableOpacity>
 
@@ -148,7 +153,11 @@ export default function ProfileScreen() {
             style={styles.socialButton}
             onPress={handleAppleAuth}
           >
-            <Text style={styles.appleIcon}></Text>
+            <Image 
+              source={{ uri: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" }}
+              style={styles.socialIcon}
+              resizeMode="contain"
+            />
             <Text style={styles.socialButtonText}>Apple</Text>
           </TouchableOpacity>
         </View>
@@ -251,13 +260,13 @@ const styles = StyleSheet.create({
   },
   forgotPassword: {
     fontSize: 15,
-    color: "#4A90E2",
+    color: "#007AFF",
     fontWeight: "500" as const,
   },
   buttonSubmit: {
     marginTop: 10,
     marginBottom: 15,
-    backgroundColor: "#4A90E2",
+    backgroundColor: "#007AFF",
     height: 56,
     borderRadius: 12,
     justifyContent: "center",
@@ -276,7 +285,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   signUpLink: {
-    color: "#4A90E2",
+    color: "#007AFF",
     fontWeight: "600" as const,
   },
   orWith: {
@@ -309,26 +318,9 @@ const styles = StyleSheet.create({
     fontWeight: "500" as const,
     color: "#ffffff",
   },
-  googleIcon: {
-    fontSize: 24,
-    fontWeight: "700" as const,
-    color: "#4285F4",
-    backgroundColor: "#ffffff",
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    textAlign: "center" as const,
-    lineHeight: 28,
-  },
-  appleIcon: {
-    fontSize: 24,
-    fontWeight: "700" as const,
-    color: "#ffffff",
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    textAlign: "center" as const,
-    lineHeight: 28,
+  socialIcon: {
+    width: 24,
+    height: 24,
   },
   logoutButton: {
     marginTop: 10,

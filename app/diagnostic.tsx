@@ -7,13 +7,26 @@ export default function DiagnosticScreen() {
   const router = useRouter();
   const [diagnostics, setDiagnostics] = useState<string[]>([]);
   const [testResults, setTestResults] = useState<Record<string, boolean>>({});
+  const [envVars, setEnvVars] = useState<Record<string, string>>({});
 
   useEffect(() => {
     runDiagnostics();
+    loadEnvVars();
   }, []);
 
   const addLog = (message: string) => {
     setDiagnostics(prev => [...prev, `[${new Date().toISOString().split('T')[1].split('.')[0]}] ${message}`]);
+  };
+
+  const loadEnvVars = () => {
+    const vars: Record<string, string> = {
+      'SUPABASE_URL': process.env.EXPO_PUBLIC_SUPABASE_URL || 'NOT SET',
+      'SUPABASE_KEY': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ? '***' + process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY.slice(-8) : 'NOT SET',
+      'ADMIN_PASSWORD': process.env.EXPO_PUBLIC_ADMIN_PASSWORD || 'NOT SET',
+      'PAYPAL_CLIENT_ID': process.env.EXPO_PUBLIC_PAYPAL_CLIENT_ID || 'NOT SET',
+      'APP_URL': process.env.EXPO_PUBLIC_APP_URL || 'NOT SET',
+    };
+    setEnvVars(vars);
   };
 
   const runDiagnostics = async () => {
@@ -45,6 +58,11 @@ export default function DiagnosticScreen() {
     addLog('Touch events ready');
     setTestResults(prev => ({ ...prev, touch: true }));
 
+    // Test 5: Admin Password
+    const adminPass = process.env.EXPO_PUBLIC_ADMIN_PASSWORD;
+    addLog(`Admin password loaded: ${adminPass ? 'YES (value: ' + adminPass + ')' : 'NO'}`);
+    setTestResults(prev => ({ ...prev, adminPassword: !!adminPass }));
+
     addLog('Diagnostics complete');
   };
 
@@ -68,6 +86,18 @@ export default function DiagnosticScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Diagnostic Screen</Text>
         <Text style={styles.subtitle}>Testing app functionality</Text>
+      </View>
+
+      <View style={styles.envContainer}>
+        <Text style={styles.sectionTitle}>Environment Variables</Text>
+        {Object.entries(envVars).map(([key, value]) => (
+          <View key={key} style={styles.envItem}>
+            <Text style={styles.envKey}>{key}:</Text>
+            <Text style={[styles.envValue, { color: value === 'NOT SET' ? '#FF453A' : '#30D158' }]}>
+              {value}
+            </Text>
+          </View>
+        ))}
       </View>
 
       <View style={styles.statusContainer}>
@@ -122,7 +152,7 @@ const styles = StyleSheet.create({
   },
   header: {
     marginTop: 60,
-    marginBottom: 20,
+    marginBottom: 15,
   },
   title: {
     fontSize: 28,
@@ -134,11 +164,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.primary.textSecondary,
   },
+  envContainer: {
+    backgroundColor: Colors.card.bg,
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: Colors.primary.text,
+    marginBottom: 10,
+  },
+  envItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    gap: 8,
+  },
+  envKey: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: Colors.primary.textSecondary,
+    minWidth: 140,
+  },
+  envValue: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    flex: 1,
+  },
   statusContainer: {
     backgroundColor: Colors.card.bg,
     borderRadius: 12,
     padding: 15,
-    marginBottom: 20,
+    marginBottom: 15,
   },
   statusItem: {
     flexDirection: 'row',
@@ -160,7 +219,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.card.bg,
     borderRadius: 12,
     padding: 15,
-    marginBottom: 20,
+    marginBottom: 15,
+    maxHeight: 200,
   },
   logText: {
     fontSize: 12,

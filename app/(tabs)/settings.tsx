@@ -26,6 +26,7 @@ import {
   Gift,
   Settings as SettingsIcon,
   Code,
+  TestTube,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import Colors from "@/constants/colors";
@@ -177,6 +178,7 @@ export default function SettingsScreen() {
     {
       title: t("developer_options"),
       items: [
+        { icon: TestTube, label: "連接測試", route: "/connection-test" },
         { icon: Code, label: t("admin_panel"), route: "/settings/developer/admin" },
         { icon: Code, label: t("category_management"), route: "/settings/developer/category-management" },
       ],

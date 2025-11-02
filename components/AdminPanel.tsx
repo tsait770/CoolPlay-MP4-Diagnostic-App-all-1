@@ -10,7 +10,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { Shield, Plus, Trash2, Eye, EyeOff, Copy, Check } from 'lucide-react-native';
+import { Shield, Plus, Eye, EyeOff, Copy, Check } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useReferral } from '@/providers/ReferralProvider';
 import * as Clipboard from 'expo-clipboard';
@@ -21,17 +21,14 @@ interface AdminPanelProps {
 }
 
 export default function AdminPanel({ visible, onClose }: AdminPanelProps) {
-  const { getPromotionalCodes, generateUserCode, validateCode, isAdminCode } = useReferral();
+  const { getPromotionalCodes, generateUserCode } = useReferral();
   const [adminPassword, setAdminPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [newCodePrefix, setNewCodePrefix] = useState('');
-  const [newCodeCredits, setNewCodeCredits] = useState('300');
-  const [newCodeDescription, setNewCodeDescription] = useState('');
   const [copiedCode, setCopiedCode] = useState('');
 
   // Admin authentication (in production, this would be server-side)
-  const ADMIN_PASSWORD = 'ADMIN2025SECRET';
+  const ADMIN_PASSWORD = process.env.EXPO_PUBLIC_ADMIN_PASSWORD || 'ADMIN2025SECRET';
 
   const handleAuthenticate = () => {
     if (adminPassword === ADMIN_PASSWORD) {
@@ -194,7 +191,7 @@ export default function AdminPanel({ visible, onClose }: AdminPanelProps) {
               <View style={styles.ruleCard}>
                 <Text style={styles.ruleTitle}>System Codes (RK prefix)</Text>
                 <Text style={styles.ruleText}>
-                  • Must start with "RK"{'\n'}
+                  • Must start with &quot;RK&quot;{'\n'}
                   • 6-12 characters long{'\n'}
                   • Alphanumeric only
                 </Text>
@@ -303,7 +300,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.primary.text,
     borderWidth: 1,
-    borderColor: Colors.primary.cardBorder,
+    borderColor: Colors.card.border,
   },
   eyeButton: {
     position: 'absolute' as const,
@@ -319,7 +316,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.primary.cardBorder,
+    borderBottomColor: Colors.card.border,
   },
   title: {
     flex: 1,
@@ -362,7 +359,7 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
   },
   secondaryButton: {
-    backgroundColor: Colors.primary.cardBorder,
+    backgroundColor: Colors.card.border,
   },
   secondaryButtonText: {
     color: Colors.primary.text,
@@ -393,7 +390,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.primary.cardBorder,
+    borderColor: Colors.card.border,
   },
   codeInfo: {
     flex: 1,
@@ -424,7 +421,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: Colors.primary.cardBorder,
+    borderColor: Colors.card.border,
   },
   ruleTitle: {
     fontSize: 14,
@@ -448,7 +445,7 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.primary.cardBorder,
+    borderColor: Colors.card.border,
   },
   statValue: {
     fontSize: 24,

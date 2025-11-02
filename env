@@ -23,3 +23,8 @@ PAYPAL_PLAN_ID_PREMIUM_YEARLY=
 # =====================================================
 EXPO_PUBLIC_APP_URL=http://localhost:8081
 EXPO_PUBLIC_TOOLKIT_URL=https://toolkit.rork.com
+
+# =====================================================
+# Admin Configuration
+# =====================================================
+EXPO_PUBLIC_ADMIN_PASSWORD=ADMIN2025SECRET

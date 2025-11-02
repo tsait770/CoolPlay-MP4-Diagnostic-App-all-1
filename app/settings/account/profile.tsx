@@ -9,7 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AtSign, Lock, LogOut, Chrome, Apple } from "lucide-react-native";
+import { Mail, Lock, LogOut } from "lucide-react-native";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useAuth } from "@/providers/AuthProvider";
 
@@ -72,13 +72,13 @@ export default function ProfileScreen() {
         <View style={styles.flexColumn}>
           <Text style={styles.label}>Email</Text>
           <View style={styles.inputForm}>
-            <AtSign size={22} color="#666" />
+            <Mail size={20} color="#8A8A8A" />
             <TextInput
               style={styles.input}
               value={email}
               onChangeText={setEmail}
               placeholder="Enter your Email"
-              placeholderTextColor="#666"
+              placeholderTextColor="#8A8A8A"
               keyboardType="email-address"
               autoCapitalize="none"
             />
@@ -89,13 +89,13 @@ export default function ProfileScreen() {
         <View style={styles.flexColumn}>
           <Text style={styles.label}>Password</Text>
           <View style={styles.inputForm}>
-            <Lock size={22} color="#666" />
+            <Lock size={20} color="#8A8A8A" />
             <TextInput
               style={styles.input}
               value={password}
               onChangeText={setPassword}
               placeholder="Enter your Password"
-              placeholderTextColor="#666"
+              placeholderTextColor="#8A8A8A"
               secureTextEntry
             />
           </View>
@@ -140,7 +140,7 @@ export default function ProfileScreen() {
             onPress={handleGoogleAuth}
             disabled={linkingGoogle}
           >
-            <Chrome size={24} color="#4A90E2" />
+            <Text style={styles.googleIcon}>G</Text>
             <Text style={styles.socialButtonText}>Google</Text>
           </TouchableOpacity>
 
@@ -148,7 +148,7 @@ export default function ProfileScreen() {
             style={styles.socialButton}
             onPress={handleAppleAuth}
           >
-            <Apple size={24} color="#ffffff" />
+            <Text style={styles.appleIcon}></Text>
             <Text style={styles.socialButtonText}>Apple</Text>
           </TouchableOpacity>
         </View>
@@ -300,13 +300,35 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 10,
-    borderWidth: 0,
+    borderWidth: 1,
+    borderColor: "#333333",
     backgroundColor: "#2a2a2a",
   },
   socialButtonText: {
     fontSize: 16,
-    fontWeight: "600" as const,
+    fontWeight: "500" as const,
     color: "#ffffff",
+  },
+  googleIcon: {
+    fontSize: 24,
+    fontWeight: "700" as const,
+    color: "#4285F4",
+    backgroundColor: "#ffffff",
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    textAlign: "center" as const,
+    lineHeight: 28,
+  },
+  appleIcon: {
+    fontSize: 24,
+    fontWeight: "700" as const,
+    color: "#ffffff",
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    textAlign: "center" as const,
+    lineHeight: 28,
   },
   logoutButton: {
     marginTop: 10,
@@ -317,7 +339,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#2a2a2a",
     borderRadius: 12,
     padding: 16,
-    borderWidth: 0,
+    borderWidth: 1,
+    borderColor: "#333333",
   },
   logoutButtonText: {
     fontSize: 16,

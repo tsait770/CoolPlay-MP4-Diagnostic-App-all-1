@@ -9,17 +9,27 @@ import {
   Image,
   Alert,
 } from "react-native";
-import { User, Mail, Phone, Camera, LogOut } from "lucide-react-native";
+import { User, Mail, Phone, Camera, LogOut, Link, Unlink } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useAuth } from "@/providers/AuthProvider";
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, signInWithGoogle } = useAuth();
   const [username, setUsername] = useState(user?.user_metadata?.username || "");
   const [email, setEmail] = useState(user?.email || "");
   const [phone, setPhone] = useState(user?.phone || "");
+  const [isGoogleLinked, setIsGoogleLinked] = useState(false);
+  const [linkingGoogle, setLinkingGoogle] = useState(false);
+
+  React.useEffect(() => {
+    if (user) {
+      const googleProvider = user.app_metadata?.providers?.includes('google') ||
+                            user.identities?.some((identity) => identity.provider === 'google');
+      setIsGoogleLinked(!!googleProvider);
+    }
+  }, [user]);
 
   const handleSave = () => {
     Alert.alert(t("success"), t("profile_updated"));
@@ -34,6 +44,38 @@ export default function ProfileScreen() {
 
   const handleChangePassword = () => {
     Alert.alert(t("change_password"), t("password_reset_sent"));
+  };
+
+  const handleLinkGoogle = async () => {
+    if (isGoogleLinked) {
+      Alert.alert(
+        t("unlink_google"),
+        t("unlink_google_confirm"),
+        [
+          { text: t("cancel"), style: "cancel" },
+          {
+            text: t("unlink"),
+            style: "destructive",
+            onPress: handleUnlinkGoogle,
+          },
+        ]
+      );
+    } else {
+      setLinkingGoogle(true);
+      const { error } = await signInWithGoogle();
+      setLinkingGoogle(false);
+
+      if (error) {
+        Alert.alert(t("error"), t("google_link_failed"));
+      } else {
+        setIsGoogleLinked(true);
+        Alert.alert(t("success"), t("google_linked_success"));
+      }
+    }
+  };
+
+  const handleUnlinkGoogle = async () => {
+    Alert.alert(t("info"), t("google_unlink_not_supported"));
   };
 
   return (
@@ -108,6 +150,38 @@ export default function ProfileScreen() {
           onPress={handleChangePassword}
         >
           <Text style={styles.actionButtonText}>{t("change_password")}</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t("linked_accounts")}</Text>
+
+        <TouchableOpacity
+          style={[
+            styles.linkedAccountButton,
+            isGoogleLinked && styles.linkedAccountButtonLinked,
+          ]}
+          onPress={handleLinkGoogle}
+          disabled={linkingGoogle}
+        >
+          <View style={styles.linkedAccountIcon}>
+            <Text style={styles.googleIconText}>G</Text>
+          </View>
+          <View style={styles.linkedAccountContent}>
+            <Text style={styles.linkedAccountTitle}>Google</Text>
+            <Text style={styles.linkedAccountStatus}>
+              {linkingGoogle
+                ? t("linking")
+                : isGoogleLinked
+                ? t("linked")
+                : t("not_linked")}
+            </Text>
+          </View>
+          {isGoogleLinked ? (
+            <Unlink size={20} color={Colors.semantic.danger} />
+          ) : (
+            <Link size={20} color={Colors.primary.accent} />
+          )}
         </TouchableOpacity>
       </View>
 
@@ -235,5 +309,45 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600" as const,
     color: Colors.semantic.danger,
+  },
+  linkedAccountButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.surface.secondary,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.card.border,
+    gap: 12,
+  },
+  linkedAccountButtonLinked: {
+    borderColor: Colors.primary.accent,
+    backgroundColor: Colors.surface.secondary,
+  },
+  linkedAccountIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#4285F4",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  googleIconText: {
+    fontSize: 20,
+    fontWeight: "700" as const,
+    color: "#FFFFFF",
+  },
+  linkedAccountContent: {
+    flex: 1,
+  },
+  linkedAccountTitle: {
+    fontSize: 16,
+    fontWeight: "600" as const,
+    color: Colors.primary.text,
+    marginBottom: 2,
+  },
+  linkedAccountStatus: {
+    fontSize: 14,
+    color: Colors.primary.textSecondary,
   },
 });

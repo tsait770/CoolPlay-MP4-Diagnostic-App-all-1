@@ -595,5 +595,15 @@
   "normal_speed": "正常速度",
   "speed_2_0": "兩倍速度",
   "next_video": "下一部影片",
-  "previous_video": "上一部影片"
+  "previous_video": "上一部影片",
+  "linked_accounts": "已連結帳戶",
+  "linking": "連結中",
+  "linked": "已連結",
+  "not_linked": "未連結",
+  "unlink_google": "解除 Google 連結",
+  "unlink_google_confirm": "確定要解除 Google 帳戶連結嗎？",
+  "unlink": "解除連結",
+  "google_link_failed": "Google 帳戶連結失敗",
+  "google_linked_success": "Google 帳戶連結成功",
+  "google_unlink_not_supported": "目前不支援解除 Google 帳戶連結功能"
 }

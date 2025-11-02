@@ -51,19 +51,20 @@ export default function ConnectionTestScreen() {
       
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
       const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-      const apiUrl = process.env.EXPO_PUBLIC_RORK_API_BASE_URL || process.env.EXPO_PUBLIC_API_URL;
+      const toolkitUrl = process.env.EXPO_PUBLIC_TOOLKIT_URL;
+      const appUrl = process.env.EXPO_PUBLIC_APP_URL;
 
       if (!supabaseUrl || !supabaseKey) {
         updateTest(0, {
           status: 'error',
           message: '環境變數缺失',
-          details: `URL: ${supabaseUrl ? '✓' : '✗'}\nKey: ${supabaseKey ? '✓' : '✗'}`,
+          details: `Supabase URL: ${supabaseUrl ? '✓' : '✗'}\nSupabase Key: ${supabaseKey ? '✓' : '✗'}`,
         });
       } else {
         updateTest(0, {
           status: 'success',
           message: '環境變數正確配置',
-          details: `URL: ${supabaseUrl}\nAPI URL: ${apiUrl || '未設置'}`,
+          details: `Supabase URL: ✓\nSupabase Key: ✓\nApp URL: ${appUrl || '未設置'}\nToolkit URL: ${toolkitUrl || '未設置'}`,
         });
       }
 
@@ -142,30 +143,39 @@ export default function ConnectionTestScreen() {
       // 測試 4: tRPC API 連接測試
       updateTest(3, { status: 'running', message: '測試中...' });
       try {
-        // 這裡需要根據你的實際 tRPC 路由來調整
-        // 假設有一個測試用的 hello 或 hi endpoint
-        const result = await fetch(`${apiUrl || 'http://localhost:8081'}/api/trpc/example.hi`, {
+        const baseUrl = process.env.EXPO_PUBLIC_APP_URL || 'http://localhost:8081';
+        const apiEndpoint = `${baseUrl}/api/trpc/example.hi`;
+        
+        console.log('Testing tRPC API at:', apiEndpoint);
+        
+        const result = await fetch(apiEndpoint, {
           method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
         });
 
+        console.log('tRPC API Response status:', result.status);
+        
         if (result.ok) {
+          await result.json();
           updateTest(3, {
             status: 'success',
             message: 'tRPC API 連接成功',
-            details: `狀態碼: ${result.status}`,
+            details: `狀態碼: ${result.status}\nAPI URL: ${baseUrl}`,
           });
         } else {
           updateTest(3, {
             status: 'error',
             message: 'tRPC API 響應錯誤',
-            details: `狀態碼: ${result.status}`,
+            details: `狀態碼: ${result.status}\nAPI URL: ${apiEndpoint}`,
           });
         }
       } catch (error) {
         updateTest(3, {
           status: 'error',
           message: 'tRPC API 連接失敗',
-          details: error instanceof Error ? error.message : String(error),
+          details: `${error instanceof Error ? error.message : String(error)}\n請確認後端服務已啟動`,
         });
       }
 

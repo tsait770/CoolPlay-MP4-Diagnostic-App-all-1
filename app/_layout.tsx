@@ -87,6 +87,8 @@ function RootLayoutNav() {
   const [hasCheckedFirstTime, setHasCheckedFirstTime] = useState<boolean>(false);
   const [showVoiceOnboarding, setShowVoiceOnboarding] = useState<boolean>(false);
 
+  console.log('[RootLayoutNav] Rendering, storage:', typeof storage, 'userData:', typeof userData);
+
   useEffect(() => {
     let referralTimeoutId: ReturnType<typeof setTimeout> | null = null;
     let voiceTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -94,8 +96,10 @@ function RootLayoutNav() {
 
     const checkFirstTimeUser = async () => {
       try {
+        console.log('[RootLayoutNav] Checking first time user...');
         const hasSeenModal = await storage.getItem('hasSeenReferralModal');
         const isFirstTime = !hasSeenModal && !userData.hasUsedReferralCode;
+        console.log('[RootLayoutNav] hasSeenModal:', hasSeenModal, 'isFirstTime:', isFirstTime);
 
         if (isFirstTime && mounted) {
           referralTimeoutId = setTimeout(() => {
@@ -116,15 +120,17 @@ function RootLayoutNav() {
 
         if (mounted) {
           setHasCheckedFirstTime(true);
+          console.log('[RootLayoutNav] First time check completed');
         }
       } catch (error) {
-        console.error('Error checking first time user:', error);
+        console.error('[RootLayoutNav] Error checking first time user:', error);
         if (mounted) {
           setHasCheckedFirstTime(true);
         }
       }
     };
 
+    console.log('[RootLayoutNav] Starting first time check...');
     checkFirstTimeUser();
 
     return () => {
@@ -219,6 +225,7 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const [providersReady, setProvidersReady] = useState<boolean>(false);
   const [initError, setInitError] = useState<string | null>(null);
   const [preloadedData, setPreloadedData] = useState<Record<string, any> | null>(null);
 
@@ -309,11 +316,15 @@ export default function RootLayout() {
         const preloadDuration = Date.now() - preloadStart;
         console.log(`[App] Preloaded ${criticalKeys.length} keys in ${preloadDuration}ms`);
         
-        await SplashScreen.hideAsync();
-        setIsInitialized(true);
-        
         const duration = Date.now() - startTime;
         console.log(`[App] Initialization completed in ${duration}ms`);
+        
+        setIsInitialized(true);
+        
+        setTimeout(() => {
+          SplashScreen.hideAsync();
+          setProvidersReady(true);
+        }, 100);
       } catch (error) {
         console.error('[App] Initialization error:', error);
         setInitError(error instanceof Error ? error.message : 'Unknown error');
@@ -333,13 +344,15 @@ export default function RootLayout() {
     );
   }
 
-  if (!isInitialized) {
+  if (!isInitialized || !providersReady) {
     return (
       <View style={styles.loadingContainer} testID="app-loading">
-        <ActivityIndicator size="large" color={Colors.primary.accent} />
-        <Text style={styles.loadingText}>Initializing App...</Text>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>
+          {!isInitialized ? 'Initializing App...' : 'Loading Providers...'}
+        </Text>
         <Text style={[styles.loadingText, { fontSize: 12, marginTop: 10, opacity: 0.6 }]}>
-          Please wait
+          Please wait... This should only take a moment
         </Text>
       </View>
     );
@@ -414,10 +427,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.primary.bg,
+    backgroundColor: '#000000',
   },
   loadingText: {
     fontSize: 16,
-    color: Colors.primary.text,
+    color: '#ffffff',
+    marginTop: 16,
   },
 });

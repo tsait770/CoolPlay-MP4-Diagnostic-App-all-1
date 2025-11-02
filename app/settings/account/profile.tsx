@@ -6,33 +6,55 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Image,
   Alert,
 } from "react-native";
-import { User, Mail, Phone, Camera, LogOut, Link, Unlink } from "lucide-react-native";
-import Colors from "@/constants/colors";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AtSign, Lock, LogOut, Chrome, Apple } from "lucide-react-native";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useAuth } from "@/providers/AuthProvider";
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
   const { user, signInWithGoogle } = useAuth();
-  const [username, setUsername] = useState(user?.user_metadata?.username || "");
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState(user?.email || "");
-  const [phone, setPhone] = useState(user?.phone || "");
-  const [isGoogleLinked, setIsGoogleLinked] = useState(false);
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+
   const [linkingGoogle, setLinkingGoogle] = useState(false);
 
-  React.useEffect(() => {
-    if (user) {
-      const googleProvider = user.app_metadata?.providers?.includes('google') ||
-                            user.identities?.some((identity) => identity.provider === 'google');
-      setIsGoogleLinked(!!googleProvider);
-    }
-  }, [user]);
 
-  const handleSave = () => {
-    Alert.alert(t("success"), t("profile_updated"));
+
+  const handleSignIn = () => {
+    if (!email || !password) {
+      Alert.alert(t("error"), "Please enter both email and password");
+      return;
+    }
+    Alert.alert(t("success"), "Sign in successful");
+  };
+
+  const handleForgotPassword = () => {
+    Alert.alert(t("forgot_password"), t("password_reset_sent"));
+  };
+
+  const handleSignUp = () => {
+    Alert.alert(t("info"), "Navigate to Sign Up");
+  };
+
+  const handleGoogleAuth = async () => {
+    setLinkingGoogle(true);
+    const { error } = await signInWithGoogle();
+    setLinkingGoogle(false);
+
+    if (error) {
+      Alert.alert(t("error"), t("google_link_failed"));
+    } else {
+      Alert.alert(t("success"), t("google_linked_success"));
+    }
+  };
+
+  const handleAppleAuth = () => {
+    Alert.alert(t("info"), "Apple Sign In coming soon");
   };
 
   const handleLogout = () => {
@@ -42,312 +64,264 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const handleChangePassword = () => {
-    Alert.alert(t("change_password"), t("password_reset_sent"));
-  };
-
-  const handleLinkGoogle = async () => {
-    if (isGoogleLinked) {
-      Alert.alert(
-        t("unlink_google"),
-        t("unlink_google_confirm"),
-        [
-          { text: t("cancel"), style: "cancel" },
-          {
-            text: t("unlink"),
-            style: "destructive",
-            onPress: handleUnlinkGoogle,
-          },
-        ]
-      );
-    } else {
-      setLinkingGoogle(true);
-      const { error } = await signInWithGoogle();
-      setLinkingGoogle(false);
-
-      if (error) {
-        Alert.alert(t("error"), t("google_link_failed"));
-      } else {
-        setIsGoogleLinked(true);
-        Alert.alert(t("success"), t("google_linked_success"));
-      }
-    }
-  };
-
-  const handleUnlinkGoogle = async () => {
-    Alert.alert(t("info"), t("google_unlink_not_supported"));
-  };
-
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.avatarSection}>
-        <View style={styles.avatarContainer}>
-          <Image
-            source={{ uri: "https://via.placeholder.com/120" }}
-            style={styles.avatar}
-          />
-          <TouchableOpacity style={styles.cameraButton}>
-            <Camera size={20} color={Colors.primary.text} />
+    <View style={[styles.outerContainer, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <View style={styles.formContainer}>
+        {/* Email Input */}
+        <View style={styles.flexColumn}>
+          <Text style={styles.label}>Email</Text>
+          <View style={styles.inputForm}>
+            <AtSign size={20} color="#999" />
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="Enter your Email"
+              placeholderTextColor="#999"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          </View>
+        </View>
+
+        {/* Password Input */}
+        <View style={styles.flexColumn}>
+          <Text style={styles.label}>Password</Text>
+          <View style={styles.inputForm}>
+            <Lock size={20} color="#999" />
+            <TextInput
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Enter your Password"
+              placeholderTextColor="#999"
+              secureTextEntry
+            />
+          </View>
+        </View>
+
+        {/* Remember Me & Forgot Password */}
+        <View style={styles.flexRow}>
+          <TouchableOpacity 
+            style={styles.checkboxContainer}
+            onPress={() => setRememberMe(!rememberMe)}
+          >
+            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+              {rememberMe && <View style={styles.checkboxInner} />}
+            </View>
+            <Text style={styles.rememberText}>Remember me</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleForgotPassword}>
+            <Text style={styles.forgotPassword}>Forgot password?</Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.avatarHint}>{t("tap_to_change_avatar")}</Text>
-      </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t("basic_info")}</Text>
-
-        <View style={styles.inputGroup}>
-          <View style={styles.inputLabel}>
-            <User size={20} color={Colors.primary.accent} />
-            <Text style={styles.labelText}>{t("username")}</Text>
-          </View>
-          <TextInput
-            style={styles.input}
-            value={username}
-            onChangeText={setUsername}
-            placeholder={t("enter_username")}
-            placeholderTextColor={Colors.primary.textSecondary}
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <View style={styles.inputLabel}>
-            <Mail size={20} color={Colors.primary.accent} />
-            <Text style={styles.labelText}>{t("email")}</Text>
-          </View>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            placeholder={t("enter_email")}
-            placeholderTextColor={Colors.primary.textSecondary}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <View style={styles.inputLabel}>
-            <Phone size={20} color={Colors.primary.accent} />
-            <Text style={styles.labelText}>{t("phone")}</Text>
-          </View>
-          <TextInput
-            style={styles.input}
-            value={phone}
-            onChangeText={setPhone}
-            placeholder={t("enter_phone")}
-            placeholderTextColor={Colors.primary.textSecondary}
-            keyboardType="phone-pad"
-          />
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t("security")}</Text>
-
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleChangePassword}
-        >
-          <Text style={styles.actionButtonText}>{t("change_password")}</Text>
+        {/* Sign In Button */}
+        <TouchableOpacity style={styles.buttonSubmit} onPress={handleSignIn}>
+          <Text style={styles.buttonSubmitText}>Sign In</Text>
         </TouchableOpacity>
+
+        {/* Sign Up Link */}
+        <Text style={styles.signUpText}>
+          Don&apos;t have an account?{" "}
+          <Text style={styles.signUpLink} onPress={handleSignUp}>
+            Sign Up
+          </Text>
+        </Text>
+
+        {/* Or With Divider */}
+        <Text style={styles.orWith}>Or With</Text>
+
+        {/* Social Auth Buttons */}
+        <View style={styles.socialButtons}>
+          <TouchableOpacity 
+            style={styles.socialButton}
+            onPress={handleGoogleAuth}
+            disabled={linkingGoogle}
+          >
+            <Chrome size={24} color="#4285F4" />
+            <Text style={styles.socialButtonText}>Google</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.socialButton}
+            onPress={handleAppleAuth}
+          >
+            <Apple size={24} color="#000" />
+            <Text style={styles.socialButtonText}>Apple</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Logout Button */}
+        {user && (
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <LogOut size={20} color="#EF4444" />
+            <Text style={styles.logoutButtonText}>{t("logout")}</Text>
+          </TouchableOpacity>
+        )}
       </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t("linked_accounts")}</Text>
-
-        <TouchableOpacity
-          style={[
-            styles.linkedAccountButton,
-            isGoogleLinked && styles.linkedAccountButtonLinked,
-          ]}
-          onPress={handleLinkGoogle}
-          disabled={linkingGoogle}
-        >
-          <View style={styles.linkedAccountIcon}>
-            <Text style={styles.googleIconText}>G</Text>
-          </View>
-          <View style={styles.linkedAccountContent}>
-            <Text style={styles.linkedAccountTitle}>Google</Text>
-            <Text style={styles.linkedAccountStatus}>
-              {linkingGoogle
-                ? t("linking")
-                : isGoogleLinked
-                ? t("linked")
-                : t("not_linked")}
-            </Text>
-          </View>
-          {isGoogleLinked ? (
-            <Unlink size={20} color={Colors.semantic.danger} />
-          ) : (
-            <Link size={20} color={Colors.primary.accent} />
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-        <Text style={styles.saveButtonText}>{t("save_changes")}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <LogOut size={20} color={Colors.semantic.danger} />
-        <Text style={styles.logoutButtonText}>{t("logout")}</Text>
-      </TouchableOpacity>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  outerContainer: {
+    flex: 1,
+    backgroundColor: "#1a1a1a",
+  },
   container: {
     flex: 1,
-    backgroundColor: Colors.primary.bg,
   },
-  avatarSection: {
-    alignItems: "center",
-    paddingVertical: 30,
-  },
-  avatarContainer: {
-    position: "relative",
-  },
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: Colors.surface.secondary,
-  },
-  cameraButton: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    backgroundColor: Colors.primary.accent,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 3,
-    borderColor: Colors.primary.bg,
-  },
-  avatarHint: {
-    marginTop: 12,
-    fontSize: 14,
-    color: Colors.primary.textSecondary,
-  },
-  section: {
     padding: 20,
   },
-  sectionTitle: {
-    fontSize: 14,
+  formContainer: {
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 30,
+    width: "100%",
+    maxWidth: 450,
+    alignSelf: "center",
+  },
+  flexColumn: {
+    marginBottom: 10,
+  },
+  label: {
+    color: "#151717",
     fontWeight: "600" as const,
-    color: Colors.primary.textSecondary,
-    marginBottom: 16,
-    textTransform: "uppercase" as const,
-    letterSpacing: 0.5,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    fontSize: 16,
     marginBottom: 8,
   },
-  labelText: {
-    fontSize: 14,
-    fontWeight: "500" as const,
-    color: Colors.primary.text,
+  inputForm: {
+    borderWidth: 1.5,
+    borderColor: "#ecedec",
+    borderRadius: 10,
+    height: 50,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingLeft: 10,
+    paddingRight: 10,
   },
   input: {
-    backgroundColor: Colors.surface.secondary,
-    borderRadius: 12,
-    padding: 15,
-    fontSize: 16,
-    color: Colors.primary.text,
-    borderWidth: 1,
-    borderColor: Colors.card.border,
+    marginLeft: 10,
+    borderRadius: 10,
+    flex: 1,
+    height: "100%",
+    fontSize: 15,
+    color: "#151717",
   },
-  actionButton: {
-    backgroundColor: Colors.surface.secondary,
-    borderRadius: 12,
-    padding: 15,
+  flexRow: {
+    flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: Colors.card.border,
+    justifyContent: "space-between",
+    marginTop: 10,
+    marginBottom: 10,
   },
-  actionButtonText: {
-    fontSize: 16,
+  checkboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#ecedec",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+  },
+  checkboxChecked: {
+    borderColor: "#2d79f3",
+  },
+  checkboxInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#2d79f3",
+  },
+  rememberText: {
+    fontSize: 14,
+    color: "#151717",
+  },
+  forgotPassword: {
+    fontSize: 14,
+    color: "#2d79f3",
     fontWeight: "500" as const,
-    color: Colors.primary.accent,
   },
-  saveButton: {
-    margin: 20,
-    backgroundColor: Colors.primary.accent,
-    borderRadius: 12,
-    padding: 16,
+  buttonSubmit: {
+    marginTop: 20,
+    marginBottom: 10,
+    backgroundColor: "#151717",
+    height: 50,
+    borderRadius: 10,
+    justifyContent: "center",
     alignItems: "center",
   },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: "600" as const,
-    color: Colors.primary.text,
+  buttonSubmitText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "500" as const,
+  },
+  signUpText: {
+    textAlign: "center" as const,
+    color: "#151717",
+    fontSize: 14,
+    marginTop: 5,
+    marginBottom: 5,
+  },
+  signUpLink: {
+    color: "#2d79f3",
+    fontWeight: "500" as const,
+  },
+  orWith: {
+    textAlign: "center" as const,
+    color: "#151717",
+    fontSize: 14,
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  socialButtons: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 10,
+  },
+  socialButton: {
+    flex: 1,
+    height: 50,
+    borderRadius: 10,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#ededef",
+    backgroundColor: "#ffffff",
+  },
+  socialButtonText: {
+    fontSize: 15,
+    fontWeight: "500" as const,
+    color: "#151717",
   },
   logoutButton: {
-    margin: 20,
-    marginTop: 0,
+    marginTop: 20,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: Colors.surface.secondary,
-    borderRadius: 12,
+    backgroundColor: "#ffffff",
+    borderRadius: 10,
     padding: 16,
     borderWidth: 1,
-    borderColor: Colors.semantic.danger,
+    borderColor: "#EF4444",
   },
   logoutButtonText: {
     fontSize: 16,
     fontWeight: "600" as const,
-    color: Colors.semantic.danger,
-  },
-  linkedAccountButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.surface.secondary,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.card.border,
-    gap: 12,
-  },
-  linkedAccountButtonLinked: {
-    borderColor: Colors.primary.accent,
-    backgroundColor: Colors.surface.secondary,
-  },
-  linkedAccountIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#4285F4",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  googleIconText: {
-    fontSize: 20,
-    fontWeight: "700" as const,
-    color: "#FFFFFF",
-  },
-  linkedAccountContent: {
-    flex: 1,
-  },
-  linkedAccountTitle: {
-    fontSize: 16,
-    fontWeight: "600" as const,
-    color: Colors.primary.text,
-    marginBottom: 2,
-  },
-  linkedAccountStatus: {
-    fontSize: 14,
-    color: Colors.primary.textSecondary,
+    color: "#EF4444",
   },
 });

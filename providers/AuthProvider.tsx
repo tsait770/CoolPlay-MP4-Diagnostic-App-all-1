@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Session, User, AuthError } from '@supabase/supabase-js';
 import createContextHook from '@nkzw/create-context-hook';
 import { supabase } from '@/lib/supabase';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
+import { getDeviceInfo } from '@/utils/deviceId';
 
 interface Profile {
   id: string;
@@ -39,14 +42,6 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      loadProfile();
-    } else {
-      setProfile(null);
-    }
-  }, [user]);
-
   const loadProfile = useCallback(async () => {
     if (!user) return;
 
@@ -63,6 +58,14 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       console.error('Error loading profile:', error);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadProfile();
+    } else {
+      setProfile(null);
+    }
+  }, [user, loadProfile]);
 
   const signUp = useCallback(async (email: string, password: string, fullName?: string) => {
     try {
@@ -114,6 +117,105 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       setLoading(false);
     }
   }, []);
+
+  const signInWithGoogle = useCallback(async () => {
+    try {
+      setLoading(true);
+      const deviceInfo = await getDeviceInfo();
+      
+      if (Platform.OS === 'web') {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin,
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'consent',
+            },
+          },
+        });
+        
+        if (error) throw error;
+        return { data, error: null };
+      } else {
+        const redirectUrl = AuthSession.makeRedirectUri({
+          scheme: 'com.rork.instaplay',
+        });
+        
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: redirectUrl,
+            skipBrowserRedirect: false,
+          },
+        });
+        
+        if (error) throw error;
+        
+        if (data?.url) {
+          const result = await WebBrowser.openAuthSessionAsync(
+            data.url,
+            redirectUrl
+          );
+          
+          if (result.type === 'success') {
+            const { url } = result;
+            const params = new URLSearchParams(url.split('#')[1]);
+            const accessToken = params.get('access_token');
+            const refreshToken = params.get('refresh_token');
+            
+            if (accessToken) {
+              await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken || '',
+              });
+              
+              const { data: { user: currentUser } } = await supabase.auth.getUser();
+              if (currentUser) {
+                await bindDeviceToUser(currentUser.id, deviceInfo.deviceId, deviceInfo.deviceName);
+              }
+              
+              return { data, error: null };
+            }
+          }
+        }
+        
+        return { data: null, error: new Error('Google sign in cancelled') as AuthError };
+      }
+    } catch (error) {
+      console.error('Google sign in error:', error);
+      return { data: null, error: error as AuthError };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const bindDeviceToUser = async (userId: string, deviceId: string, deviceName: string) => {
+    try {
+      const { data: existingDevice } = await supabase
+        .from('bound_devices')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('device_id', deviceId)
+        .single();
+      
+      if (!existingDevice) {
+        await supabase.from('bound_devices').insert({
+          user_id: userId,
+          device_id: deviceId,
+          device_name: deviceName,
+          last_login: new Date().toISOString(),
+        });
+      } else {
+        await supabase
+          .from('bound_devices')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', existingDevice.id);
+      }
+    } catch (error) {
+      console.error('Error binding device:', error);
+    }
+  };
 
   const signOut = useCallback(async () => {
     try {
@@ -179,9 +281,10 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     isPremium,
     signUp,
     signIn,
+    signInWithGoogle,
     signOut,
     resetPassword,
     updateProfile,
     loadProfile,
-  }), [session, user, profile, loading, initializing, isPremium, signUp, signIn, signOut, resetPassword, updateProfile, loadProfile]);
+  }), [session, user, profile, loading, initializing, isPremium, signUp, signIn, signInWithGoogle, signOut, resetPassword, updateProfile, loadProfile]);
 });

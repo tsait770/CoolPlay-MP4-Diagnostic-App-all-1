@@ -11,13 +11,12 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
+import { Mail, Lock, Eye, EyeOff, Chrome } from 'lucide-react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import Colors from '@/constants/colors';
 export default function SignInScreen() {
   const router = useRouter();
-  const { signIn, loading } = useAuth();
+  const { signIn, signInWithGoogle, loading } = useAuth();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -31,6 +30,17 @@ export default function SignInScreen() {
 
     setError('');
     const { error: signInError } = await signIn(email, password);
+
+    if (signInError) {
+      setError(signInError.message);
+    } else {
+      router.replace('/(tabs)/home');
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError('');
+    const { error: signInError } = await signInWithGoogle();
 
     if (signInError) {
       setError(signInError.message);
@@ -120,6 +130,15 @@ export default function SignInScreen() {
               <Text style={styles.dividerText}>OR</Text>
               <View style={styles.dividerLine} />
             </View>
+
+            <TouchableOpacity
+              style={styles.googleButton}
+              onPress={handleGoogleSignIn}
+              disabled={loading}
+            >
+              <Chrome size={20} color="#4285F4" style={styles.googleIcon} />
+              <Text style={styles.googleButtonText}>使用 Google 登入</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.secondaryButton}
@@ -239,6 +258,24 @@ const styles = StyleSheet.create({
     borderColor: Colors.card.border,
   },
   secondaryButtonText: {
+    color: Colors.primary.text,
+    fontSize: 16,
+    fontWeight: '600' as const,
+  },
+  googleButton: {
+    backgroundColor: Colors.primary.bg,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#4285F4',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  googleIcon: {
+    marginRight: 8,
+  },
+  googleButtonText: {
     color: Colors.primary.text,
     fontSize: 16,
     fontWeight: '600' as const,

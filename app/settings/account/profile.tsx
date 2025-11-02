@@ -65,20 +65,20 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={[styles.outerContainer, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+    <View style={styles.outerContainer}>
+      <ScrollView style={styles.container} contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 }]}>
       <View style={styles.formContainer}>
         {/* Email Input */}
         <View style={styles.flexColumn}>
           <Text style={styles.label}>Email</Text>
           <View style={styles.inputForm}>
-            <AtSign size={20} color="#999" />
+            <AtSign size={22} color="#666" />
             <TextInput
               style={styles.input}
               value={email}
               onChangeText={setEmail}
               placeholder="Enter your Email"
-              placeholderTextColor="#999"
+              placeholderTextColor="#666"
               keyboardType="email-address"
               autoCapitalize="none"
             />
@@ -89,13 +89,13 @@ export default function ProfileScreen() {
         <View style={styles.flexColumn}>
           <Text style={styles.label}>Password</Text>
           <View style={styles.inputForm}>
-            <Lock size={20} color="#999" />
+            <Lock size={22} color="#666" />
             <TextInput
               style={styles.input}
               value={password}
               onChangeText={setPassword}
               placeholder="Enter your Password"
-              placeholderTextColor="#999"
+              placeholderTextColor="#666"
               secureTextEntry
             />
           </View>
@@ -140,7 +140,7 @@ export default function ProfileScreen() {
             onPress={handleGoogleAuth}
             disabled={linkingGoogle}
           >
-            <Chrome size={24} color="#4285F4" />
+            <Chrome size={24} color="#4A90E2" />
             <Text style={styles.socialButtonText}>Google</Text>
           </TouchableOpacity>
 
@@ -148,7 +148,7 @@ export default function ProfileScreen() {
             style={styles.socialButton}
             onPress={handleAppleAuth}
           >
-            <Apple size={24} color="#000" />
+            <Apple size={24} color="#ffffff" />
             <Text style={styles.socialButtonText}>Apple</Text>
           </TouchableOpacity>
         </View>
@@ -173,53 +173,52 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    backgroundColor: "#1a1a1a",
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
-    padding: 20,
+    paddingHorizontal: 20,
   },
   formContainer: {
-    backgroundColor: "#ffffff",
-    borderRadius: 20,
-    padding: 30,
+    backgroundColor: "#1a1a1a",
     width: "100%",
     maxWidth: 450,
     alignSelf: "center",
   },
   flexColumn: {
-    marginBottom: 10,
+    marginBottom: 20,
   },
   label: {
-    color: "#151717",
+    color: "#ffffff",
     fontWeight: "600" as const,
-    fontSize: 16,
-    marginBottom: 8,
+    fontSize: 20,
+    marginBottom: 12,
   },
   inputForm: {
-    borderWidth: 1.5,
-    borderColor: "#ecedec",
-    borderRadius: 10,
-    height: 50,
+    borderWidth: 0,
+    borderRadius: 12,
+    height: 60,
     flexDirection: "row",
     alignItems: "center",
-    paddingLeft: 10,
-    paddingRight: 10,
+    paddingLeft: 16,
+    paddingRight: 16,
+    backgroundColor: "#2a2a2a",
   },
   input: {
-    marginLeft: 10,
-    borderRadius: 10,
+    marginLeft: 12,
+    borderRadius: 12,
     flex: 1,
     height: "100%",
-    fontSize: 15,
-    color: "#151717",
+    fontSize: 16,
+    color: "#cccccc",
   },
   flexRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 10,
-    marginBottom: 10,
+    marginTop: 0,
+    marginBottom: 20,
   },
   checkboxContainer: {
     flexDirection: "row",
@@ -230,94 +229,95 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: "#ecedec",
+    borderColor: "#ffffff",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 8,
+    backgroundColor: "transparent",
   },
   checkboxChecked: {
-    borderColor: "#2d79f3",
+    borderColor: "#ffffff",
+    backgroundColor: "#ffffff",
   },
   checkboxInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#2d79f3",
+    backgroundColor: "#1a1a1a",
   },
   rememberText: {
-    fontSize: 14,
-    color: "#151717",
+    fontSize: 15,
+    color: "#ffffff",
   },
   forgotPassword: {
-    fontSize: 14,
-    color: "#2d79f3",
+    fontSize: 15,
+    color: "#4A90E2",
     fontWeight: "500" as const,
   },
   buttonSubmit: {
-    marginTop: 20,
-    marginBottom: 10,
-    backgroundColor: "#151717",
-    height: 50,
-    borderRadius: 10,
+    marginTop: 10,
+    marginBottom: 15,
+    backgroundColor: "#4A90E2",
+    height: 56,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
   },
   buttonSubmitText: {
     color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "500" as const,
+    fontSize: 17,
+    fontWeight: "600" as const,
   },
   signUpText: {
     textAlign: "center" as const,
-    color: "#151717",
-    fontSize: 14,
-    marginTop: 5,
-    marginBottom: 5,
+    color: "#ffffff",
+    fontSize: 15,
+    marginTop: 0,
+    marginBottom: 20,
   },
   signUpLink: {
-    color: "#2d79f3",
-    fontWeight: "500" as const,
+    color: "#4A90E2",
+    fontWeight: "600" as const,
   },
   orWith: {
     textAlign: "center" as const,
-    color: "#151717",
-    fontSize: 14,
-    marginTop: 20,
-    marginBottom: 10,
+    color: "#ffffff",
+    fontSize: 16,
+    marginTop: 10,
+    marginBottom: 20,
   },
   socialButtons: {
     flexDirection: "row",
-    gap: 10,
-    marginTop: 10,
+    gap: 12,
+    marginTop: 0,
+    marginBottom: 20,
   },
   socialButton: {
     flex: 1,
-    height: 50,
-    borderRadius: 10,
+    height: 56,
+    borderRadius: 12,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 10,
-    borderWidth: 1,
-    borderColor: "#ededef",
-    backgroundColor: "#ffffff",
+    borderWidth: 0,
+    backgroundColor: "#2a2a2a",
   },
   socialButtonText: {
-    fontSize: 15,
-    fontWeight: "500" as const,
-    color: "#151717",
+    fontSize: 16,
+    fontWeight: "600" as const,
+    color: "#ffffff",
   },
   logoutButton: {
-    marginTop: 20,
+    marginTop: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#ffffff",
-    borderRadius: 10,
+    backgroundColor: "#2a2a2a",
+    borderRadius: 12,
     padding: 16,
-    borderWidth: 1,
-    borderColor: "#EF4444",
+    borderWidth: 0,
   },
   logoutButtonText: {
     fontSize: 16,

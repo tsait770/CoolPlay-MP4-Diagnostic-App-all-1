@@ -63,9 +63,18 @@ import * as Clipboard from "expo-clipboard";
 import * as Linking from "expo-linking";
 import * as Sharing from "expo-sharing";
 import { useStorage } from "@/providers/StorageProvider";
+import { 
+  getScreenType, 
+  getResponsiveFontSize, 
+  getResponsivePadding, 
+  getMaxWidth,
+  getColumnCount,
+  responsiveValue 
+} from "@/utils/responsive";
 
-
-const { width: screenWidth } = Dimensions.get("window");
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+const maxWidth = getMaxWidth();
+const screenType = getScreenType();
 
 // Helper to get cache directory safely
 const getCacheDirectory = () => {
@@ -191,41 +200,45 @@ export default function HomeScreen() {
 
   const handleImportBookmarks = async () => {
     try {
+      console.log('[Home] Starting bookmark import');
       const result = await DocumentPicker.getDocumentAsync({
-        type: ["text/html", "application/json"],
+        type: ["text/html", "application/json", "text/*", "*/*"],
+        copyToCacheDirectory: true,
       });
 
       if (!result.canceled && result.assets[0]) {
         const file = result.assets[0];
-        const content = await FileSystem.readAsStringAsync(file.uri);
+        console.log('[Home] Selected file:', file.name, 'Type:', file.mimeType);
         
-        let newBookmarks = [];
-        if (file.mimeType === "application/json") {
-          newBookmarks = JSON.parse(content);
+        const content = await FileSystem.readAsStringAsync(file.uri);
+        console.log('[Home] File content length:', content.length);
+        
+        // Import the improved importer
+        const { importBookmarksFromFile } = await import('@/utils/bookmarkImporter');
+        
+        // Auto-detect format
+        const importResult = await importBookmarksFromFile(content, 'auto');
+        console.log('[Home] Import result:', importResult);
+        
+        if (importResult.success && importResult.bookmarks.length > 0) {
+          importBookmarks(importResult.bookmarks);
+          Alert.alert(
+            t("success"), 
+            `${t("import_success").replace("{count}", importResult.imported.toString())}\n\n` +
+            `${t("imported")}: ${importResult.imported}\n` +
+            `${t("failed")}: ${importResult.failed}\n` +
+            `${t("skipped")}: ${importResult.skipped}`
+          );
         } else {
-          // Parse HTML bookmarks
-          const regex = /<A[^>]*HREF="([^"]*)"[^>]*>([^<]*)<\/A>/gi;
-          let match;
-          while ((match = regex.exec(content)) !== null) {
-            newBookmarks.push({
-              id: Date.now().toString() + Math.random(),
-              title: match[2] || "Untitled",
-              url: match[1],
-              favorite: false,
-              addedOn: new Date().toISOString(),
-            });
-          }
-        }
-
-        if (newBookmarks.length > 0) {
-          importBookmarks(newBookmarks);
-          Alert.alert(t("success"), t("import_success").replace("{count}", newBookmarks.length.toString()));
-        } else {
-          Alert.alert(t("error"), t("import_failed"));
+          const errorMsg = importResult.errors.length > 0 
+            ? importResult.errors[0].reason 
+            : t("import_failed");
+          Alert.alert(t("error"), errorMsg);
         }
       }
     } catch (error) {
-      Alert.alert(t("error"), t("import_failed"));
+      console.error('[Home] Import error:', error);
+      Alert.alert(t("error"), error instanceof Error ? error.message : t("import_failed"));
     }
   };
 
@@ -962,6 +975,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.primary.bg,
+    alignItems: screenType !== 'mobile' ? 'center' as const : undefined,
   },
   loadingContainer: {
     flex: 1,
@@ -971,19 +985,24 @@ const styles = StyleSheet.create({
   },
   welcomeSection: {
     alignItems: "center",
-    padding: DesignTokens.spacing.xl,
+    padding: getResponsivePadding(DesignTokens.spacing.xl),
     backgroundColor: Colors.surface.primary,
     borderBottomWidth: 1,
     borderBottomColor: Colors.card.border,
+    width: '100%',
+    maxWidth: screenType !== 'mobile' ? maxWidth : undefined,
+    alignSelf: 'center' as const,
   },
   welcomeTitle: {
     ...DesignTokens.typography.display.large,
+    fontSize: getResponsiveFontSize(DesignTokens.typography.display.large.fontSize as number),
     color: Colors.primary.text,
     marginTop: DesignTokens.spacing.sm,
     textAlign: "center" as const,
   },
   welcomeSubtitle: {
     ...DesignTokens.typography.body.medium,
+    fontSize: getResponsiveFontSize(DesignTokens.typography.body.medium.fontSize as number),
     color: Colors.primary.textSecondary,
     marginTop: DesignTokens.spacing.xs,
     textAlign: "center" as const,
@@ -993,65 +1012,82 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: Colors.secondary.bg,
     borderRadius: 12,
-    paddingHorizontal: 15,
-    marginHorizontal: 20,
+    paddingHorizontal: getResponsivePadding(15),
+    marginHorizontal: getResponsivePadding(20),
     marginTop: 20,
     borderWidth: 1,
     borderColor: Colors.card.border,
+    width: screenType !== 'mobile' ? maxWidth - getResponsivePadding(40) : undefined,
+    maxWidth: screenType !== 'mobile' ? maxWidth : undefined,
+    alignSelf: screenType !== 'mobile' ? 'center' as const : undefined,
   },
   searchInput: {
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 10,
     color: Colors.primary.text,
-    fontSize: 16,
+    fontSize: getResponsiveFontSize(16),
   },
   statsContainer: {
-    flexDirection: "row",
+    flexDirection: responsiveValue('row', 'row', 'row'),
+    flexWrap: screenType !== 'mobile' ? 'wrap' as const : undefined,
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: getResponsivePadding(20),
     marginTop: 20,
+    width: screenType !== 'mobile' ? maxWidth : undefined,
+    maxWidth: screenType !== 'mobile' ? maxWidth : undefined,
+    alignSelf: screenType !== 'mobile' ? 'center' as const : undefined,
   },
   statCard: {
-    flex: 1,
+    flex: screenType === 'mobile' ? 1 : undefined,
+    width: screenType !== 'mobile' ? (maxWidth / getColumnCount(2)) - getResponsivePadding(40) : undefined,
     backgroundColor: Colors.secondary.bg,
     borderRadius: 12,
-    padding: 15,
+    padding: getResponsivePadding(15),
     alignItems: "center",
     marginHorizontal: 5,
+    marginBottom: screenType !== 'mobile' ? 10 : undefined,
     borderWidth: 1,
     borderColor: Colors.card.border,
   },
   statNumber: {
-    fontSize: 24,
+    fontSize: getResponsiveFontSize(24),
     fontWeight: "700" as const,
     color: Colors.primary.accent,
     marginTop: 8,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: getResponsiveFontSize(11),
     color: Colors.primary.textSecondary,
     marginTop: 4,
+    textAlign: 'center' as const,
   },
   featureContainer: {
-    padding: 20,
+    padding: getResponsivePadding(20),
+    flexDirection: screenType !== 'mobile' ? 'row' as const : 'column' as const,
+    flexWrap: screenType !== 'mobile' ? 'wrap' as const : undefined,
+    justifyContent: screenType !== 'mobile' ? 'space-between' : undefined,
+    width: screenType !== 'mobile' ? maxWidth : undefined,
+    maxWidth: screenType !== 'mobile' ? maxWidth : undefined,
+    alignSelf: screenType !== 'mobile' ? 'center' as const : undefined,
   },
   featureCard: {
     backgroundColor: Colors.secondary.bg,
     borderRadius: 16,
-    padding: 20,
+    padding: getResponsivePadding(20),
     marginBottom: 15,
     borderWidth: 1,
     borderColor: Colors.card.border,
+    width: screenType !== 'mobile' ? `${100 / getColumnCount(1) - 2}%` as any : undefined,
   },
   featureTitle: {
-    fontSize: 18,
+    fontSize: getResponsiveFontSize(18),
     fontWeight: "600" as const,
     color: Colors.primary.text,
     marginTop: 10,
   },
   featureDesc: {
-    fontSize: 14,
+    fontSize: getResponsiveFontSize(14),
     color: Colors.primary.textSecondary,
     marginTop: 5,
   },
@@ -1082,11 +1118,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   foldersSection: {
-    paddingHorizontal: 20,
+    paddingHorizontal: getResponsivePadding(20),
     marginTop: 10,
+    width: screenType !== 'mobile' ? maxWidth : undefined,
+    maxWidth: screenType !== 'mobile' ? maxWidth : undefined,
+    alignSelf: screenType !== 'mobile' ? 'center' as const : undefined,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: getResponsiveFontSize(18),
     fontWeight: "600" as const,
     color: Colors.primary.text,
     marginBottom: 15,
@@ -1151,7 +1190,10 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   bookmarksSection: {
-    padding: 20,
+    padding: getResponsivePadding(20),
+    width: screenType !== 'mobile' ? maxWidth : undefined,
+    maxWidth: screenType !== 'mobile' ? maxWidth : undefined,
+    alignSelf: screenType !== 'mobile' ? 'center' as const : undefined,
   },
   bookmarksHeader: {
     flexDirection: "row",
@@ -1250,12 +1292,12 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: Colors.secondary.bg,
     borderRadius: 16,
-    padding: 20,
+    padding: getResponsivePadding(20),
     width: screenWidth - 40,
-    maxWidth: 400,
+    maxWidth: responsiveValue(400, 500, 600),
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: getResponsiveFontSize(18),
     fontWeight: "600" as const,
     color: Colors.primary.text,
     marginBottom: 20,
@@ -1264,9 +1306,9 @@ const styles = StyleSheet.create({
   modalInput: {
     backgroundColor: Colors.card.bg,
     borderRadius: 8,
-    padding: 12,
+    padding: getResponsivePadding(12),
     color: Colors.primary.text,
-    fontSize: 16,
+    fontSize: getResponsiveFontSize(16),
     borderWidth: 1,
     borderColor: Colors.card.border,
   },
@@ -1299,11 +1341,14 @@ const styles = StyleSheet.create({
   membershipCard: {
     backgroundColor: Colors.secondary.bg,
     borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 20,
+    padding: getResponsivePadding(16),
+    marginHorizontal: getResponsivePadding(20),
     marginTop: 20,
     borderWidth: 2,
     borderColor: Colors.card.border,
+    width: screenType !== 'mobile' ? maxWidth - getResponsivePadding(40) : undefined,
+    maxWidth: screenType !== 'mobile' ? maxWidth : undefined,
+    alignSelf: screenType !== 'mobile' ? 'center' as const : undefined,
   },
   membershipHeader: {
     flexDirection: "row",

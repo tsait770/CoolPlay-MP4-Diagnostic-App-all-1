@@ -216,15 +216,41 @@ export default function UniversalVideoPlayer({
   }, [player, autoPlay, onPlaybackStart, onError, url, sourceInfo.type, sourceInfo.platform]);
 
   const getYouTubeEmbedUrl = (videoId: string): string => {
-    return `https://www.youtube.com/embed/${videoId}?autoplay=${autoPlay ? 1 : 0}&playsinline=1&rel=0&modestbranding=1&fs=1&iv_load_policy=3&enablejsapi=1&widget_referrer=https://rork.app`;
+    // 使用 YouTube nocookie 域名，并添加完整的参数
+    const params = new URLSearchParams({
+      autoplay: autoPlay ? '1' : '0',
+      playsinline: '1',
+      rel: '0',
+      modestbranding: '1',
+      fs: '1',
+      iv_load_policy: '3',
+      enablejsapi: '1',
+      origin: 'https://rork.app',
+      // 添加这些参数以提高兼容性
+      controls: '1',
+      showinfo: '0',
+      cc_load_policy: '0',
+      disablekb: '0',
+    });
+    return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
   };
 
   const getYouTubeWebPlayerUrl = (videoId: string): string => {
-    return `https://m.youtube.com/watch?v=${videoId}&autoplay=${autoPlay ? 1 : 0}`;
+    // 使用移动版 YouTube 作为备选
+    return `https://m.youtube.com/watch?v=${videoId}&app=m&autoplay=${autoPlay ? '1' : '0'}`;
   };
 
   const getYouTubeNoEmbedUrl = (videoId: string): string => {
-    return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${autoPlay ? 1 : 0}&playsinline=1&rel=0&modestbranding=1`;
+    // 使用标准 YouTube embed，但使用不同的参数组合
+    const params = new URLSearchParams({
+      autoplay: autoPlay ? '1' : '0',
+      playsinline: '1',
+      rel: '0',
+      modestbranding: '1',
+      controls: '1',
+      origin: 'https://rork.app',
+    });
+    return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
   };
 
   const getVimeoEmbedUrl = (videoId: string): string => {
@@ -302,18 +328,20 @@ export default function UniversalVideoPlayer({
         ref={webViewRef}
         source={{ 
           uri: embedUrl,
-          headers: sourceInfo.type === 'adult' ? {
+          headers: sourceInfo.type === 'youtube' ? {
+            // YouTube 需要的特定 headers
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8',
+            'Referer': 'https://www.youtube.com/',
+            'Origin': 'https://rork.app',
+          } : sourceInfo.type === 'adult' ? {
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
             'Accept-Encoding': 'gzip, deflate, br',
             'DNT': '1',
             'Upgrade-Insecure-Requests': '1',
-          } : sourceInfo.type === 'youtube' ? {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Referer': 'https://www.youtube.com/',
           } : {
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -332,6 +360,9 @@ export default function UniversalVideoPlayer({
         mixedContentMode="always"
         cacheEnabled={sourceInfo.type !== 'adult'}
         incognito={sourceInfo.type === 'adult'}
+        // YouTube 特定配置
+        allowsProtectedMedia={sourceInfo.type === 'youtube'}
+        allowFileAccess={sourceInfo.type === 'youtube'}
         injectedJavaScript={injectedJavaScript}
         startInLoadingState
         renderLoading={() => (

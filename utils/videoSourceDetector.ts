@@ -128,7 +128,7 @@ const SUPPORTED_PLATFORMS = [
 ];
 
 const ADULT_PLATFORMS = [
-  { pattern: /pornhub\.com/i, platform: 'Pornhub' },
+  { pattern: /(?:cn\.|www\.)?pornhub\.com/i, platform: 'Pornhub' },
   { pattern: /xvideos\.com/i, platform: 'Xvideos' },
   { pattern: /xnxx\.com/i, platform: 'Xnxx' },
   { pattern: /redtube\.com/i, platform: 'Redtube' },

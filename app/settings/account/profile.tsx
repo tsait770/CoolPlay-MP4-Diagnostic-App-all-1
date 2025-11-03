@@ -46,14 +46,27 @@ export default function ProfileScreen() {
   };
 
   const handleGoogleAuth = async () => {
-    setLinkingGoogle(true);
-    const { error } = await signInWithGoogle();
-    setLinkingGoogle(false);
+    try {
+      setLinkingGoogle(true);
+      console.log('開始 Google 認證...');
+      const result = await signInWithGoogle();
+      console.log('Google 認證結果:', result);
 
-    if (error) {
-      Alert.alert(t("error"), t("google_link_failed"));
-    } else {
-      Alert.alert(t("success"), t("google_linked_success"));
+      if (result.error) {
+        console.error('Google 認證錯誤:', result.error);
+        Alert.alert(
+          "Google 認證失敗",
+          result.error.message || "無法完成 Google 登入，請稍後再試"
+        );
+      } else {
+        console.log('Google 認證成功');
+        Alert.alert("成功", "Google 帳號連結成功！");
+      }
+    } catch (error) {
+      console.error('處理 Google 認證時發生錯誤:', error);
+      Alert.alert("錯誤", "發生未預期的錯誤，請稍後再試");
+    } finally {
+      setLinkingGoogle(false);
     }
   };
 

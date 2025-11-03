@@ -121,9 +121,12 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   const signInWithGoogle = useCallback(async () => {
     try {
       setLoading(true);
+      console.log('開始 Google 登入流程...');
       const deviceInfo = await getDeviceInfo();
+      console.log('裝置資訊:', deviceInfo);
       
       if (Platform.OS === 'web') {
+        console.log('Web 平台 Google 登入');
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
@@ -138,31 +141,58 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         if (error) throw error;
         return { data, error: null };
       } else {
+        console.log('Mobile 平台 Google 登入');
         const redirectUrl = AuthSession.makeRedirectUri({
-          scheme: 'com.rork.instaplay',
+          scheme: 'myapp',
+          path: 'auth/callback',
         });
+        console.log('Redirect URL:', redirectUrl);
         
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
             redirectTo: redirectUrl,
-            skipBrowserRedirect: false,
+            skipBrowserRedirect: true,
           },
         });
         
-        if (error) throw error;
+        if (error) {
+          console.error('Supabase OAuth 錯誤:', error);
+          throw error;
+        }
+        
+        console.log('OAuth URL 生成成功:', data?.url);
         
         if (data?.url) {
+          console.log('開啟認證瀏覽器...');
           const result = await WebBrowser.openAuthSessionAsync(
             data.url,
-            redirectUrl
+            redirectUrl,
+            {
+              showInRecents: true,
+            }
           );
           
-          if (result.type === 'success') {
-            const { url } = result;
-            const params = new URLSearchParams(url.split('#')[1]);
+          console.log('認證結果:', result);
+          
+          if (result.type === 'success' && result.url) {
+            console.log('認證成功，處理回調 URL...');
+            const url = result.url;
+            
+            let params: URLSearchParams;
+            if (url.includes('#')) {
+              params = new URLSearchParams(url.split('#')[1]);
+            } else if (url.includes('?')) {
+              params = new URLSearchParams(url.split('?')[1]);
+            } else {
+              console.error('無法解析回調 URL');
+              throw new Error('無法解析認證回調');
+            }
+            
             const accessToken = params.get('access_token');
             const refreshToken = params.get('refresh_token');
+            
+            console.log('Token 獲取成功:', { hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
             
             if (accessToken) {
               await supabase.auth.setSession({
@@ -170,21 +200,38 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                 refresh_token: refreshToken || '',
               });
               
-              const { data: { user: currentUser } } = await supabase.auth.getUser();
-              if (currentUser) {
+              console.log('Session 設置成功');
+              
+              const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
+              if (userError) {
+                console.error('獲取用戶錯誤:', userError);
+              } else if (currentUser) {
+                console.log('用戶獲取成功:', currentUser.id);
                 await bindDeviceToUser(currentUser.id, deviceInfo.deviceId, deviceInfo.deviceName);
+                console.log('裝置綁定完成');
               }
               
               return { data, error: null };
+            } else {
+              console.error('未找到 access token');
+              throw new Error('認證失敗：未獲取到訪問令牌');
             }
+          } else if (result.type === 'cancel') {
+            console.log('用戶取消認證');
+            throw new Error('用戶取消了 Google 登入');
+          } else {
+            console.error('認證失敗，類型:', result.type);
+            throw new Error('Google 認證失敗');
           }
+        } else {
+          console.error('未生成 OAuth URL');
+          throw new Error('無法生成認證 URL');
         }
-        
-        return { data: null, error: new Error('Google sign in cancelled') as AuthError };
       }
     } catch (error) {
-      console.error('Google sign in error:', error);
-      return { data: null, error: error as AuthError };
+      console.error('❌ Google 認證失敗:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Google 登入失敗';
+      return { data: null, error: { message: errorMessage, name: 'GoogleAuthError', status: 400 } as AuthError };
     } finally {
       setLoading(false);
     }

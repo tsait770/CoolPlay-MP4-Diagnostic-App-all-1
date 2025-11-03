@@ -29,6 +29,17 @@ const fallbackTranslations = {
   "total_bookmarks": "Total Bookmarks",
   "total_folders": "Total Folders",
   "voice_commands": "Voice Commands",
+  "account_info": "Account Information",
+  "subscription_plan": "Subscription Plan",
+  "device_management": "Device Management",
+  "enter_referral_code": "Enter Referral Code",
+  "forgot_password": "Forgot Password",
+  "error": "Error",
+  "success": "Success",
+  "cancel": "Cancel",
+  "logout": "Logout",
+  "logout_confirm": "Are you sure you want to logout?",
+  "password_reset_sent": "Password reset link sent",
 };
 
 const translations = {

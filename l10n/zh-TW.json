@@ -605,5 +605,6 @@
   "unlink": "解除連結",
   "google_link_failed": "Google 帳戶連結失敗",
   "google_linked_success": "Google 帳戶連結成功",
-  "google_unlink_not_supported": "目前不支援解除 Google 帳戶連結功能"
+  "google_unlink_not_supported": "目前不支援解除 Google 帳戶連結功能",
+  "forgot_password": "忘記密碼"
 }

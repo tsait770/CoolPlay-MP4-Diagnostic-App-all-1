@@ -33,6 +33,8 @@ export interface UniversalVideoPlayerProps {
   autoPlay?: boolean;
   style?: any;
   onAgeVerificationRequired?: () => void;
+  loadTimeout?: number;
+  maxRetries?: number;
 }
 
 export default function UniversalVideoPlayer({
@@ -43,6 +45,8 @@ export default function UniversalVideoPlayer({
   autoPlay = false,
   style,
   onAgeVerificationRequired,
+  loadTimeout = 30000,
+  maxRetries = 3,
 }: UniversalVideoPlayerProps) {
   const { tier } = useMembership();
   const [isLoading, setIsLoading] = useState(true);
@@ -51,8 +55,11 @@ export default function UniversalVideoPlayer({
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
+  const [loadStartTime, setLoadStartTime] = useState<number>(0);
   const webViewRef = useRef<WebView>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const player = useVideoPlayer(url, (player) => {
     player.loop = false;
@@ -98,6 +105,9 @@ export default function UniversalVideoPlayer({
     return () => {
       if (controlsTimeoutRef.current) {
         clearTimeout(controlsTimeoutRef.current);
+      }
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
       }
     };
   }, [showControls]);
@@ -163,6 +173,39 @@ export default function UniversalVideoPlayer({
     return `https://player.vimeo.com/video/${videoId}?autoplay=${autoPlay ? 1 : 0}`;
   };
 
+  const handleLoadTimeout = () => {
+    console.warn('[UniversalVideoPlayer] Load timeout exceeded');
+    const timeoutError = 'Video load timeout. The video is taking too long to load.';
+    
+    if (retryCount < maxRetries) {
+      console.log(`[UniversalVideoPlayer] Retrying... (${retryCount + 1}/${maxRetries})`);
+      setRetryCount(prev => prev + 1);
+      setIsLoading(true);
+      setPlaybackError(null);
+    } else {
+      setPlaybackError(timeoutError);
+      setIsLoading(false);
+      onError?.(timeoutError);
+    }
+  };
+
+  const startLoadTimeout = () => {
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current);
+    }
+    loadTimeoutRef.current = setTimeout(handleLoadTimeout, loadTimeout);
+    setLoadStartTime(Date.now());
+  };
+
+  const clearLoadTimeout = () => {
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current);
+      loadTimeoutRef.current = null;
+    }
+    const loadTime = Date.now() - loadStartTime;
+    console.log(`[UniversalVideoPlayer] Load completed in ${loadTime}ms`);
+  };
+
   const renderWebViewPlayer = () => {
     let embedUrl = url;
 
@@ -172,7 +215,7 @@ export default function UniversalVideoPlayer({
       embedUrl = getVimeoEmbedUrl(sourceInfo.videoId);
     }
 
-    console.log('[UniversalVideoPlayer] Rendering WebView for:', embedUrl);
+    console.log('[UniversalVideoPlayer] Rendering WebView for:', embedUrl, 'retry:', retryCount);
 
     return (
       <WebView
@@ -205,25 +248,50 @@ export default function UniversalVideoPlayer({
         onLoadStart={() => {
           console.log('[UniversalVideoPlayer] WebView load started');
           setIsLoading(true);
+          startLoadTimeout();
         }}
         onLoadEnd={() => {
           console.log('[UniversalVideoPlayer] WebView load ended');
+          clearLoadTimeout();
           setIsLoading(false);
+          setRetryCount(0);
         }}
         onError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
           console.error('[UniversalVideoPlayer] WebView error:', nativeEvent);
-          const error = `Failed to load ${sourceInfo.platform}: ${nativeEvent.description}`;
-          setPlaybackError(error);
-          onError?.(error);
+          clearLoadTimeout();
+          
+          if (retryCount < maxRetries) {
+            console.log(`[UniversalVideoPlayer] Auto-retry after error (${retryCount + 1}/${maxRetries})`);
+            setTimeout(() => {
+              setRetryCount(prev => prev + 1);
+              setIsLoading(true);
+              setPlaybackError(null);
+            }, 1000);
+          } else {
+            const error = `Failed to load ${sourceInfo.platform}: ${nativeEvent.description}`;
+            setPlaybackError(error);
+            onError?.(error);
+          }
         }}
         onHttpError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
           console.error('[UniversalVideoPlayer] WebView HTTP error:', nativeEvent);
+          clearLoadTimeout();
+          
           if (nativeEvent.statusCode >= 400) {
-            const error = `HTTP Error ${nativeEvent.statusCode}: ${nativeEvent.url}`;
-            setPlaybackError(error);
-            onError?.(error);
+            if (retryCount < maxRetries && nativeEvent.statusCode >= 500) {
+              console.log(`[UniversalVideoPlayer] Retrying after HTTP ${nativeEvent.statusCode} (${retryCount + 1}/${maxRetries})`);
+              setTimeout(() => {
+                setRetryCount(prev => prev + 1);
+                setIsLoading(true);
+                setPlaybackError(null);
+              }, 2000);
+            } else {
+              const error = `HTTP Error ${nativeEvent.statusCode}: ${nativeEvent.url}`;
+              setPlaybackError(error);
+              onError?.(error);
+            }
           }
         }}
       />

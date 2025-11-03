@@ -30,6 +30,7 @@ import {
   Monitor,
   Gauge,
   Cog,
+  ArrowLeft,
 } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -979,18 +980,38 @@ export default function PlayerScreen() {
 
         {/* Video Player - Moved to Top */}
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' ? (
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={() => setShowControls(!showControls)}
-            style={styles.videoContainer}
-          >
-            <VideoView
-              style={styles.video}
-              player={videoPlayer}
-              allowsFullscreen
-              allowsPictureInPicture
-            />
-          </TouchableOpacity>
+          <View style={styles.videoContainer}>
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={() => setShowControls(!showControls)}
+              style={styles.videoPlayerWrapper}
+            >
+              <VideoView
+                style={styles.video}
+                player={videoPlayer}
+                allowsFullscreen
+                allowsPictureInPicture
+              />
+            </TouchableOpacity>
+            
+            {/* Back to Selection Button */}
+            <TouchableOpacity
+              style={styles.backToSelectionButton}
+              onPress={() => {
+                setVideoSource(null);
+                setVideoUrl("");
+                if (videoPlayer && typeof videoPlayer.pause === 'function') {
+                  videoPlayer.pause();
+                }
+              }}
+              activeOpacity={0.8}
+            >
+              <View style={styles.backToSelectionContent}>
+                <ArrowLeft size={20} color="white" strokeWidth={2.5} />
+                <Text style={styles.backToSelectionText}>{t('back_to_selection')}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         ) : (
           <View style={styles.videoSelectionCard}>
             <View style={styles.videoSelectionIcon}>
@@ -1776,10 +1797,43 @@ const createStyles = () => {
     elevation: 4,
     minHeight: getResponsiveSize(180, 220, 260),
     maxHeight: getResponsiveSize(220, 280, 340),
+    position: "relative",
+  },
+  videoPlayerWrapper: {
+    width: "100%",
+    height: "100%",
   },
   video: {
     width: "100%",
     height: "100%",
+  },
+  backToSelectionButton: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    zIndex: 10,
+  },
+  backToSelectionContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.15)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  backToSelectionText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600" as const,
+    letterSpacing: 0.3,
   },
 
   controlsOverlay: {

@@ -40,36 +40,66 @@ class ErrorBoundary extends Component<
 
   static getDerivedStateFromError(error: Error) {
     console.error('[ErrorBoundary] Error caught:', error);
+    console.error('[ErrorBoundary] Error name:', error.name);
+    console.error('[ErrorBoundary] Error message:', error.message);
+    console.error('[ErrorBoundary] Error stack:', error.stack?.substring(0, 500));
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
-    console.error('[ErrorBoundary] Component stack:', errorInfo?.componentStack);
+    console.error('[ErrorBoundary] Component stack:', errorInfo?.componentStack?.substring(0, 500));
     this.setState({ errorInfo: errorInfo?.componentStack || 'No stack info' });
+    
+    // Log to a global error handler if available
+    if (typeof (global as any).__handleAppError === 'function') {
+      (global as any).__handleAppError(error, errorInfo);
+    }
   }
 
   render() {
     if (this.state.hasError) {
       return (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>App Error</Text>
+          <Text style={styles.errorText}>⚠️ App Error</Text>
           <Text style={styles.errorSubtext}>
-            {this.state.error?.message || 'Unknown error'}
+            {this.state.error?.name || 'Error'}: {this.state.error?.message || 'Unknown error occurred'}
           </Text>
-          <Text style={[styles.errorSubtext, { fontSize: 10, marginTop: 10 }]}>
-            {this.state.errorInfo?.substring(0, 200)}
+          <Text style={[styles.errorSubtext, { fontSize: 10, marginTop: 10, opacity: 0.7 }]}>
+            Stack: {this.state.errorInfo?.substring(0, 150)}...
           </Text>
-          <TouchableOpacity 
-            onPress={() => this.setState({ hasError: false, error: undefined })}
-            style={{
-              marginTop: 20,
-              padding: 15,
-              backgroundColor: Colors.primary.accent,
-              borderRadius: 8,
-            }}
-          >
-            <Text style={{ color: Colors.primary.text }}>Retry</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', marginTop: 20 }}>
+            <TouchableOpacity 
+              onPress={() => {
+                console.log('[ErrorBoundary] User clicked Retry');
+                this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+              }}
+              style={{
+                padding: 15,
+                backgroundColor: Colors.primary.accent,
+                borderRadius: 8,
+                marginRight: 10,
+                flex: 1,
+              }}
+            >
+              <Text style={{ color: Colors.primary.text, textAlign: 'center' as const, fontWeight: '600' as const }}>Retry</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => {
+                console.log('[ErrorBoundary] User wants to reload');
+                if (Platform.OS === 'web') {
+                  window.location.reload();
+                }
+              }}
+              style={{
+                padding: 15,
+                backgroundColor: Colors.primary.textSecondary,
+                borderRadius: 8,
+                flex: 1,
+              }}
+            >
+              <Text style={{ color: Colors.primary.text, textAlign: 'center' as const, fontWeight: '600' as const }}>Reload</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       );
     }
@@ -203,6 +233,7 @@ function RootLayoutNav() {
         <Stack.Screen name="auth/sign-in" options={{ headerShown: false }} />
         <Stack.Screen name="auth/sign-up" options={{ headerShown: false }} />
         <Stack.Screen name="subscription/index" options={{ headerShown: false }} />
+        <Stack.Screen name="debug-screen" options={{ headerShown: true, title: "Debug" }} />
       </Stack>
       {hasCheckedFirstTime && showReferralModal && (
         <ReferralCodeModal
@@ -316,45 +347,57 @@ export default function RootLayout() {
     );
   }
 
-  return (
-    <ErrorBoundary>
-      <SafeAreaProvider>
-        <trpc.Provider client={trpcClient} queryClient={queryClient}>
-          <QueryClientProvider client={queryClient}>
-            <StorageProvider>
-              <LanguageProvider>
-                <AuthProvider>
-                  <StripeProvider>
-                    <PayPalProvider>
-                      <MembershipProvider>
-                      <RatingProvider>
-                        <CategoryProvider>
-                          <BookmarkProvider>
-                            <ReferralProvider>
-                              <SoundProvider>
-                                <VoiceControlProvider>
-                                  <SiriIntegrationProvider>
-                                    <GestureHandlerRootView style={styles.container}>
-                                      <RootLayoutNav />
-                                    </GestureHandlerRootView>
-                                  </SiriIntegrationProvider>
-                                </VoiceControlProvider>
-                              </SoundProvider>
-                            </ReferralProvider>
-                          </BookmarkProvider>
-                        </CategoryProvider>
-                      </RatingProvider>
-                      </MembershipProvider>
-                    </PayPalProvider>
-                  </StripeProvider>
-                </AuthProvider>
-              </LanguageProvider>
-            </StorageProvider>
-          </QueryClientProvider>
-        </trpc.Provider>
-      </SafeAreaProvider>
-    </ErrorBoundary>
-  );
+  console.log('[RootLayout] Rendering providers, isInitialized:', isInitialized, 'providersReady:', providersReady);
+
+  try {
+    return (
+      <ErrorBoundary>
+        <SafeAreaProvider>
+          <trpc.Provider client={trpcClient} queryClient={queryClient}>
+            <QueryClientProvider client={queryClient}>
+              <StorageProvider>
+                <LanguageProvider>
+                  <AuthProvider>
+                    <StripeProvider>
+                      <PayPalProvider>
+                        <MembershipProvider>
+                          <RatingProvider>
+                            <CategoryProvider>
+                              <BookmarkProvider>
+                                <ReferralProvider>
+                                  <SoundProvider>
+                                    <VoiceControlProvider>
+                                      <SiriIntegrationProvider>
+                                        <GestureHandlerRootView style={styles.container}>
+                                          <RootLayoutNav />
+                                        </GestureHandlerRootView>
+                                      </SiriIntegrationProvider>
+                                    </VoiceControlProvider>
+                                  </SoundProvider>
+                                </ReferralProvider>
+                              </BookmarkProvider>
+                            </CategoryProvider>
+                          </RatingProvider>
+                        </MembershipProvider>
+                      </PayPalProvider>
+                    </StripeProvider>
+                  </AuthProvider>
+                </LanguageProvider>
+              </StorageProvider>
+            </QueryClientProvider>
+          </trpc.Provider>
+        </SafeAreaProvider>
+      </ErrorBoundary>
+    );
+  } catch (renderError) {
+    console.error('[RootLayout] Render error:', renderError);
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Failed to render app</Text>
+        <Text style={styles.errorSubtext}>{renderError instanceof Error ? renderError.message : 'Unknown error'}</Text>
+      </View>
+    );
+  }
 }
 
 const styles = StyleSheet.create({

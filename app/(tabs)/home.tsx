@@ -58,7 +58,7 @@ import { useCategories } from "@/providers/CategoryProvider";
 import { useMembership } from "@/providers/MembershipProvider";
 import ReferralCodeModal from "@/components/ReferralCodeModal";
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystemLegacy from "expo-file-system/legacy";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Clipboard from "expo-clipboard";
 import * as Linking from "expo-linking";
 import * as Sharing from "expo-sharing";
@@ -83,9 +83,8 @@ const getCacheDirectory = () => {
     if (Platform.OS === 'web') {
       return null;
     }
-    // Use the FileSystem API - note: the actual property name may vary by version
-    const cacheDir = (FileSystemLegacy as any).cacheDirectory;
-    return cacheDir || null;
+    // Use the FileSystem API
+    return FileSystem.cacheDirectory || null;
   } catch (error) {
     console.error('Error getting cache directory:', error);
     return null;
@@ -210,8 +209,17 @@ export default function HomeScreen() {
         const file = result.assets[0];
         console.log('[Home] Selected file:', file.name, 'Type:', file.mimeType);
         
-        const content = await FileSystemLegacy.readAsStringAsync(file.uri);
-        console.log('[Home] File content length:', content.length);
+        let content: string;
+        try {
+          // Use the new FileSystem API
+          content = await FileSystem.readAsStringAsync(file.uri, {
+            encoding: 'utf8',
+          });
+          console.log('[Home] File content length:', content.length);
+        } catch (readError) {
+          console.error('[Home] Error reading file:', readError);
+          throw new Error('Failed to read file. Please try again.');
+        }
         
         // Import the improved importer
         const { importBookmarksFromFile } = await import('@/utils/bookmarkImporter');
@@ -265,7 +273,9 @@ export default function HomeScreen() {
         return;
       }
       const fileUri = cacheDir + "bookmarks.html";
-      await FileSystemLegacy.writeAsStringAsync(fileUri, html);
+      await FileSystem.writeAsStringAsync(fileUri, html, {
+        encoding: 'utf8',
+      });
       
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri);
@@ -546,8 +556,12 @@ export default function HomeScreen() {
               }
               const htmlUri = cacheDir + `bookmarks_${item.id}.html`;
               const jsonUri = cacheDir + `bookmarks_${item.id}.json`;
-              await FileSystemLegacy.writeAsStringAsync(htmlUri, html);
-              await FileSystemLegacy.writeAsStringAsync(jsonUri, json);
+              await FileSystem.writeAsStringAsync(htmlUri, html, {
+                encoding: 'utf8',
+              });
+              await FileSystem.writeAsStringAsync(jsonUri, json, {
+                encoding: 'utf8',
+              });
               if (await Sharing.isAvailableAsync()) {
                 await Sharing.shareAsync(htmlUri);
               } else {

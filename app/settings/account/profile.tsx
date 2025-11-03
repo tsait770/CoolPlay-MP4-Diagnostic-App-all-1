@@ -87,7 +87,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.outerContainer}>
-      <ScrollView style={styles.container} contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 }]}>
+      <ScrollView style={styles.container} contentContainerStyle={[styles.scrollContent, { paddingTop: 60, paddingBottom: insets.bottom + 20 }]}>
       <View style={styles.formContainer}>
         {/* Email Input */}
         <View style={styles.flexColumn}>
@@ -223,7 +223,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "center",
     paddingHorizontal: 20,
   },
   formContainer: {

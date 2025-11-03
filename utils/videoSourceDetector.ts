@@ -204,36 +204,36 @@ const UNSUPPORTED_PLATFORMS = [
 export function detectVideoSource(url: string): VideoSourceInfo {
   console.log('[VideoSourceDetector] Detecting source for URL:', url);
   
-  // Check for empty or invalid URL
   if (!url || typeof url !== 'string' || url.trim() === '') {
     console.warn('[VideoSourceDetector] Invalid URL: empty or not a string');
     return {
       type: 'unknown',
       platform: 'Unknown',
       requiresPremium: false,
-      error: 'Invalid URL: URL cannot be empty',
+      error: '無效網址',
+      requiresWebView: false,
     };
   }
 
   const trimmedUrl = url.trim();
   
-  // Validate URL format - must start with valid protocol or be a valid URL
   const isValidUrlFormat = /^(https?:\/\/|rtmp:\/\/|rtsp:\/\/)/.test(trimmedUrl) || 
-    /^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]\.[a-zA-Z]{2,}/.test(trimmedUrl);
+    /^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]\.[a-zA-Z]{2,}/.test(trimmedUrl) ||
+    trimmedUrl.startsWith('data:');
   
-  if (!isValidUrlFormat && !trimmedUrl.startsWith('data:')) {
+  if (!isValidUrlFormat) {
     console.warn('[VideoSourceDetector] Invalid URL format:', trimmedUrl);
     return {
       type: 'unknown',
       platform: 'Unknown',
       requiresPremium: false,
-      error: 'Invalid URL format: URL must start with http://, https://, rtmp://, rtsp:// or be a valid domain',
+      error: '無效網址',
+      requiresWebView: false,
     };
   }
 
   const normalizedUrl = trimmedUrl.toLowerCase();
 
-  // Priority 1: Check for DRM-protected platforms first
   for (const source of UNSUPPORTED_PLATFORMS) {
     if (source.pattern.test(url)) {
       console.warn('[VideoSourceDetector] Unsupported DRM platform:', source.platform);
@@ -241,12 +241,12 @@ export function detectVideoSource(url: string): VideoSourceInfo {
         type: 'unsupported',
         platform: source.platform,
         requiresPremium: false,
-        error: `${source.platform} is not supported due to DRM restrictions`,
+        error: `${source.platform} 由於 DRM 保護限制，暫不支援播放`,
+        requiresWebView: false,
       };
     }
   }
 
-  // Priority 2: Check for direct media file URLs
   const fileExtMatch = normalizedUrl.match(new RegExp(`\\.(${DIRECT_VIDEO_FORMATS.join('|')})(\\?.*)?$`, 'i'));
   if (fileExtMatch) {
     const ext = fileExtMatch[1];
@@ -256,10 +256,10 @@ export function detectVideoSource(url: string): VideoSourceInfo {
       platform: 'Direct Video',
       requiresPremium: false,
       streamType: ext as 'mp4' | 'webm' | 'ogg' | 'mkv' | 'avi' | 'mov',
+      requiresWebView: false,
     };
   }
 
-  // Priority 3: Check for streaming protocols
   for (const [protocol, pattern] of Object.entries(STREAM_PROTOCOLS)) {
     if (pattern.test(url)) {
       console.log(`[VideoSourceDetector] Detected ${protocol.toUpperCase()} stream`);
@@ -268,11 +268,11 @@ export function detectVideoSource(url: string): VideoSourceInfo {
         platform: `${protocol.toUpperCase()} Stream`,
         requiresPremium: false,
         streamType: protocol as 'hls' | 'dash' | 'rtmp',
+        requiresWebView: false,
       };
     }
   }
 
-  // Priority 4: Check for adult content platforms
   for (const source of ADULT_PLATFORMS) {
     if (source.pattern.test(url)) {
       console.log('[VideoSourceDetector] Detected adult content:', source.platform);
@@ -286,7 +286,6 @@ export function detectVideoSource(url: string): VideoSourceInfo {
     }
   }
 
-  // Priority 5: Check for cloud storage platforms (must be before social media)
   for (const source of SUPPORTED_PLATFORMS) {
     if ((source.type === 'gdrive' || source.type === 'dropbox') && source.pattern.test(url)) {
       console.log('[VideoSourceDetector] Detected cloud storage:', source.platform);
@@ -299,7 +298,6 @@ export function detectVideoSource(url: string): VideoSourceInfo {
     }
   }
 
-  // Priority 6: Check for other supported platforms
   for (const source of SUPPORTED_PLATFORMS) {
     if (source.type !== 'gdrive' && source.type !== 'dropbox' && source.pattern.test(url)) {
       console.log('[VideoSourceDetector] Detected supported platform:', source.platform);
@@ -307,7 +305,6 @@ export function detectVideoSource(url: string): VideoSourceInfo {
       let videoId: string | undefined;
       if (source.extractVideoId) {
         if (source.type === 'youtube') {
-          // Support all YouTube formats including shorts and query parameters
           const patterns = [
             /(?:youtube\.com\/watch\?.*v=)([\w-]{11})/i,
             /(?:youtu\.be\/)([\w-]{11})/i,
@@ -343,24 +340,23 @@ export function detectVideoSource(url: string): VideoSourceInfo {
     }
   }
 
-  // Priority 7: Fallback to WebView for any http/https URL
   if (/^https?:\/\//i.test(url)) {
     console.log('[VideoSourceDetector] Fallback to WebView for unknown URL');
     return {
       type: 'webview',
-      platform: 'Web Content',
+      platform: '網頁內容',
       requiresPremium: false,
       requiresWebView: true,
     };
   }
 
-  // If we reach here, the URL format is not recognized
   console.warn('[VideoSourceDetector] Unsupported video source format');
   return {
     type: 'unknown',
     platform: 'Unknown',
     requiresPremium: false,
-    error: 'Unsupported video format: This URL format is not recognized by the player',
+    error: '不支援的影片格式',
+    requiresWebView: false,
   };
 }
 
@@ -376,34 +372,28 @@ export function canPlayVideo(
     membershipTier,
   });
 
-  // Block unsupported DRM platforms
   if (sourceInfo.type === 'unsupported') {
     return {
       canPlay: false,
-      reason: sourceInfo.error || `${sourceInfo.platform} is not supported due to DRM restrictions`,
+      reason: sourceInfo.error || `${sourceInfo.platform} 由於 DRM 保護限制，暫不支援播放`,
     };
   }
 
-  // Check adult content access based on membership
   if (sourceInfo.type === 'adult') {
-    // Free trial: Allow (as per V7 spec)
     if (membershipTier === 'free_trial') {
       return { canPlay: true };
     }
     
-    // Free: Block
     if (membershipTier === 'free') {
       return {
         canPlay: false,
-        reason: 'Adult content requires a Basic or Premium membership. Free trial members have access.',
+        reason: '成人內容需要 Basic 或 Premium 會員。免費試用會員可以訪問。',
       };
     }
     
-    // Basic and Premium: Allow
     return { canPlay: true };
   }
 
-  // Free tier restrictions: Only MP4, WebM, OGG, OGV, YouTube, Vimeo
   if (membershipTier === 'free') {
     const allowedForFree = ['youtube', 'vimeo'];
     const allowedFormats = ['mp4', 'webm', 'ogg', 'ogv'];
@@ -412,35 +402,31 @@ export function canPlayVideo(
       if (!allowedFormats.includes(sourceInfo.streamType)) {
         return {
           canPlay: false,
-          reason: 'This video format requires a Basic or Premium membership. Free tier supports MP4, WebM, OGG, OGV, YouTube, and Vimeo only.',
+          reason: '此影片格式需要 Basic 或 Premium 會員。免費版支援 MP4、WebM、OGG、OGV、YouTube 和 Vimeo。',
         };
       }
     } else if (!allowedForFree.includes(sourceInfo.type)) {
       return {
         canPlay: false,
-        reason: 'This platform requires a Basic or Premium membership. Free tier supports YouTube and Vimeo only.',
+        reason: '此平台需要 Basic 或 Premium 會員。免費版僅支援 YouTube 和 Vimeo。',
       };
     }
   }
 
-  // All other cases: Allow playback
   return { canPlay: true };
 }
 
 export function getSupportedPlatforms(membershipTier: 'free_trial' | 'free' | 'basic' | 'premium'): string[] {
   const platforms: string[] = [];
   
-  // Free tier: Limited platforms
   if (membershipTier === 'free' as string) {
     platforms.push('YouTube', 'Vimeo', 'Direct Video (MP4, WebM, OGG, OGV)');
     return platforms;
   }
   
-  // All other tiers: Full platform support
   platforms.push(...SUPPORTED_PLATFORMS.map(s => s.platform));
   platforms.push('HLS Stream', 'DASH Stream', 'RTMP Stream', 'Direct Video (All formats)');
   
-  // Add adult platforms for non-free tiers
   if (membershipTier !== 'free') {
     platforms.push(...ADULT_PLATFORMS.map(s => `${s.platform} (18+)`));
   }

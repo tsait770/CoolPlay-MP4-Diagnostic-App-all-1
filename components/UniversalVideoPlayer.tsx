@@ -208,36 +208,50 @@ export default function UniversalVideoPlayer({
 
   const renderWebViewPlayer = () => {
     let embedUrl = url;
+    let customHeaders: Record<string, string> = {
+      'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+    };
 
     if (sourceInfo.type === 'youtube' && sourceInfo.videoId) {
       embedUrl = getYouTubeEmbedUrl(sourceInfo.videoId);
     } else if (sourceInfo.type === 'vimeo' && sourceInfo.videoId) {
       embedUrl = getVimeoEmbedUrl(sourceInfo.videoId);
+    } else if (sourceInfo.type === 'adult') {
+      // Adult sites need specific headers
+      customHeaders = {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Referer': embedUrl,
+        'DNT': '1',
+      };
     }
 
-    console.log('[UniversalVideoPlayer] Rendering WebView for:', embedUrl, 'retry:', retryCount);
+    console.log('[UniversalVideoPlayer] Rendering WebView for:', embedUrl, 'platform:', sourceInfo.platform, 'retry:', retryCount);
 
     return (
       <WebView
         ref={webViewRef}
         source={{ 
           uri: embedUrl,
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-          }
+          headers: customHeaders,
         }}
         style={styles.webView}
         originWhitelist={['*']}
         allowsFullscreenVideo
         allowsInlineMediaPlayback
-        mediaPlaybackRequiresUserAction={!autoPlay}
+        mediaPlaybackRequiresUserAction={false}
         javaScriptEnabled
         domStorageEnabled
         sharedCookiesEnabled
         thirdPartyCookiesEnabled
         mixedContentMode="always"
+        cacheEnabled={true}
+        cacheMode="LOAD_DEFAULT"
+        incognito={false}
         startInLoadingState
         renderLoading={() => (
           <View style={styles.loadingContainer}>

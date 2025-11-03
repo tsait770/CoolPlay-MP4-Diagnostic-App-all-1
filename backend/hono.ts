@@ -7,8 +7,13 @@ import { createContext } from "@/backend/trpc/create-context";
 // app will be mounted at /api
 const app = new Hono();
 
-// Enable CORS for all routes
-app.use("*", cors());
+// Enable CORS for all routes (allow Authorization header)
+app.use("*", cors({
+  origin: "*",
+  allowMethods: ["GET", "POST", "OPTIONS"],
+  allowHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+}));
 
 // Mount tRPC router at /trpc
 app.use(

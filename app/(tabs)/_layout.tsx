@@ -33,7 +33,7 @@ export default function TabLayout() {
     community: {
       title: t("community_share"),
       tabBarIcon: ({ color }: { color: string }) => (
-        <Ionicons name="share-outline" size={24} color={color} />
+        <Ionicons name="share-social" size={24} color={color} />
       ),
     },
     settings: {

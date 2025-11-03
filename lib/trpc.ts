@@ -2,6 +2,7 @@ import { createTRPCReact } from "@trpc/react-query";
 import { httpLink } from "@trpc/client";
 import type { AppRouter } from "@/backend/trpc/app-router";
 import superjson from "superjson";
+import { supabase } from "@/lib/supabase";
 
 export const trpc = createTRPCReact<AppRouter>();
 
@@ -26,6 +27,35 @@ export const trpcClient = trpc.createClient({
     httpLink({
       url: `${getBaseUrl()}/api/trpc`,
       transformer: superjson,
+      fetch: async (url, options) => {
+        try {
+          // Attach Supabase access token for protected tRPC procedures
+          const { data: { session } } = await supabase.auth.getSession();
+          const headers = new Headers(options?.headers || {});
+          if (session?.access_token) {
+            headers.set('Authorization', `Bearer ${session.access_token}`);
+          }
+
+          const response = await fetch(url, { ...options, headers });
+          return response;
+        } catch (error) {
+          console.warn('[tRPC] Network error, API unavailable:', error);
+          // Return a mock response for development
+          return new Response(
+            JSON.stringify({ 
+              error: { 
+                message: 'API temporarily unavailable', 
+                code: 'NETWORK_ERROR' 
+              } 
+            }),
+            { 
+              status: 503, 
+              statusText: 'Service Unavailable',
+              headers: { 'Content-Type': 'application/json' }
+            }
+          );
+        }
+      },
     }),
   ],
 });

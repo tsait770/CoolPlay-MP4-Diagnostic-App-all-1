@@ -24,8 +24,7 @@ export const safeJsonParse = (data: string, fallback: any = null) => {
         cleaned === 'NaN' ||
         cleaned === 'null' ||
         cleaned.startsWith('object ') ||
-        cleaned.startsWith('Object ') ||
-        (/^[a-zA-Z]/.test(cleaned.charAt(0)) && !cleaned.startsWith('true') && !cleaned.startsWith('false') && !cleaned.startsWith('"'))) {
+        cleaned.startsWith('Object ')) {
       console.warn('[Storage] Detected corrupted data pattern:', cleaned.substring(0, 50));
       return fallback;
     }
@@ -302,8 +301,7 @@ export const [StorageProvider, useStorage] = createContextHook(() => {
                 cleaned === 'NaN' ||
                 cleaned === 'null' ||
                 cleaned.startsWith('object ') ||
-                cleaned.startsWith('Object ') ||
-                (/^[a-zA-Z]/.test(cleaned.charAt(0)) && !cleaned.startsWith('true') && !cleaned.startsWith('false') && !cleaned.startsWith('"'))) {
+                cleaned.startsWith('Object ')) {
               console.warn(`[Storage] Found corrupted key: ${key}, data preview: ${cleaned.substring(0, 50)}`);
               corruptedKeys.push(key);
             } else if (cleaned.startsWith('{') || cleaned.startsWith('[')) {

@@ -19,21 +19,32 @@ const [LanguageContext, useLanguageContext] = createContextHook(() => {
       setIsLoading(true);
       
       if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
-        // Web platform: use localStorage
         const savedLang = localStorage.getItem("app_language");
-        if (savedLang && typeof savedLang === 'string' && savedLang.length > 0 && isValidLanguage(savedLang)) {
-          setLanguageState(savedLang as Language);
+        if (savedLang && typeof savedLang === 'string' && savedLang.trim().length > 0) {
+          const trimmed = savedLang.trim();
+          if (isValidLanguage(trimmed)) {
+            setLanguageState(trimmed as Language);
+            console.log(`[useLanguage] Loaded language from localStorage: ${trimmed}`);
+          } else {
+            console.warn(`[useLanguage] Invalid language in localStorage: ${trimmed}`);
+            localStorage.removeItem("app_language");
+          }
         }
       } else {
-        // Native platforms: use AsyncStorage
         const savedLang = await AsyncStorage.getItem("app_language");
-        if (savedLang && typeof savedLang === 'string' && savedLang.length > 0 && isValidLanguage(savedLang)) {
-          setLanguageState(savedLang as Language);
+        if (savedLang && typeof savedLang === 'string' && savedLang.trim().length > 0) {
+          const trimmed = savedLang.trim();
+          if (isValidLanguage(trimmed)) {
+            setLanguageState(trimmed as Language);
+            console.log(`[useLanguage] Loaded language from AsyncStorage: ${trimmed}`);
+          } else {
+            console.warn(`[useLanguage] Invalid language in AsyncStorage: ${trimmed}`);
+            await AsyncStorage.removeItem("app_language");
+          }
         }
       }
     } catch (error) {
-      console.error("Failed to load language:", error);
-      // Clear corrupted data
+      console.error("[useLanguage] Failed to load language:", error);
       try {
         if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
           localStorage.removeItem("app_language");
@@ -41,7 +52,7 @@ const [LanguageContext, useLanguageContext] = createContextHook(() => {
           await AsyncStorage.removeItem("app_language");
         }
       } catch (clearError) {
-        console.error("Failed to clear corrupted language data:", clearError);
+        console.error("[useLanguage] Failed to clear corrupted language data:", clearError);
       }
     } finally {
       setIsLoading(false);

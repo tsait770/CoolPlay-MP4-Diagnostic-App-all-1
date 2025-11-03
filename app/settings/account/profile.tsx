@@ -166,7 +166,7 @@ export default function ProfileScreen() {
             ) : (
               <>
                 <Image 
-                  source="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                  source={{ uri: "https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" }}
                   style={styles.socialIcon}
                   contentFit="contain"
                   cachePolicy="memory-disk"
@@ -187,7 +187,7 @@ export default function ProfileScreen() {
             ) : (
               <>
                 <Image 
-                  source="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"
+                  source={{ uri: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" }}
                   style={styles.socialIcon}
                   contentFit="contain"
                   cachePolicy="memory-disk"

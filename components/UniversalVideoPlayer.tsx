@@ -216,8 +216,15 @@ export default function UniversalVideoPlayer({
   }, [player, autoPlay, onPlaybackStart, onError, url, sourceInfo.type, sourceInfo.platform]);
 
   const getYouTubeEmbedUrl = (videoId: string): string => {
-    // More reliable embed URL with proper parameters
-    return `https://www.youtube.com/embed/${videoId}?autoplay=${autoPlay ? 1 : 0}&playsinline=1&rel=0&modestbranding=1&fs=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://localhost'}`;
+    return `https://www.youtube.com/embed/${videoId}?autoplay=${autoPlay ? 1 : 0}&playsinline=1&rel=0&modestbranding=1&fs=1&iv_load_policy=3&enablejsapi=1&widget_referrer=https://rork.app`;
+  };
+
+  const getYouTubeWebPlayerUrl = (videoId: string): string => {
+    return `https://m.youtube.com/watch?v=${videoId}&autoplay=${autoPlay ? 1 : 0}`;
+  };
+
+  const getYouTubeNoEmbedUrl = (videoId: string): string => {
+    return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${autoPlay ? 1 : 0}&playsinline=1&rel=0&modestbranding=1`;
   };
 
   const getVimeoEmbedUrl = (videoId: string): string => {
@@ -259,11 +266,33 @@ export default function UniversalVideoPlayer({
 
   const renderWebViewPlayer = () => {
     let embedUrl = url;
+    let injectedJavaScript = '';
 
     if (sourceInfo.type === 'youtube' && sourceInfo.videoId) {
-      embedUrl = getYouTubeEmbedUrl(sourceInfo.videoId);
+      if (retryCount === 0) {
+        embedUrl = getYouTubeEmbedUrl(sourceInfo.videoId);
+      } else if (retryCount === 1) {
+        embedUrl = getYouTubeWebPlayerUrl(sourceInfo.videoId);
+      } else {
+        embedUrl = getYouTubeNoEmbedUrl(sourceInfo.videoId);
+      }
     } else if (sourceInfo.type === 'vimeo' && sourceInfo.videoId) {
       embedUrl = getVimeoEmbedUrl(sourceInfo.videoId);
+    } else if (sourceInfo.type === 'adult') {
+      injectedJavaScript = `
+        (function() {
+          var style = document.createElement('style');
+          style.innerHTML = 'video { width: 100% !important; height: 100% !important; object-fit: contain; }';
+          document.head.appendChild(style);
+          
+          setTimeout(function() {
+            var videos = document.querySelectorAll('video');
+            if (videos.length > 0) {
+              videos[0].play().catch(function(e) { console.log('Autoplay blocked:', e); });
+            }
+          }, 1000);
+        })();
+      `;
     }
 
     console.log('[UniversalVideoPlayer] Rendering WebView for:', embedUrl, 'retry:', retryCount);
@@ -301,8 +330,9 @@ export default function UniversalVideoPlayer({
         sharedCookiesEnabled
         thirdPartyCookiesEnabled
         mixedContentMode="always"
-        cacheEnabled={true}
-        incognito={false}
+        cacheEnabled={sourceInfo.type !== 'adult'}
+        incognito={sourceInfo.type === 'adult'}
+        injectedJavaScript={injectedJavaScript}
         startInLoadingState
         renderLoading={() => (
           <View style={styles.loadingContainer}>
@@ -326,10 +356,18 @@ export default function UniversalVideoPlayer({
           console.error('[UniversalVideoPlayer] WebView error:', nativeEvent);
           clearLoadTimeout();
           
-          // For YouTube, provide specific error messages
           if (sourceInfo.type === 'youtube') {
-            console.log('[UniversalVideoPlayer] YouTube loading error');
-            const error = `YouTube 視頻載入失敗。這可能是由於：\n1. 視頻被設為私人或已刪除\n2. 視頻限制嵌入播放\n3. 地區限制\n\n請嘗試在 YouTube 應用中打開該視頻。`;
+            console.log('[UniversalVideoPlayer] YouTube loading error, retry:', retryCount);
+            if (retryCount < maxRetries) {
+              console.log(`[UniversalVideoPlayer] Retrying YouTube with alternative method (${retryCount + 1}/${maxRetries})`);
+              setTimeout(() => {
+                setRetryCount(prev => prev + 1);
+                setIsLoading(true);
+                setPlaybackError(null);
+              }, 1500);
+              return;
+            }
+            const error = `YouTube 視頻載入失敗。這可能是由於：\n1. 視頻被設為私人或已刪除\n2. 視頻限制嵌入播放\n3. 地區限制\n\n已嘗試 ${maxRetries} 種載入方式。`;
             setPlaybackError(error);
             onError?.(error);
             return;

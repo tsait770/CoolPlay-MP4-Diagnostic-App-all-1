@@ -153,7 +153,16 @@ export default function UniversalVideoPlayer({
           onPlaybackStart?.();
         }
       } else if (status.status === 'error') {
-        const errorMsg = `Playback error: ${status.error}`;
+        const errorDetails = typeof status.error === 'object' 
+          ? JSON.stringify(status.error) 
+          : String(status.error || 'Unknown error');
+        const errorMsg = `Playback error: ${errorDetails}`;
+        console.error('[UniversalVideoPlayer] Video player error:', {
+          error: status.error,
+          url,
+          sourceType: sourceInfo.type,
+          platform: sourceInfo.platform,
+        });
         setPlaybackError(errorMsg);
         onError?.(errorMsg);
       }
@@ -163,7 +172,7 @@ export default function UniversalVideoPlayer({
       subscription.remove();
       statusSubscription.remove();
     };
-  }, [player, autoPlay, onPlaybackStart, onError]);
+  }, [player, autoPlay, onPlaybackStart, onError, url, sourceInfo.type, sourceInfo.platform]);
 
   const getYouTubeEmbedUrl = (videoId: string): string => {
     return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${autoPlay ? 1 : 0}&controls=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`;

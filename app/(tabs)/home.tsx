@@ -58,7 +58,7 @@ import { useCategories } from "@/providers/CategoryProvider";
 import { useMembership } from "@/providers/MembershipProvider";
 import ReferralCodeModal from "@/components/ReferralCodeModal";
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system/legacy";
+import * as FileSystemLegacy from "expo-file-system/legacy";
 import * as Clipboard from "expo-clipboard";
 import * as Linking from "expo-linking";
 import * as Sharing from "expo-sharing";
@@ -84,7 +84,7 @@ const getCacheDirectory = () => {
       return null;
     }
     // Use the FileSystem API - note: the actual property name may vary by version
-    const cacheDir = (FileSystem as any).cacheDirectory;
+    const cacheDir = (FileSystemLegacy as any).cacheDirectory;
     return cacheDir || null;
   } catch (error) {
     console.error('Error getting cache directory:', error);
@@ -210,7 +210,7 @@ export default function HomeScreen() {
         const file = result.assets[0];
         console.log('[Home] Selected file:', file.name, 'Type:', file.mimeType);
         
-        const content = await FileSystem.readAsStringAsync(file.uri);
+        const content = await FileSystemLegacy.readAsStringAsync(file.uri);
         console.log('[Home] File content length:', content.length);
         
         // Import the improved importer
@@ -265,7 +265,7 @@ export default function HomeScreen() {
         return;
       }
       const fileUri = cacheDir + "bookmarks.html";
-      await FileSystem.writeAsStringAsync(fileUri, html);
+      await FileSystemLegacy.writeAsStringAsync(fileUri, html);
       
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri);
@@ -546,8 +546,8 @@ export default function HomeScreen() {
               }
               const htmlUri = cacheDir + `bookmarks_${item.id}.html`;
               const jsonUri = cacheDir + `bookmarks_${item.id}.json`;
-              await FileSystem.writeAsStringAsync(htmlUri, html);
-              await FileSystem.writeAsStringAsync(jsonUri, json);
+              await FileSystemLegacy.writeAsStringAsync(htmlUri, html);
+              await FileSystemLegacy.writeAsStringAsync(jsonUri, json);
               if (await Sharing.isAvailableAsync()) {
                 await Sharing.shareAsync(htmlUri);
               } else {

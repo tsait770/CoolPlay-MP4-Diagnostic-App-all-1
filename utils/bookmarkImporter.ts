@@ -94,10 +94,11 @@ export async function parseHTMLBookmarks(
   const sanitizedContent = sanitizeString(content);
   console.log('[BookmarkImporter] Sanitized content length:', sanitizedContent.length);
 
-  const linkRegex = /<DT><A\s+([^>]+)>([^<]*)<\/A>/gi;
-  const hrefRegex = /HREF="([^"]*)"/i;
-  const addDateRegex = /ADD_DATE="(\d+)"/i;
-  const iconRegex = /ICON="([^"]*)"/i;
+  // Support both uppercase and lowercase HTML tags, and various formats
+  const linkRegex = /<(?:DT|dt)>\s*<(?:A|a)\s+([^>]+)>([^<]*)<\/(?:A|a)>/gi;
+  const hrefRegex = /(?:HREF|href)=["']([^"']*)["']/i;
+  const addDateRegex = /(?:ADD_DATE|add_date)=["']?(\d+)["']?/i;
+  const iconRegex = /(?:ICON|icon)=["']([^"']*)["']/i;
 
   const matches = Array.from(sanitizedContent.matchAll(linkRegex));
   const total = matches.length;
@@ -365,10 +366,10 @@ export async function parseJSONBookmarks(
 
 export async function importBookmarksFromFile(
   fileContent: string,
-  format: 'html' | 'json' = 'html',
+  format?: 'html' | 'json' | 'auto',
   onProgress?: ImportProgressCallback
 ): Promise<ImportResult> {
-  console.log(`[BookmarkImporter] Starting import with format: ${format}`);
+  console.log(`[BookmarkImporter] Starting import with format: ${format || 'auto'}`);
   console.log(`[BookmarkImporter] File size: ${fileContent.length} bytes`);
 
   if (!fileContent || fileContent.trim().length === 0) {
@@ -383,7 +384,37 @@ export async function importBookmarksFromFile(
   }
 
   try {
-    if (format === 'json') {
+    let detectedFormat: 'html' | 'json' = format === 'html' || format === 'json' ? format : 'html';
+    
+    // Auto-detect format if not specified or set to auto
+    if (!format || format === 'auto') {
+      const trimmedContent = fileContent.trim();
+      
+      // Try to detect JSON first
+      if (trimmedContent.startsWith('[') || trimmedContent.startsWith('{')) {
+        try {
+          JSON.parse(trimmedContent);
+          detectedFormat = 'json';
+          console.log('[BookmarkImporter] Auto-detected JSON format');
+        } catch {
+          // Not valid JSON, try HTML
+          detectedFormat = 'html';
+        }
+      }
+      
+      // Check for HTML bookmark markers
+      if (detectedFormat !== 'json' && (
+        trimmedContent.includes('<!DOCTYPE NETSCAPE-Bookmark-file-1>') ||
+        trimmedContent.includes('<DT><A') ||
+        trimmedContent.includes('<dt><a') ||
+        trimmedContent.includes('HREF=')
+      )) {
+        detectedFormat = 'html';
+        console.log('[BookmarkImporter] Auto-detected HTML format');
+      }
+    }
+
+    if (detectedFormat === 'json') {
       return await parseJSONBookmarks(fileContent, onProgress);
     } else {
       return await parseHTMLBookmarks(fileContent, onProgress);

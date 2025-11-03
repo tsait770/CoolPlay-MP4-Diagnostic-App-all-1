@@ -216,7 +216,7 @@ export default function UniversalVideoPlayer({
   }, [player, autoPlay, onPlaybackStart, onError, url, sourceInfo.type, sourceInfo.platform]);
 
   const getYouTubeEmbedUrl = (videoId: string): string => {
-    // 使用 YouTube nocookie 域名，并添加完整的参数
+    // 使用標準 YouTube embed，並優化參數以提高兼容性
     const params = new URLSearchParams({
       autoplay: autoPlay ? '1' : '0',
       playsinline: '1',
@@ -225,32 +225,32 @@ export default function UniversalVideoPlayer({
       fs: '1',
       iv_load_policy: '3',
       enablejsapi: '1',
-      origin: 'https://rork.app',
-      // 添加这些参数以提高兼容性
       controls: '1',
       showinfo: '0',
       cc_load_policy: '0',
       disablekb: '0',
+      widget_referrer: 'https://rork.app',
     });
-    return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
+    return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
   };
 
   const getYouTubeWebPlayerUrl = (videoId: string): string => {
-    // 使用移动版 YouTube 作为备选
-    return `https://m.youtube.com/watch?v=${videoId}&app=m&autoplay=${autoPlay ? '1' : '0'}`;
+    // 使用標準 YouTube 播放頁面作為備選
+    return `https://www.youtube.com/watch?v=${videoId}&autoplay=${autoPlay ? '1' : '0'}`;
   };
 
   const getYouTubeNoEmbedUrl = (videoId: string): string => {
-    // 使用标准 YouTube embed，但使用不同的参数组合
+    // 使用 YouTube nocookie 作為最後備選
     const params = new URLSearchParams({
       autoplay: autoPlay ? '1' : '0',
       playsinline: '1',
       rel: '0',
       modestbranding: '1',
       controls: '1',
-      origin: 'https://rork.app',
+      fs: '1',
+      enablejsapi: '0',
     });
-    return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+    return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
   };
 
   const getVimeoEmbedUrl = (videoId: string): string => {
@@ -295,13 +295,20 @@ export default function UniversalVideoPlayer({
     let injectedJavaScript = '';
 
     if (sourceInfo.type === 'youtube' && sourceInfo.videoId) {
+      console.log('[UniversalVideoPlayer] Rendering YouTube with videoId:', sourceInfo.videoId, 'retry:', retryCount);
+      
       if (retryCount === 0) {
+        // 第一次嘗試：標準 embed
         embedUrl = getYouTubeEmbedUrl(sourceInfo.videoId);
       } else if (retryCount === 1) {
+        // 第二次嘗試：完整播放頁面
         embedUrl = getYouTubeWebPlayerUrl(sourceInfo.videoId);
       } else {
+        // 第三次嘗試：nocookie embed
         embedUrl = getYouTubeNoEmbedUrl(sourceInfo.videoId);
       }
+      
+      console.log('[UniversalVideoPlayer] YouTube embed URL:', embedUrl);
     } else if (sourceInfo.type === 'vimeo' && sourceInfo.videoId) {
       embedUrl = getVimeoEmbedUrl(sourceInfo.videoId);
     } else if (sourceInfo.type === 'adult') {
@@ -329,12 +336,14 @@ export default function UniversalVideoPlayer({
         source={{ 
           uri: embedUrl,
           headers: sourceInfo.type === 'youtube' ? {
-            // YouTube 需要的特定 headers
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+            // YouTube WebView 需要的 headers
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8,zh-CN;q=0.7',
             'Referer': 'https://www.youtube.com/',
-            'Origin': 'https://rork.app',
+            'Sec-Fetch-Dest': 'iframe',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'same-origin',
           } : sourceInfo.type === 'adult' ? {
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
@@ -355,14 +364,20 @@ export default function UniversalVideoPlayer({
         mediaPlaybackRequiresUserAction={false}
         javaScriptEnabled
         domStorageEnabled
-        sharedCookiesEnabled
-        thirdPartyCookiesEnabled
+        sharedCookiesEnabled={sourceInfo.type !== 'adult'}
+        thirdPartyCookiesEnabled={sourceInfo.type !== 'adult'}
         mixedContentMode="always"
         cacheEnabled={sourceInfo.type !== 'adult'}
         incognito={sourceInfo.type === 'adult'}
         // YouTube 特定配置
-        allowsProtectedMedia={sourceInfo.type === 'youtube'}
-        allowFileAccess={sourceInfo.type === 'youtube'}
+        allowsProtectedMedia
+        allowFileAccess
+        scalesPageToFit={false}
+        bounces={false}
+        scrollEnabled={false}
+        automaticallyAdjustContentInsets={false}
+        contentInset={{ top: 0, left: 0, bottom: 0, right: 0 }}
+        webviewDebuggingEnabled={__DEV__}
         injectedJavaScript={injectedJavaScript}
         startInLoadingState
         renderLoading={() => (
@@ -388,7 +403,12 @@ export default function UniversalVideoPlayer({
           clearLoadTimeout();
           
           if (sourceInfo.type === 'youtube') {
-            console.log('[UniversalVideoPlayer] YouTube loading error, retry:', retryCount);
+            console.log('[UniversalVideoPlayer] YouTube loading error:', {
+              error: nativeEvent,
+              retryCount,
+              embedUrl,
+            });
+            
             if (retryCount < maxRetries) {
               console.log(`[UniversalVideoPlayer] Retrying YouTube with alternative method (${retryCount + 1}/${maxRetries})`);
               setTimeout(() => {
@@ -398,7 +418,8 @@ export default function UniversalVideoPlayer({
               }, 1500);
               return;
             }
-            const error = `YouTube 視頻載入失敗。這可能是由於：\n1. 視頻被設為私人或已刪除\n2. 視頻限制嵌入播放\n3. 地區限制\n\n已嘗試 ${maxRetries} 種載入方式。`;
+            
+            const error = `YouTube 視頻載入失敗\n\n可能原因：\n• 視頻被設為私人或已刪除\n• 視頻限制嵌入播放\n• 地區限制\n• 網路連線問題\n\n已嘗試 ${maxRetries} 種不同的載入方式。\n\n建議：\n1. 檢查視頻連結是否正確\n2. 在瀏覽器中測試是否能播放\n3. 稍後再試`;
             setPlaybackError(error);
             onError?.(error);
             return;

@@ -58,10 +58,10 @@ import { useCategories } from "@/providers/CategoryProvider";
 import { useMembership } from "@/providers/MembershipProvider";
 import ReferralCodeModal from "@/components/ReferralCodeModal";
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystemLegacy from "expo-file-system/legacy";
+import { File, Directory, Paths } from "expo-file-system";
+import * as Sharing from "expo-sharing";
 import * as Clipboard from "expo-clipboard";
 import * as Linking from "expo-linking";
-import * as Sharing from "expo-sharing";
 import { useStorage } from "@/providers/StorageProvider";
 import { 
   getScreenType, 
@@ -76,20 +76,9 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 const maxWidth = getMaxWidth();
 const screenType = getScreenType();
 
-// Helper to get cache directory safely
-const getCacheDirectory = () => {
-  try {
-    // For web, we can't use file system
-    if (Platform.OS === 'web') {
-      return null;
-    }
-    // Use the FileSystem API - note: the actual property name may vary by version
-    const cacheDir = (FileSystemLegacy as any).cacheDirectory;
-    return cacheDir || null;
-  } catch (error) {
-    console.error('Error getting cache directory:', error);
-    return null;
-  }
+// Helper to check if file system is available
+const isFileSystemAvailable = () => {
+  return Platform.OS !== 'web';
 };
 
 export default function HomeScreen() {
@@ -210,7 +199,8 @@ export default function HomeScreen() {
         const file = result.assets[0];
         console.log('[Home] Selected file:', file.name, 'Type:', file.mimeType);
         
-        const content = await FileSystemLegacy.readAsStringAsync(file.uri);
+        const fileObj = new File(file.uri);
+        const content = await fileObj.text();
         console.log('[Home] File content length:', content.length);
         
         // Import the improved importer
@@ -259,16 +249,15 @@ export default function HomeScreen() {
       }
       
       // For native platforms
-      const cacheDir = getCacheDirectory();
-      if (!cacheDir) {
+      if (!isFileSystemAvailable()) {
         Alert.alert(t("error"), "File system not available");
         return;
       }
-      const fileUri = cacheDir + "bookmarks.html";
-      await FileSystemLegacy.writeAsStringAsync(fileUri, html);
+      const file = new File(Paths.cache, "bookmarks.html");
+      file.write(html);
       
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri);
+        await Sharing.shareAsync(file.uri);
       } else {
         Alert.alert(t("success"), t("export_bookmarks"));
       }
@@ -539,17 +528,16 @@ export default function HomeScreen() {
               
               const html = exportFolderBookmarks(item.id, 'html');
               const json = exportFolderBookmarks(item.id, 'json');
-              const cacheDir = getCacheDirectory();
-              if (!cacheDir) {
+              if (!isFileSystemAvailable()) {
                 Alert.alert(t("error"), "File system not available");
                 return;
               }
-              const htmlUri = cacheDir + `bookmarks_${item.id}.html`;
-              const jsonUri = cacheDir + `bookmarks_${item.id}.json`;
-              await FileSystemLegacy.writeAsStringAsync(htmlUri, html);
-              await FileSystemLegacy.writeAsStringAsync(jsonUri, json);
+              const htmlFile = new File(Paths.cache, `bookmarks_${item.id}.html`);
+              const jsonFile = new File(Paths.cache, `bookmarks_${item.id}.json`);
+              htmlFile.write(html);
+              jsonFile.write(json);
               if (await Sharing.isAvailableAsync()) {
-                await Sharing.shareAsync(htmlUri);
+                await Sharing.shareAsync(htmlFile.uri);
               } else {
                 Alert.alert(t('success'), t('export_bookmarks'));
               }

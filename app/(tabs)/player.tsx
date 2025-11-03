@@ -1807,7 +1807,7 @@ const createStyles = () => {
   },
   videoContainer: {
     width: "100%",
-    aspectRatio: 16 / 9,
+    height: getResponsiveSize(520, 600, 700),
     backgroundColor: "#000",
     borderRadius: getResponsiveSize(12, 16, 20),
     overflow: "hidden",
@@ -1817,8 +1817,6 @@ const createStyles = () => {
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
-    minHeight: getResponsiveSize(180, 220, 260),
-    maxHeight: getResponsiveSize(220, 280, 340),
   },
   video: {
     width: "100%",
@@ -1899,7 +1897,7 @@ const createStyles = () => {
   },
   placeholderContainer: {
     width: "100%",
-    aspectRatio: 16 / 9,
+    height: getResponsiveSize(520, 600, 700),
     backgroundColor: Colors.secondary.bg,
     borderRadius: getResponsiveSize(12, 16, 20),
     justifyContent: "center",
@@ -1908,8 +1906,6 @@ const createStyles = () => {
     borderWidth: 2,
     borderColor: Colors.card.border,
     borderStyle: "dashed",
-    minHeight: getResponsiveSize(180, 220, 260),
-    maxHeight: getResponsiveSize(220, 280, 340),
   },
 
   voiceControlSection: {

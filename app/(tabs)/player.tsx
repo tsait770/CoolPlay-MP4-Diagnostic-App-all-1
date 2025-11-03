@@ -435,77 +435,45 @@ export default function PlayerScreen() {
     }
   };
 
-  const detectVideoSource = (url: string): VideoSourceType => {
-    const supportedRegex = [
-      /youtube\.com\/watch\?v=[\w-]+/,
-      /youtu\.be\/[\w-]+/,
-      /vimeo\.com\/\d+/,
-      /twitch\.tv\/\w+/,
-      /facebook\.com\/watch\/\?v=\d+/,
-      /drive\.google\.com\/file\/d\//,
-      /dropbox\.com\/s\//,
-      /.*\.(mp4|webm|ogg|ogv)$/,
-      /.*\.m3u8$/,
-      /.*\.mpd$/,
-      /^rtmp:\/\/.*/
-    ];
-
-    const extendedRegex = [
-      /pornhub\.com\/view_video\.php\?viewkey=/,
-      /xvideos\.com\/\d+/,
-      /twitter\.com\/.*\/status\/\d+/,
-      /instagram\.com\/(reel|p|tv)\//,
-      /tiktok\.com\/@[\w.-]+\/video\/\d+/,
-      /bilibili\.com\/video\/[A-Za-z0-9]+/
-    ];
-
-    const unsupportedRegex = [
-      /netflix\.com/,
-      /disneyplus\.com/,
-      /hbomax\.com/,
-      /primevideo\.com/,
-      /apple\.com\/tv/,
-      /iqiyi\.com/
-    ];
-
-    if (supportedRegex.some(r => r.test(url))) return "supported";
-    if (extendedRegex.some(r => r.test(url))) return "extended";
-    if (unsupportedRegex.some(r => r.test(url))) return "unsupported";
-    return "unknown";
+  // Import detectVideoSource from utils
+  const getVideoSourceType = (url: string): VideoSourceType => {
+    const sourceInfo = require('@/utils/videoSourceDetector').detectVideoSource(url);
+    
+    if (sourceInfo.type === 'unsupported') return "unsupported";
+    if (sourceInfo.type === 'adult') return "extended";
+    if (sourceInfo.type === 'unknown') return "unknown";
+    return "supported";
   };
 
   const processVideoUrl = (url: string): VideoSource | null => {
-    const sourceType = detectVideoSource(url);
+    const sourceInfo = require('@/utils/videoSourceDetector').detectVideoSource(url);
     
-    if (sourceType === "unsupported") {
+    console.log('[PlayerScreen] Processing URL:', url);
+    console.log('[PlayerScreen] Source info:', sourceInfo);
+    
+    // Check for unsupported DRM platforms
+    if (sourceInfo.type === 'unsupported') {
       Alert.alert(
         t("unsupported_source"),
-        t("drm_protected_content"),
+        sourceInfo.error || t("drm_protected_content"),
         [{ text: t("ok") }]
       );
       return null;
     }
 
-    // Process Google Drive links
-    if (url.includes("drive.google.com")) {
-      const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-      if (fileIdMatch) {
-        const fileId = fileIdMatch[1];
-        return {
-          uri: `https://drive.google.com/uc?export=download&id=${fileId}`,
-          type: "gdrive",
-          name: "Google Drive Video",
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Referer": "https://drive.google.com/"
-          }
-        };
-      }
+    // Handle adult content with membership check
+    if (sourceInfo.type === 'adult') {
+      // For now, allow adult content and show it in webview
+      console.log('[PlayerScreen] Adult content detected:', sourceInfo.platform);
+      return {
+        uri: url,
+        type: "url",
+        name: `${sourceInfo.platform} Video`,
+      };
     }
 
-    // Process YouTube links (with warning)
-    if (url.includes("youtube.com") || url.includes("youtu.be")) {
-      // Return YouTube source directly
+    // Handle YouTube
+    if (sourceInfo.type === 'youtube') {
       return {
         uri: url,
         type: "youtube" as const,
@@ -513,45 +481,17 @@ export default function PlayerScreen() {
       };
     }
 
-    // Process Vimeo links
-    if (url.includes("vimeo.com")) {
-      const videoIdMatch = url.match(/vimeo\.com\/(\d+)/);
-      if (videoIdMatch) {
-        return {
-          uri: url,
-          type: "vimeo",
-          name: "Vimeo Video",
-        };
-      }
-    }
-
-    // Process HLS streams
-    if (url.includes(".m3u8")) {
+    // Handle Vimeo
+    if (sourceInfo.type === 'vimeo') {
       return {
         uri: url,
-        type: "stream",
-        name: "HLS Stream",
+        type: "vimeo",
+        name: "Vimeo Video",
       };
     }
 
-    // Process DASH streams
-    if (url.includes(".mpd")) {
-      return {
-        uri: url,
-        type: "stream",
-        name: "DASH Stream",
-      };
-    }
-
-    // Process direct video URLs
-    if (
-      url.endsWith(".mp4") ||
-      url.endsWith(".webm") ||
-      url.endsWith(".ogg") ||
-      url.endsWith(".ogv") ||
-      url.includes(".mp4?") ||
-      url.includes(".webm?")
-    ) {
+    // Handle direct video files
+    if (sourceInfo.type === 'direct') {
       return {
         uri: url,
         type: "url",
@@ -559,25 +499,25 @@ export default function PlayerScreen() {
       };
     }
 
-    // Extended sources (with warning)
-    if (sourceType === "extended") {
-      Alert.alert(
-        t("extended_source"),
-        t("extended_source_warning"),
-        [
-          {
-            text: t("continue"),
-            onPress: () => {
-              console.log("Extended source:", url);
-            }
-          },
-          { text: t("cancel"), style: "cancel" }
-        ]
-      );
-      return null;
+    // Handle streams (HLS, DASH, etc.)
+    if (sourceInfo.type === 'stream') {
+      return {
+        uri: url,
+        type: "stream",
+        name: `${sourceInfo.streamType?.toUpperCase()} Stream`,
+      };
     }
 
-    // Default: try as direct URL only if URL is not empty
+    // Handle WebView-required platforms
+    if (sourceInfo.requiresWebView || sourceInfo.type === 'webview') {
+      return {
+        uri: url,
+        type: "url",
+        name: `${sourceInfo.platform} Video`,
+      };
+    }
+
+    // Default: try as generic URL if not empty
     if (url && url.trim() !== '') {
       return {
         uri: url,
@@ -586,7 +526,6 @@ export default function PlayerScreen() {
       };
     }
     
-    // Return null if no valid URL
     return null;
   };
 
@@ -597,10 +536,13 @@ export default function PlayerScreen() {
     }
 
     const trimmedUrl = videoUrl.trim();
-    const sourceType = detectVideoSource(trimmedUrl);
+    const sourceInfo = require('@/utils/videoSourceDetector').detectVideoSource(trimmedUrl);
+    
+    console.log('[PlayerScreen] Loading video from URL:', trimmedUrl);
+    console.log('[PlayerScreen] Detected source:', sourceInfo);
     
     // Check if it's YouTube and show confirmation
-    if (trimmedUrl.includes("youtube.com") || trimmedUrl.includes("youtu.be")) {
+    if (sourceInfo.type === 'youtube') {
       Alert.alert(
         t("youtube_support"),
         t("youtube_processing"),
@@ -614,6 +556,8 @@ export default function PlayerScreen() {
                 setVideoUrl("");
                 setVoiceStatus(t("video_loaded_successfully"));
                 setTimeout(() => setVoiceStatus(""), 3000);
+              } else {
+                Alert.alert(t("error"), t("invalid_url"));
               }
             }
           },
@@ -623,6 +567,33 @@ export default function PlayerScreen() {
       return;
     }
 
+    // Check if it's adult content and show confirmation
+    if (sourceInfo.type === 'adult') {
+      Alert.alert(
+        t("extended_source"),
+        `${sourceInfo.platform} ${t("extended_source_warning")}`,
+        [
+          {
+            text: t("continue"),
+            onPress: () => {
+              const source = processVideoUrl(trimmedUrl);
+              if (source && source.uri && source.uri.trim() !== '') {
+                setVideoSource(source);
+                setVideoUrl("");
+                setVoiceStatus(t("video_loaded_successfully"));
+                setTimeout(() => setVoiceStatus(""), 3000);
+              } else {
+                Alert.alert(t("error"), t("invalid_url"));
+              }
+            }
+          },
+          { text: t("cancel"), style: "cancel" }
+        ]
+      );
+      return;
+    }
+
+    // Process all other sources directly
     const source = processVideoUrl(trimmedUrl);
     if (source && source.uri && source.uri.trim() !== '') {
       setVideoSource(source);

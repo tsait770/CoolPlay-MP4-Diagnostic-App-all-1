@@ -43,9 +43,10 @@ export default function VideoPlayer({ url, onError, onLoad }: VideoPlayerProps) 
   // Detect video source type
   const sourceInfo = detectVideoSource(url);
   
-  // Initialize video player for native video playback
-  const videoUrl = sourceInfo.type === 'direct' || sourceInfo.type === 'stream' ? url : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-  const player = useVideoPlayer(videoUrl);
+  // Initialize video player for native video playback only if needed
+  const needsNativePlayer = sourceInfo.type === 'direct' || sourceInfo.type === 'stream';
+  const videoUrl = needsNativePlayer && url && url.trim() !== '' ? url : undefined;
+  const player = useVideoPlayer(videoUrl || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4');
 
   // Auto-hide controls
   useEffect(() => {
@@ -565,10 +566,10 @@ export default function VideoPlayer({ url, onError, onLoad }: VideoPlayerProps) 
           ref={webViewRef}
           source={{ html: embedHtml }}
           style={styles.webview}
-          allowsFullscreenVideo
-          javaScriptEnabled
-          domStorageEnabled
-          startInLoadingState
+          allowsFullscreenVideo={true}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          startInLoadingState={true}
           onMessage={handleWebViewMessage}
           onError={(syntheticEvent) => {
             const { nativeEvent } = syntheticEvent;
@@ -611,8 +612,8 @@ export default function VideoPlayer({ url, onError, onLoad }: VideoPlayerProps) 
       <VideoView
         style={styles.video}
         player={player}
-        allowsFullscreen
-        allowsPictureInPicture
+        allowsFullscreen={true}
+        allowsPictureInPicture={true}
       />
       
       {isLoading && (

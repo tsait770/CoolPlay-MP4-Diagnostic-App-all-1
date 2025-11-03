@@ -145,8 +145,10 @@ const YouTubeVimeoPlayer: React.FC<YouTubeVimeoPlayerProps> = ({ url, onError, o
       <WebView
         source={{ uri: embedUrl }}
         style={styles.webview}
-        allowsFullscreenVideo
+        allowsFullscreenVideo={true}
         mediaPlaybackRequiresUserAction={false}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
         onLoad={() => {
           onLoad?.();
         }}

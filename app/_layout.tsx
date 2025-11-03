@@ -227,7 +227,6 @@ export default function RootLayout() {
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const [providersReady, setProvidersReady] = useState<boolean>(false);
   const [initError, setInitError] = useState<string | null>(null);
-  const [preloadedData, setPreloadedData] = useState<Record<string, any> | null>(null);
 
   useEffect(() => {
     const initialize = async () => {
@@ -235,96 +234,55 @@ export default function RootLayout() {
         console.log('[App] Starting initialization...');
         const startTime = Date.now();
         
-        try {
-          const corruptedCount = await (async () => {
-            try {
-              const allKeys = await AsyncStorage.getAllKeys();
-              const corruptedKeys: string[] = [];
-              
-              for (const key of allKeys) {
-                try {
-                  const data = await AsyncStorage.getItem(key);
-                  if (data && typeof data === 'string' && data.length > 0) {
-                    const cleaned = data.trim();
-                    if (cleaned.includes('[object Object]') || 
-                        cleaned === 'undefined' || 
-                        cleaned === 'NaN' ||
-                        cleaned === 'null' ||
-                        cleaned.startsWith('object ') ||
-                        cleaned.startsWith('Object ')) {
-                      corruptedKeys.push(key);
-                    } else if (cleaned.startsWith('{') || cleaned.startsWith('[')) {
-                      try {
-                        JSON.parse(cleaned);
-                      } catch {
-                        corruptedKeys.push(key);
-                      }
-                    }
-                  }
-                } catch {}
-              }
-              
-              if (corruptedKeys.length > 0) {
-                console.log(`[App] Clearing ${corruptedKeys.length} corrupted storage keys`);
-                await AsyncStorage.multiRemove(corruptedKeys);
-              }
-              
-              return corruptedKeys.length;
-            } catch {
-              return 0;
-            }
-          })();
-          
-          if (corruptedCount > 0) {
-            console.log(`[App] Cleared ${corruptedCount} corrupted storage entries`);
-          }
-        } catch (cleanupError) {
-          console.warn('[App] Storage cleanup failed, continuing...', cleanupError);
-        }
-        
-        console.log('[App] Preloading critical data in parallel...');
-        const preloadStart = Date.now();
-        
-        const criticalKeys = [
-          '@coolplay_bookmarks',
-          '@coolplay_folders',
-          'bookmark_categories',
-          'voiceControlSettings',
-          'voiceControlAutoStart',
-          'hasCompletedVoiceOnboarding',
-          '@coolplay_first_time_modal_shown',
-          'hasSeenReferralModal',
-          'membershipData',
-          'pref_sound_enabled',
-        ];
-        
-        const preloadResults = await Promise.all(
-          criticalKeys.map(async (key) => {
-            try {
-              const value = await AsyncStorage.getItem(key);
-              return [key, value];
-            } catch (error) {
-              console.warn(`[App] Failed to preload ${key}:`, error);
-              return [key, null];
-            }
-          })
-        );
-        
-        const preloadedDataMap = Object.fromEntries(preloadResults);
-        setPreloadedData(preloadedDataMap);
-        
-        const preloadDuration = Date.now() - preloadStart;
-        console.log(`[App] Preloaded ${criticalKeys.length} keys in ${preloadDuration}ms`);
+        setIsInitialized(true);
+        setProvidersReady(true);
         
         const duration = Date.now() - startTime;
         console.log(`[App] Initialization completed in ${duration}ms`);
         
-        setIsInitialized(true);
-        
         setTimeout(() => {
           SplashScreen.hideAsync();
-          setProvidersReady(true);
         }, 100);
+        
+        setTimeout(async () => {
+          try {
+            console.log('[App] Running deferred storage cleanup...');
+            const allKeys = await AsyncStorage.getAllKeys();
+            const corruptedKeys: string[] = [];
+            
+            const maxCheck = Math.min(allKeys.length, 30);
+            for (let i = 0; i < maxCheck; i++) {
+              const key = allKeys[i];
+              try {
+                const data = await AsyncStorage.getItem(key);
+                if (data && typeof data === 'string' && data.length > 0) {
+                  const cleaned = data.trim();
+                  if (cleaned.includes('[object Object]') || 
+                      cleaned === 'undefined' || 
+                      cleaned === 'NaN' ||
+                      cleaned === 'null' ||
+                      cleaned.startsWith('object ') ||
+                      cleaned.startsWith('Object ')) {
+                    corruptedKeys.push(key);
+                  } else if (cleaned.startsWith('{') || cleaned.startsWith('[')) {
+                    try {
+                      JSON.parse(cleaned);
+                    } catch {
+                      corruptedKeys.push(key);
+                    }
+                  }
+                }
+              } catch {}
+            }
+            
+            if (corruptedKeys.length > 0) {
+              console.log(`[App] Cleared ${corruptedKeys.length} corrupted storage keys`);
+              await AsyncStorage.multiRemove(corruptedKeys);
+            }
+          } catch (cleanupError) {
+            console.warn('[App] Deferred cleanup failed:', cleanupError);
+          }
+        }, 2000);
       } catch (error) {
         console.error('[App] Initialization error:', error);
         setInitError(error instanceof Error ? error.message : 'Unknown error');

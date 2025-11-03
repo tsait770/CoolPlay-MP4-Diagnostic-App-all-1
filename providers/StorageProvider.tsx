@@ -63,54 +63,52 @@ export const [StorageProvider, useStorage] = createContextHook(() => {
   useEffect(() => {
     if (!cleanupRun.current) {
       cleanupRun.current = true;
-      (async () => {
-        try {
-          console.log('[StorageProvider] Running startup cleanup...');
-          const allKeys = await AsyncStorage.getAllKeys();
-          const corruptedKeys: string[] = [];
-          
-          for (const key of allKeys) {
-            try {
-              const data = await AsyncStorage.getItem(key);
-              if (data && typeof data === 'string' && data.length > 0) {
-                const cleaned = data.trim();
-                
-                if (cleaned.includes('[object Object]') || 
-                    cleaned.includes('object Object') ||
-                    cleaned === 'undefined' || 
-                    cleaned === 'NaN' ||
-                    cleaned === 'null' ||
-                    cleaned.startsWith('object ') ||
-                    cleaned.startsWith('Object ') ||
-                    (/^[a-zA-Z]/.test(cleaned.charAt(0)) && !cleaned.startsWith('true') && !cleaned.startsWith('false') && !cleaned.startsWith('"'))) {
-                  console.warn(`[StorageProvider] Found corrupted key: ${key}`);
-                  corruptedKeys.push(key);
-                } else if (cleaned.startsWith('{') || cleaned.startsWith('[')) {
-                  try {
-                    JSON.parse(cleaned);
-                  } catch {
-                    console.warn(`[StorageProvider] Found invalid JSON key: ${key}`);
+      
+      setTimeout(() => {
+        (async () => {
+          try {
+            console.log('[StorageProvider] Running deferred cleanup...');
+            const allKeys = await AsyncStorage.getAllKeys();
+            const corruptedKeys: string[] = [];
+            
+            const maxCheck = Math.min(allKeys.length, 50);
+            for (let i = 0; i < maxCheck; i++) {
+              const key = allKeys[i];
+              try {
+                const data = await AsyncStorage.getItem(key);
+                if (data && typeof data === 'string' && data.length > 0) {
+                  const cleaned = data.trim();
+                  
+                  if (cleaned.includes('[object Object]') || 
+                      cleaned.includes('object Object') ||
+                      cleaned === 'undefined' || 
+                      cleaned === 'NaN' ||
+                      cleaned === 'null' ||
+                      cleaned.startsWith('object ') ||
+                      cleaned.startsWith('Object ')) {
                     corruptedKeys.push(key);
+                  } else if (cleaned.startsWith('{') || cleaned.startsWith('[')) {
+                    try {
+                      JSON.parse(cleaned);
+                    } catch {
+                      corruptedKeys.push(key);
+                    }
                   }
                 }
+              } catch (error: any) {
+                corruptedKeys.push(key);
               }
-            } catch (error: any) {
-              console.error(`[StorageProvider] Error checking key ${key}:`, error?.message || error);
-              corruptedKeys.push(key);
             }
+            
+            if (corruptedKeys.length > 0) {
+              console.log(`[StorageProvider] Removing ${corruptedKeys.length} corrupted keys`);
+              await AsyncStorage.multiRemove(corruptedKeys);
+            }
+          } catch (error: any) {
+            console.error('[StorageProvider] Deferred cleanup failed:', error?.message || error);
           }
-          
-          if (corruptedKeys.length > 0) {
-            console.log(`[StorageProvider] Removing ${corruptedKeys.length} corrupted keys`);
-            await AsyncStorage.multiRemove(corruptedKeys);
-            console.log('[StorageProvider] Startup cleanup complete');
-          } else {
-            console.log('[StorageProvider] No corrupted data found');
-          }
-        } catch (error: any) {
-          console.error('[StorageProvider] Startup cleanup failed:', error?.message || error);
-        }
-      })();
+        })();
+      }, 2000);
     }
   }, []);
 

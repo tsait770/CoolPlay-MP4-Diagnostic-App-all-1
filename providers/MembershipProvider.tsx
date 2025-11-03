@@ -307,11 +307,17 @@ export const [MembershipProvider, useMembership] = createContextHook(() => {
   }, [state, saveMembershipData]);
 
   useEffect(() => {
-    loadMembershipData();
+    const timeoutId = setTimeout(() => {
+      loadMembershipData();
+    }, 100);
+    return () => clearTimeout(timeoutId);
   }, [loadMembershipData]);
   
   useEffect(() => {
-    loadDevices();
+    const timeoutId = setTimeout(() => {
+      loadDevices();
+    }, 150);
+    return () => clearTimeout(timeoutId);
   }, [loadDevices]);
   
   useEffect(() => {

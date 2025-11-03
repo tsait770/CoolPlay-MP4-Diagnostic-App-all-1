@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { VideoView, useVideoPlayer } from "expo-video";
+import UniversalVideoPlayer from "@/components/UniversalVideoPlayer";
 import * as DocumentPicker from "expo-document-picker";
 import {
   ChevronDown,
@@ -84,7 +85,9 @@ export default function PlayerScreen() {
   const [siriEnabled, setSiriEnabled] = useState(false);
   const [showSiriSetup, setShowSiriSetup] = useState(false);
   const [videoSource, setVideoSource] = useState<VideoSource | null>(null);
-  const videoPlayer = useVideoPlayer(videoSource?.uri && videoSource.uri.trim() !== '' ? videoSource.uri : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', (player) => {
+  const [useUniversalPlayer, setUseUniversalPlayer] = useState(false);
+  const defaultVideoUri = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+  const videoPlayer = useVideoPlayer(!useUniversalPlayer && videoSource?.uri && videoSource.uri.trim() !== '' ? videoSource.uri : defaultVideoUri, (player) => {
     player.loop = false;
   });
   const [isPlaying, setIsPlaying] = useState(false);
@@ -461,9 +464,22 @@ export default function PlayerScreen() {
       return null;
     }
 
-    // Handle adult content with membership check
+    // Determine if UniversalVideoPlayer should be used
+    const needsUniversalPlayer = 
+      sourceInfo.requiresWebView ||
+      sourceInfo.type === 'youtube' ||
+      sourceInfo.type === 'vimeo' ||
+      sourceInfo.type === 'adult' ||
+      sourceInfo.type === 'twitter' ||
+      sourceInfo.type === 'instagram' ||
+      sourceInfo.type === 'tiktok' ||
+      sourceInfo.type === 'webview';
+    
+    setUseUniversalPlayer(needsUniversalPlayer);
+    console.log('[PlayerScreen] Use UniversalPlayer:', needsUniversalPlayer);
+
+    // Handle adult content
     if (sourceInfo.type === 'adult') {
-      // For now, allow adult content and show it in webview
       console.log('[PlayerScreen] Adult content detected:', sourceInfo.platform);
       return {
         uri: url,
@@ -490,7 +506,16 @@ export default function PlayerScreen() {
       };
     }
 
-    // Handle direct video files
+    // Handle social media
+    if (sourceInfo.type === 'twitter' || sourceInfo.type === 'instagram' || sourceInfo.type === 'tiktok') {
+      return {
+        uri: url,
+        type: "url",
+        name: `${sourceInfo.platform} Video`,
+      };
+    }
+
+    // Handle direct video files (can use native player)
     if (sourceInfo.type === 'direct') {
       return {
         uri: url,
@@ -499,7 +524,7 @@ export default function PlayerScreen() {
       };
     }
 
-    // Handle streams (HLS, DASH, etc.)
+    // Handle streams (HLS, DASH, etc. - can use native player)
     if (sourceInfo.type === 'stream') {
       return {
         uri: url,
@@ -979,18 +1004,36 @@ export default function PlayerScreen() {
 
         {/* Video Player - Moved to Top */}
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' ? (
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={() => setShowControls(!showControls)}
-            style={styles.videoContainer}
-          >
-            <VideoView
-              style={styles.video}
-              player={videoPlayer}
-              allowsFullscreen
-              allowsPictureInPicture
-            />
-          </TouchableOpacity>
+          useUniversalPlayer ? (
+            <View style={styles.videoContainer}>
+              <UniversalVideoPlayer
+                url={videoSource.uri}
+                onError={(error) => {
+                  console.error('[PlayerScreen] UniversalVideoPlayer error:', error);
+                  setVoiceStatus(t('video_load_error'));
+                  setTimeout(() => setVoiceStatus(''), 3000);
+                }}
+                onPlaybackStart={() => {
+                  console.log('[PlayerScreen] Video playback started');
+                }}
+                autoPlay={false}
+                style={styles.video}
+              />
+            </View>
+          ) : (
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={() => setShowControls(!showControls)}
+              style={styles.videoContainer}
+            >
+              <VideoView
+                style={styles.video}
+                player={videoPlayer}
+                allowsFullscreen
+                allowsPictureInPicture
+              />
+            </TouchableOpacity>
+          )
         ) : (
           <View style={styles.videoSelectionCard}>
             <View style={styles.videoSelectionIcon}>

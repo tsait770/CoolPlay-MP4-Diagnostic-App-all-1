@@ -44,11 +44,13 @@ export default function TabLayout() {
           borderTopColor: Colors.card.border,
           borderTopWidth: 1,
           elevation: 999,
+          zIndex: 1000,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.1,
           shadowRadius: 3,
         },
+        tabBarHideOnKeyboard: true,
         headerStyle: {
           backgroundColor: Colors.secondary.bg,
           borderBottomColor: Colors.card.border,
@@ -63,22 +65,47 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={tabOptions.home}
+        listeners={{
+          tabPress: () => {
+            console.log('[Tabs] tabPress: home', Date.now());
+          },
+        } as any}
       />
       <Tabs.Screen
         name="favorites"
         options={tabOptions.favorites}
+        listeners={{
+          tabPress: () => {
+            console.log('[Tabs] tabPress: favorites', Date.now());
+          },
+        } as any}
       />
       <Tabs.Screen
         name="player"
         options={tabOptions.player}
+        listeners={{
+          tabPress: () => {
+            console.log('[Tabs] tabPress: player', Date.now());
+          },
+        } as any}
       />
       <Tabs.Screen
         name="community"
         options={tabOptions.community}
+        listeners={{
+          tabPress: () => {
+            console.log('[Tabs] tabPress: community', Date.now());
+          },
+        } as any}
       />
       <Tabs.Screen
         name="settings"
         options={tabOptions.settings}
+        listeners={{
+          tabPress: () => {
+            console.log('[Tabs] tabPress: settings', Date.now());
+          },
+        } as any}
       />
 
     </Tabs>

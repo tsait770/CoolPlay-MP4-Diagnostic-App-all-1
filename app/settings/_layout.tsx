@@ -10,7 +10,7 @@ export default function SettingsLayout() {
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: Colors.secondary.bg,
+          backgroundColor: "#1C1C1E",
         },
         headerTintColor: Colors.primary.text,
         headerTitleStyle: {

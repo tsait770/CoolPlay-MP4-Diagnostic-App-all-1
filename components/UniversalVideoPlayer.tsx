@@ -154,7 +154,7 @@ export default function UniversalVideoPlayer({
   }, [player, autoPlay, onPlaybackStart, onError]);
 
   const getYouTubeEmbedUrl = (videoId: string): string => {
-    return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${autoPlay ? 1 : 0}&controls=1&rel=0&modestbranding=1`;
+    return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${autoPlay ? 1 : 0}&controls=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`;
   };
 
   const getVimeoEmbedUrl = (videoId: string): string => {
@@ -175,13 +175,24 @@ export default function UniversalVideoPlayer({
     return (
       <WebView
         ref={webViewRef}
-        source={{ uri: embedUrl }}
+        source={{ 
+          uri: embedUrl,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+          }
+        }}
         style={styles.webView}
+        originWhitelist={['*']}
         allowsFullscreenVideo
         allowsInlineMediaPlayback
         mediaPlaybackRequiresUserAction={!autoPlay}
         javaScriptEnabled
         domStorageEnabled
+        sharedCookiesEnabled
+        thirdPartyCookiesEnabled
+        mixedContentMode="always"
         startInLoadingState
         renderLoading={() => (
           <View style={styles.loadingContainer}>

@@ -216,7 +216,8 @@ export default function UniversalVideoPlayer({
   }, [player, autoPlay, onPlaybackStart, onError, url, sourceInfo.type, sourceInfo.platform]);
 
   const getYouTubeEmbedUrl = (videoId: string): string => {
-    return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${autoPlay ? 1 : 0}&controls=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`;
+    // More reliable embed URL with proper parameters
+    return `https://www.youtube.com/embed/${videoId}?autoplay=${autoPlay ? 1 : 0}&playsinline=1&rel=0&modestbranding=1&fs=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://localhost'}`;
   };
 
   const getVimeoEmbedUrl = (videoId: string): string => {
@@ -279,6 +280,11 @@ export default function UniversalVideoPlayer({
             'Accept-Encoding': 'gzip, deflate, br',
             'DNT': '1',
             'Upgrade-Insecure-Requests': '1',
+          } : sourceInfo.type === 'youtube' ? {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': 'https://www.youtube.com/',
           } : {
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -289,12 +295,14 @@ export default function UniversalVideoPlayer({
         originWhitelist={['*']}
         allowsFullscreenVideo
         allowsInlineMediaPlayback
-        mediaPlaybackRequiresUserAction={!autoPlay}
+        mediaPlaybackRequiresUserAction={false}
         javaScriptEnabled
         domStorageEnabled
         sharedCookiesEnabled
         thirdPartyCookiesEnabled
         mixedContentMode="always"
+        cacheEnabled={true}
+        incognito={false}
         startInLoadingState
         renderLoading={() => (
           <View style={styles.loadingContainer}>
@@ -303,12 +311,12 @@ export default function UniversalVideoPlayer({
           </View>
         )}
         onLoadStart={() => {
-          console.log('[UniversalVideoPlayer] WebView load started');
+          console.log('[UniversalVideoPlayer] WebView load started for', sourceInfo.platform);
           setIsLoading(true);
           startLoadTimeout();
         }}
         onLoadEnd={() => {
-          console.log('[UniversalVideoPlayer] WebView load ended');
+          console.log('[UniversalVideoPlayer] WebView load ended for', sourceInfo.platform);
           clearLoadTimeout();
           setIsLoading(false);
           setRetryCount(0);
@@ -317,6 +325,15 @@ export default function UniversalVideoPlayer({
           const { nativeEvent } = syntheticEvent;
           console.error('[UniversalVideoPlayer] WebView error:', nativeEvent);
           clearLoadTimeout();
+          
+          // For YouTube, provide specific error messages
+          if (sourceInfo.type === 'youtube') {
+            console.log('[UniversalVideoPlayer] YouTube loading error');
+            const error = `YouTube 視頻載入失敗。這可能是由於：\n1. 視頻被設為私人或已刪除\n2. 視頻限制嵌入播放\n3. 地區限制\n\n請嘗試在 YouTube 應用中打開該視頻。`;
+            setPlaybackError(error);
+            onError?.(error);
+            return;
+          }
           
           // For adult platforms, provide more helpful error messages
           if (sourceInfo.type === 'adult') {
@@ -327,7 +344,7 @@ export default function UniversalVideoPlayer({
                 setRetryCount(prev => prev + 1);
                 setIsLoading(true);
                 setPlaybackError(null);
-              }, 2000); // Longer delay for adult platforms
+              }, 2000);
             } else {
               const error = `${sourceInfo.platform} 無法載入。這可能是由於網站結構變更或網路問題。請確認連結有效或稍後再試。`;
               setPlaybackError(error);

@@ -204,20 +204,20 @@ function RootLayoutNav() {
         <Stack.Screen name="auth/sign-up" options={{ headerShown: false }} />
         <Stack.Screen name="subscription/index" options={{ headerShown: false }} />
       </Stack>
-      {hasCheckedFirstTime && (
-        <>
-          <ReferralCodeModal
-            visible={showReferralModal}
-            onClose={handleModalClose}
-            isFirstTime={true}
-          />
-          <VoiceOnboardingModal
-            visible={showVoiceOnboarding}
-            onClose={handleCompleteVoiceOnboarding}
-            onEnableInApp={handleEnableInAppVoice}
-            onEnableSiri={handleEnableSiri}
-          />
-        </>
+      {hasCheckedFirstTime && showReferralModal && (
+        <ReferralCodeModal
+          visible={showReferralModal}
+          onClose={handleModalClose}
+          isFirstTime={true}
+        />
+      )}
+      {hasCheckedFirstTime && showVoiceOnboarding && (
+        <VoiceOnboardingModal
+          visible={showVoiceOnboarding}
+          onClose={handleCompleteVoiceOnboarding}
+          onEnableInApp={handleEnableInAppVoice}
+          onEnableSiri={handleEnableSiri}
+        />
       )}
     </>
   );

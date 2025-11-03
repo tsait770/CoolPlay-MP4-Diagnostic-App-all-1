@@ -43,7 +43,7 @@ export default function TabLayout() {
           backgroundColor: Colors.secondary.bg,
           borderTopColor: Colors.card.border,
           borderTopWidth: 1,
-          elevation: 8,
+          elevation: 999,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.1,

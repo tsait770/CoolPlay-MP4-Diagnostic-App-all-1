@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import Colors from '@/constants/colors';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondary.bg,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: Colors.primary.cardBorder,
+    borderColor: Colors.card.border,
     overflow: 'hidden',
   },
   header: {
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.primary.cardBorder,
+    backgroundColor: Colors.card.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     backgroundColor: Colors.secondary.bg,
     borderWidth: 1,
-    borderColor: Colors.primary.cardBorder,
+    borderColor: Colors.card.border,
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
@@ -182,13 +182,13 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: Colors.primary.cardBorder,
+    backgroundColor: Colors.card.border,
   },
   dismissArea: {
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderTopWidth: 1,
-    borderTopColor: Colors.primary.cardBorder,
+    borderTopColor: Colors.card.border,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,

@@ -197,6 +197,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 9999,
   },
   container: {
     backgroundColor: Colors.secondary.bg,
@@ -206,8 +207,9 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.primary.cardBorder,
+    borderColor: Colors.card.border,
     position: 'relative' as const,
+    zIndex: 10000,
   },
   closeButton: {
     position: 'absolute' as const,
@@ -251,7 +253,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.primary.text,
     borderWidth: 1,
-    borderColor: Colors.primary.cardBorder,
+    borderColor: Colors.card.border,
     textAlign: 'center' as const,
     letterSpacing: 2,
   },
@@ -294,7 +296,7 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
   },
   secondaryButton: {
-    backgroundColor: Colors.primary.cardBorder,
+    backgroundColor: Colors.card.border,
   },
   secondaryButtonText: {
     color: Colors.primary.text,

@@ -61,16 +61,36 @@ export default function UniversalVideoPlayer({
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
-  const player = useVideoPlayer(url, (player) => {
+  // Detect source info FIRST before anything else
+  const sourceInfo = detectVideoSource(url);
+  const playbackEligibility = canPlayVideo(url, tier);
+  
+  // Determine which player to use based on source info
+  const shouldUseNativePlayer =
+    sourceInfo.type === 'direct' ||
+    sourceInfo.type === 'stream' ||
+    sourceInfo.type === 'hls' ||
+    sourceInfo.type === 'dash';
+
+  // Only initialize native player if we're actually using it
+  // For WebView-required URLs, use a dummy URL for the native player to avoid errors
+  const safeUrl = shouldUseNativePlayer && url && url.trim() !== '' ? url : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+  
+  const player = useVideoPlayer(safeUrl, (player) => {
     player.loop = false;
     player.muted = isMuted;
-    if (autoPlay) {
+    if (autoPlay && shouldUseNativePlayer) {
       player.play();
     }
   });
-
-  const sourceInfo = detectVideoSource(url);
-  const playbackEligibility = canPlayVideo(url, tier);
+  
+  console.log('[UniversalVideoPlayer] Source detection:', {
+    url,
+    type: sourceInfo.type,
+    platform: sourceInfo.platform,
+    requiresWebView: sourceInfo.requiresWebView,
+    requiresAgeVerification: sourceInfo.requiresAgeVerification,
+  });
 
   useEffect(() => {
     console.log('[UniversalVideoPlayer] Initialized with:', {
@@ -153,18 +173,39 @@ export default function UniversalVideoPlayer({
           onPlaybackStart?.();
         }
       } else if (status.status === 'error') {
-        const errorDetails = typeof status.error === 'object' 
-          ? JSON.stringify(status.error) 
-          : String(status.error || 'Unknown error');
-        const errorMsg = `Playback error: ${errorDetails}`;
-        console.error('[UniversalVideoPlayer] Video player error:', {
+        // Extract readable error message
+        let errorMsg = 'Unknown playback error';
+        if (status.error) {
+          if (typeof status.error === 'object' && 'message' in status.error) {
+            errorMsg = String((status.error as any).message || 'Unknown error');
+          } else if (typeof status.error === 'string') {
+            errorMsg = status.error;
+          } else {
+            errorMsg = JSON.stringify(status.error);
+          }
+        }
+        
+        console.error('[UniversalVideoPlayer] Native player error:', {
           error: status.error,
+          errorMessage: errorMsg,
           url,
           sourceType: sourceInfo.type,
           platform: sourceInfo.platform,
+          shouldUseNativePlayer,
+          shouldUseWebView: sourceInfo.requiresWebView,
         });
-        setPlaybackError(errorMsg);
-        onError?.(errorMsg);
+        
+        // If this is a URL that should use WebView, provide helpful error
+        if (sourceInfo.requiresWebView || sourceInfo.type === 'youtube' || sourceInfo.type === 'adult') {
+          errorMsg = `This ${sourceInfo.platform} video cannot be played with the native player. The video will be loaded in a web player instead.`;
+          console.log('[UniversalVideoPlayer] Switching to WebView for:', sourceInfo.platform);
+          // Don't set error, let WebView handle it
+          return;
+        }
+        
+        const fullErrorMsg = `Playback error: ${errorMsg}`;
+        setPlaybackError(fullErrorMsg);
+        onError?.(fullErrorMsg);
       }
     });
 
@@ -442,14 +483,33 @@ export default function UniversalVideoPlayer({
     sourceInfo.type === 'youtube' ||
     sourceInfo.type === 'vimeo' ||
     sourceInfo.type === 'webview' ||
-    sourceInfo.type === 'adult');
+    sourceInfo.type === 'adult' ||
+    sourceInfo.type === 'twitter' ||
+    sourceInfo.type === 'instagram' ||
+    sourceInfo.type === 'tiktok' ||
+    sourceInfo.type === 'twitch' ||
+    sourceInfo.type === 'facebook' ||
+    sourceInfo.type === 'dailymotion' ||
+    sourceInfo.type === 'rumble' ||
+    sourceInfo.type === 'odysee' ||
+    sourceInfo.type === 'bilibili' ||
+    sourceInfo.type === 'gdrive' ||
+    sourceInfo.type === 'dropbox');
 
-  const shouldUseNativePlayer =
+  const shouldUseNativePlayerRender =
     !useSocialMediaPlayer &&
+    !shouldUseWebView &&
     (sourceInfo.type === 'direct' ||
     sourceInfo.type === 'stream' ||
     sourceInfo.type === 'hls' ||
     sourceInfo.type === 'dash');
+
+  console.log('[UniversalVideoPlayer] Player selection:', {
+    useSocialMediaPlayer,
+    shouldUseWebView,
+    shouldUseNativePlayer: shouldUseNativePlayerRender,
+    sourceType: sourceInfo.type,
+  });
 
   return (
     <View style={[styles.container, style]}>
@@ -465,7 +525,7 @@ export default function UniversalVideoPlayer({
         />
       ) : shouldUseWebView ? (
         renderWebViewPlayer()
-      ) : shouldUseNativePlayer ? (
+      ) : shouldUseNativePlayerRender ? (
         renderNativePlayer()
       ) : (
         renderError()

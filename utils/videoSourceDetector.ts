@@ -46,7 +46,7 @@ const STREAM_PROTOCOLS = {
 
 const SUPPORTED_PLATFORMS = [
   {
-    pattern: /youtube\.com\/watch\?v=([\w-]+)|youtube\.com\/embed\/([\w-]+)|youtu\.be\/([\w-]+)|youtube-nocookie\.com\/embed\/([\w-]+)/i,
+    pattern: /(?:youtube\.com\/watch\?v=|youtube\.com\/embed\/|youtu\.be\/|youtube-nocookie\.com\/embed\/)([\w-]+)/i,
     type: 'youtube' as VideoSourceType,
     platform: 'YouTube',
     requiresPremium: false,
@@ -238,11 +238,14 @@ export function detectVideoSource(url: string): VideoSourceInfo {
       let videoId: string | undefined;
       if (source.extractVideoId) {
         if (source.type === 'youtube') {
+          // Support YouTube formats: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID
           const match = url.match(/(?:youtube\.com\/watch\?v=|youtube\.com\/embed\/|youtu\.be\/|youtube-nocookie\.com\/embed\/)([\w-]+)/i);
           videoId = match?.[1];
+          console.log('[VideoSourceDetector] Extracted YouTube video ID:', videoId, 'from URL:', url);
         } else if (source.type === 'vimeo') {
           const match = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)(\d+)/i);
           videoId = match?.[1];
+          console.log('[VideoSourceDetector] Extracted Vimeo video ID:', videoId);
         }
       }
       

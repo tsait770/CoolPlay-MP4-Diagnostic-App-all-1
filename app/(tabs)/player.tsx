@@ -990,19 +990,10 @@ export default function PlayerScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={[styles.content, { paddingTop: 16 + insets.top }]}>
+    <View style={styles.container}>
+      <View style={[styles.content, { paddingTop: insets.top }]}>
 
-        {/* Hero Section */}
-        <View style={styles.heroSection}>
-          <View style={styles.heroIconContainer}>
-            <Mic size={32} color={Colors.accent.primary} />
-          </View>
-          <Text style={styles.heroTitle}>{t('voice_control')}</Text>
-          <Text style={styles.heroSubtitle}>{t('voice_control_subtitle')}</Text>
-        </View>
-
-        {/* Video Player - Moved to Top */}
+        {/* Video Player - Full Screen */}
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' ? (
           useUniversalPlayer ? (
             <View style={styles.videoContainer}>
@@ -1035,27 +1026,30 @@ export default function PlayerScreen() {
             </TouchableOpacity>
           )
         ) : (
-          <View style={styles.videoSelectionCard}>
-            <View style={styles.videoSelectionIcon}>
-              <Play size={48} color={Colors.accent.primary} />
+          <View style={styles.videoSelectionOverlay}>
+            <View style={styles.videoSelectionCard}>
+              <View style={styles.videoSelectionIcon}>
+                <Play size={48} color={Colors.accent.primary} />
+              </View>
+              <Text style={styles.videoSelectionTitle}>{t('select_video')}</Text>
+              <Text style={styles.videoSelectionSubtitle}>{t('select_video_subtitle')}</Text>
+              
+              <TouchableOpacity style={styles.selectVideoButton} onPress={pickVideo}>
+                <Upload size={20} color="white" />
+                <Text style={styles.selectVideoButtonText}>{t('select_video')}</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.loadUrlButton} onPress={() => setShowUrlModal(true)}>
+                <LinkIcon size={20} color={Colors.accent.primary} />
+                <Text style={styles.loadUrlButtonText}>{t('load_from_url')}</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.videoSelectionTitle}>{t('select_video')}</Text>
-            <Text style={styles.videoSelectionSubtitle}>{t('select_video_subtitle')}</Text>
-            
-            <TouchableOpacity style={styles.selectVideoButton} onPress={pickVideo}>
-              <Upload size={20} color="white" />
-              <Text style={styles.selectVideoButtonText}>{t('select_video')}</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.loadUrlButton} onPress={() => setShowUrlModal(true)}>
-              <LinkIcon size={20} color={Colors.accent.primary} />
-              <Text style={styles.loadUrlButtonText}>{t('load_from_url')}</Text>
-            </TouchableOpacity>
           </View>
         )}
 
-        {/* Voice Control Center */}
-        <View style={styles.voiceControlCenter}>
+        {/* Voice Control Button - Floating Over Video */}
+        {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
+          <View style={styles.floatingVoiceControl}>
           {/* Status Bar */}
           {voiceStatus ? (
             <View style={styles.statusBar}>
@@ -1089,9 +1083,19 @@ export default function PlayerScreen() {
           <Text style={styles.voiceStatusLabel}>
             {(isVoiceActive || isVoiceListening) ? t('listening') : t('tap_to_speak')}
           </Text>
-        </View>
+          </View>
+        )}
 
-        {/* Always Listen Card */}
+        {/* Status Bar - Only show when there's a status */}
+        {voiceStatus && videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
+          <View style={styles.floatingStatusBar}>
+            <View style={styles.statusDot} />
+            <Text style={styles.statusText}>{voiceStatus}</Text>
+          </View>
+        )}
+
+        {/* Always Listen Card - Hidden when video is playing */}
+        {false && (
         <View style={styles.alwaysListenCard}>
           <View style={styles.alwaysListenContent}>
             <View style={styles.alwaysListenIcon}>
@@ -1109,10 +1113,10 @@ export default function PlayerScreen() {
             ios_backgroundColor={Colors.card.border}
           />
         </View>
+        )}
 
-
-
-        {/* Quick Stats Card */}
+        {/* Quick Stats Card - Hidden when video is playing */}
+        {false && (
         <View style={styles.statsCard}>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
@@ -1140,8 +1144,11 @@ export default function PlayerScreen() {
             <ChevronUp size={16} color={Colors.accent.primary} style={{ transform: [{ rotate: '90deg' }] }} />
           </TouchableOpacity>
         </View>
+        )}
 
-        {/* Commands Section Header */}
+        {/* Commands Section Header - Hidden when video is playing */}
+        {false && (<>
+        
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{t('available_commands')}</Text>
           <TouchableOpacity 
@@ -1361,6 +1368,8 @@ export default function PlayerScreen() {
             </View>
           )}
         </TouchableOpacity>
+        </>
+        )}
         
         {/* Siri Setup Modal */}
         <Modal
@@ -1762,7 +1771,7 @@ export default function PlayerScreen() {
         </Modal>
 
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -1780,13 +1789,10 @@ const createStyles = () => {
   return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary.bg,
+    backgroundColor: '#000',
   },
   content: {
-    paddingHorizontal: getResponsiveSize(16, 24, 32),
-    paddingBottom: 40,
-    maxWidth: getResponsiveSize(400, 600, 800),
-    alignSelf: "center",
+    flex: 1,
     width: "100%",
   },
   header: {
@@ -1806,19 +1812,17 @@ const createStyles = () => {
     textAlign: "center",
   },
   videoContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     width: "100%",
-    height: getResponsiveSize(520, 600, 700),
+    height: "100%",
     backgroundColor: "#000",
-    borderRadius: getResponsiveSize(12, 16, 20),
-    overflow: "hidden",
-    marginBottom: getResponsiveSize(20, 24, 28),
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
   },
   video: {
+    flex: 1,
     width: "100%",
     height: "100%",
   },
@@ -2487,6 +2491,27 @@ const createStyles = () => {
     textAlign: "center",
     fontWeight: "500" as const,
   },
+  floatingVoiceControl: {
+    position: 'absolute',
+    bottom: 100,
+    right: 20,
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  floatingStatusBar: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    zIndex: 999,
+  },
   voiceControlCenter: {
     alignItems: "center",
     marginBottom: 24,
@@ -2896,12 +2921,24 @@ const createStyles = () => {
     fontWeight: "600" as const,
     color: Colors.primary.text,
   },
+  videoSelectionOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.primary.bg,
+    paddingHorizontal: 24,
+  },
   videoSelectionCard: {
     backgroundColor: Colors.secondary.bg,
     borderRadius: 20,
     padding: 32,
     alignItems: "center",
-    marginBottom: 32,
+    width: '100%',
+    maxWidth: 400,
     borderWidth: 2,
     borderColor: Colors.card.border,
     borderStyle: "dashed",
@@ -3001,7 +3038,7 @@ const createStyles = () => {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: Colors.accent.primary + '15',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -3010,21 +3047,23 @@ const createStyles = () => {
   statusText: {
     fontSize: 14,
     fontWeight: "600" as const,
-    color: Colors.accent.primary,
+    color: '#fff',
   },
   voiceButtonWrapper: {
-    marginBottom: 16,
+    marginBottom: 8,
   },
   voiceButtonInnerCircle: {
     justifyContent: "center",
     alignItems: "center",
   },
   voiceStatusLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600" as const,
-    color: Colors.primary.text,
-    marginBottom: 20,
+    color: '#fff',
     textAlign: "center",
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: {width: 0, height: 1},
+    textShadowRadius: 3,
   },
   alwaysListenToggle: {
     flexDirection: "row",

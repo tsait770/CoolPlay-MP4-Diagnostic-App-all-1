@@ -136,40 +136,26 @@ export default function HomeScreen() {
   const [hasCheckedReferralModal, setHasCheckedReferralModal] = useState(false);
   const [hasShownFirstTimeModal, setHasShownFirstTimeModal] = useState(false);
 
-  // Animation values
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(-100)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  // Animation values (reduced for performance)
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   const stats = useMemo(() => {
     const baseStats = getStats();
-    // Use CategoryProvider's folder count which includes 'all' and 'favorites'
     return {
       ...baseStats,
       totalFolders: getTotalVisibleFolderCount(),
     };
-  }, [getStats, getTotalVisibleFolderCount, bookmarks, folders]);
-  const filteredBookmarks = useMemo(() => getFilteredBookmarks(), [bookmarks, folders, currentFolder, searchQuery]);
+  }, [getStats, getTotalVisibleFolderCount]);
+  
+  const filteredBookmarks = useMemo(() => getFilteredBookmarks(), [getFilteredBookmarks]);
 
   useEffect(() => {
-    // Splash screen animation
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 4,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    // Reduced animation for better performance
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 400,
+      useNativeDriver: true,
+    }).start();
 
     // Check if we should show referral modal on first login (only once per app install)
     const checkReferralModal = async () => {
@@ -643,22 +629,11 @@ export default function HomeScreen() {
         }
       >
         {/* Welcome Section with Animation */}
-        <Animated.View
-          style={[
-            styles.welcomeSection,
-            {
-              opacity: fadeAnim,
-              transform: [
-                { translateY: slideAnim },
-                { scale: scaleAnim },
-              ],
-            },
-          ]}
-        >
+        <View style={styles.welcomeSection}>
           <HomeIcon size={40} color={Colors.primary.accent} />
           <Text style={styles.welcomeTitle}>{t("app_name")}</Text>
           <Text style={styles.welcomeSubtitle}>{t("subtitle")}</Text>
-        </Animated.View>
+        </View>
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
@@ -868,11 +843,11 @@ export default function HomeScreen() {
               renderItem={renderBookmarkCard}
               keyExtractor={(item) => item.id}
               scrollEnabled={false}
-              removeClippedSubviews={Platform.OS === 'android'}
-              maxToRenderPerBatch={10}
-              updateCellsBatchingPeriod={100}
-              initialNumToRender={10}
-              windowSize={5}
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={5}
+              updateCellsBatchingPeriod={50}
+              initialNumToRender={8}
+              windowSize={3}
               getItemLayout={(data, index) => ({
                 length: 90,
                 offset: 90 * index,

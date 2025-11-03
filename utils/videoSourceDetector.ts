@@ -238,9 +238,24 @@ export function detectVideoSource(url: string): VideoSourceInfo {
       let videoId: string | undefined;
       if (source.extractVideoId) {
         if (source.type === 'youtube') {
-          // Support YouTube formats: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID
-          const match = url.match(/(?:youtube\.com\/watch\?v=|youtube\.com\/embed\/|youtu\.be\/|youtube-nocookie\.com\/embed\/)([\w-]+)/i);
-          videoId = match?.[1];
+          // Support all YouTube formats including shorts and query parameters
+          const patterns = [
+            /(?:youtube\.com\/watch\?.*v=)([\w-]{11})/i,
+            /(?:youtu\.be\/)([\w-]{11})/i,
+            /(?:youtube\.com\/embed\/)([\w-]{11})/i,
+            /(?:youtube\.com\/v\/)([\w-]{11})/i,
+            /(?:youtube\.com\/shorts\/)([\w-]{11})/i,
+            /(?:youtube-nocookie\.com\/embed\/)([\w-]{11})/i,
+          ];
+          
+          for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match && match[1]) {
+              videoId = match[1];
+              break;
+            }
+          }
+          
           console.log('[VideoSourceDetector] Extracted YouTube video ID:', videoId, 'from URL:', url);
         } else if (source.type === 'vimeo') {
           const match = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)(\d+)/i);

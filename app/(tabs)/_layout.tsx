@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
-import { Home, Star, Mic, Share2, Settings } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
+import { TouchableOpacity } from "react-native";
 import Colors from "@/constants/colors";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -13,23 +14,33 @@ export default function TabLayout() {
   const tabOptions = useMemo(() => ({
     home: {
       title: t("home"),
-      tabBarIcon: ({ color }: { color: string }) => <Home size={24} color={color} />,
+      tabBarIcon: ({ color }: { color: string }) => (
+        <Ionicons name="home-outline" size={24} color={color} />
+      ),
     },
     favorites: {
       title: t("favorites"),
-      tabBarIcon: ({ color }: { color: string }) => <Star size={24} color={color} />,
+      tabBarIcon: ({ color }: { color: string }) => (
+        <Ionicons name="star-outline" size={24} color={color} />
+      ),
     },
     player: {
       title: t("voice_control"),
-      tabBarIcon: ({ color }: { color: string }) => <Mic size={24} color={color} />,
+      tabBarIcon: ({ color }: { color: string }) => (
+        <Ionicons name="mic-outline" size={24} color={color} />
+      ),
     },
     community: {
       title: t("community_share"),
-      tabBarIcon: ({ color }: { color: string }) => <Share2 size={24} color={color} />,
+      tabBarIcon: ({ color }: { color: string }) => (
+        <Ionicons name="share-outline" size={24} color={color} />
+      ),
     },
     settings: {
       title: t("settings"),
-      tabBarIcon: ({ color }: { color: string }) => <Settings size={24} color={color} />,
+      tabBarIcon: ({ color }: { color: string }) => (
+        <Ionicons name="settings-outline" size={24} color={color} />
+      ),
     },
   }), [t]);
   
@@ -49,7 +60,17 @@ export default function TabLayout() {
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.1,
           shadowRadius: 3,
+          paddingBottom: 6,
         },
+        tabBarItemStyle: {
+          paddingVertical: 6,
+        },
+        tabBarButton: (props: any) => (
+          <TouchableOpacity
+            {...props}
+            hitSlop={{ top: 10, bottom: 14, left: 10, right: 10 }}
+          />
+        ),
         tabBarHideOnKeyboard: true,
         headerStyle: {
           backgroundColor: Colors.secondary.bg,

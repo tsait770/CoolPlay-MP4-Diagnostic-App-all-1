@@ -222,7 +222,14 @@ export default function UniversalVideoPlayer({
         ref={webViewRef}
         source={{ 
           uri: embedUrl,
-          headers: {
+          headers: sourceInfo.type === 'adult' ? {
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Upgrade-Insecure-Requests': '1',
+          } : {
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
@@ -261,17 +268,34 @@ export default function UniversalVideoPlayer({
           console.error('[UniversalVideoPlayer] WebView error:', nativeEvent);
           clearLoadTimeout();
           
-          if (retryCount < maxRetries) {
-            console.log(`[UniversalVideoPlayer] Auto-retry after error (${retryCount + 1}/${maxRetries})`);
-            setTimeout(() => {
-              setRetryCount(prev => prev + 1);
-              setIsLoading(true);
-              setPlaybackError(null);
-            }, 1000);
+          // For adult platforms, provide more helpful error messages
+          if (sourceInfo.type === 'adult') {
+            console.log(`[UniversalVideoPlayer] Adult platform error for ${sourceInfo.platform}`);
+            if (retryCount < maxRetries) {
+              console.log(`[UniversalVideoPlayer] Auto-retry for adult platform (${retryCount + 1}/${maxRetries})`);
+              setTimeout(() => {
+                setRetryCount(prev => prev + 1);
+                setIsLoading(true);
+                setPlaybackError(null);
+              }, 2000); // Longer delay for adult platforms
+            } else {
+              const error = `${sourceInfo.platform} 無法載入。這可能是由於網站結構變更或網路問題。請確認連結有效或稍後再試。`;
+              setPlaybackError(error);
+              onError?.(error);
+            }
           } else {
-            const error = `Failed to load ${sourceInfo.platform}: ${nativeEvent.description}`;
-            setPlaybackError(error);
-            onError?.(error);
+            if (retryCount < maxRetries) {
+              console.log(`[UniversalVideoPlayer] Auto-retry after error (${retryCount + 1}/${maxRetries})`);
+              setTimeout(() => {
+                setRetryCount(prev => prev + 1);
+                setIsLoading(true);
+                setPlaybackError(null);
+              }, 1000);
+            } else {
+              const error = `Failed to load ${sourceInfo.platform}: ${nativeEvent.description}`;
+              setPlaybackError(error);
+              onError?.(error);
+            }
           }
         }}
         onHttpError={(syntheticEvent) => {

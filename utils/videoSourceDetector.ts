@@ -204,17 +204,34 @@ const UNSUPPORTED_PLATFORMS = [
 export function detectVideoSource(url: string): VideoSourceInfo {
   console.log('[VideoSourceDetector] Detecting source for URL:', url);
   
-  if (!url || typeof url !== 'string') {
-    console.warn('[VideoSourceDetector] Invalid URL provided');
+  // Check for empty or invalid URL
+  if (!url || typeof url !== 'string' || url.trim() === '') {
+    console.warn('[VideoSourceDetector] Invalid URL: empty or not a string');
     return {
       type: 'unknown',
       platform: 'Unknown',
       requiresPremium: false,
-      error: 'Invalid URL',
+      error: 'Invalid URL: URL cannot be empty',
     };
   }
 
-  const normalizedUrl = url.trim().toLowerCase();
+  const trimmedUrl = url.trim();
+  
+  // Validate URL format - must start with valid protocol or be a valid URL
+  const isValidUrlFormat = /^(https?:\/\/|rtmp:\/\/|rtsp:\/\/)/.test(trimmedUrl) || 
+    /^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]\.[a-zA-Z]{2,}/.test(trimmedUrl);
+  
+  if (!isValidUrlFormat && !trimmedUrl.startsWith('data:')) {
+    console.warn('[VideoSourceDetector] Invalid URL format:', trimmedUrl);
+    return {
+      type: 'unknown',
+      platform: 'Unknown',
+      requiresPremium: false,
+      error: 'Invalid URL format: URL must start with http://, https://, rtmp://, rtsp:// or be a valid domain',
+    };
+  }
+
+  const normalizedUrl = trimmedUrl.toLowerCase();
 
   // Priority 1: Check for DRM-protected platforms first
   for (const source of UNSUPPORTED_PLATFORMS) {
@@ -269,9 +286,22 @@ export function detectVideoSource(url: string): VideoSourceInfo {
     }
   }
 
-  // Priority 5: Check for supported platforms
+  // Priority 5: Check for cloud storage platforms (must be before social media)
   for (const source of SUPPORTED_PLATFORMS) {
-    if (source.pattern.test(url)) {
+    if ((source.type === 'gdrive' || source.type === 'dropbox') && source.pattern.test(url)) {
+      console.log('[VideoSourceDetector] Detected cloud storage:', source.platform);
+      return {
+        type: source.type,
+        platform: source.platform,
+        requiresPremium: source.requiresPremium,
+        requiresWebView: true,
+      };
+    }
+  }
+
+  // Priority 6: Check for other supported platforms
+  for (const source of SUPPORTED_PLATFORMS) {
+    if (source.type !== 'gdrive' && source.type !== 'dropbox' && source.pattern.test(url)) {
       console.log('[VideoSourceDetector] Detected supported platform:', source.platform);
       
       let videoId: string | undefined;
@@ -308,12 +338,12 @@ export function detectVideoSource(url: string): VideoSourceInfo {
         platform: source.platform,
         requiresPremium: source.requiresPremium,
         videoId,
-        requiresWebView: ['twitch', 'facebook', 'dailymotion', 'rumble', 'odysee', 'bilibili', 'twitter', 'instagram', 'tiktok', 'gdrive', 'dropbox'].includes(source.type),
+        requiresWebView: ['twitch', 'facebook', 'dailymotion', 'rumble', 'odysee', 'bilibili', 'twitter', 'instagram', 'tiktok'].includes(source.type),
       };
     }
   }
 
-  // Priority 6: Fallback to WebView for any http/https URL
+  // Priority 7: Fallback to WebView for any http/https URL
   if (/^https?:\/\//i.test(url)) {
     console.log('[VideoSourceDetector] Fallback to WebView for unknown URL');
     return {
@@ -324,12 +354,13 @@ export function detectVideoSource(url: string): VideoSourceInfo {
     };
   }
 
-  console.warn('[VideoSourceDetector] Unknown video source');
+  // If we reach here, the URL format is not recognized
+  console.warn('[VideoSourceDetector] Unsupported video source format');
   return {
     type: 'unknown',
     platform: 'Unknown',
     requiresPremium: false,
-    error: 'Unknown video source format',
+    error: 'Unsupported video format: This URL format is not recognized by the player',
   };
 }
 

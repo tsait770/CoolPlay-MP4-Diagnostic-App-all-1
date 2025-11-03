@@ -7,12 +7,14 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
-  Image,
+  ActivityIndicator,
 } from "react-native";
+import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Mail, Lock, LogOut } from "lucide-react-native";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useAuth } from "@/providers/AuthProvider";
+import Colors from "@/constants/colors";
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
@@ -23,6 +25,7 @@ export default function ProfileScreen() {
   const [rememberMe, setRememberMe] = useState(false);
 
   const [linkingGoogle, setLinkingGoogle] = useState(false);
+  const [linkingApple, setLinkingApple] = useState(false);
 
 
 
@@ -54,8 +57,12 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleAppleAuth = () => {
-    Alert.alert(t("info"), "Apple Sign In coming soon");
+  const handleAppleAuth = async () => {
+    setLinkingApple(true);
+    setTimeout(() => {
+      setLinkingApple(false);
+      Alert.alert(t("info"), "Apple Sign In coming soon");
+    }, 500);
   };
 
   const handleLogout = () => {
@@ -137,28 +144,45 @@ export default function ProfileScreen() {
         {/* Social Auth Buttons */}
         <View style={styles.socialButtons}>
           <TouchableOpacity 
-            style={styles.socialButton}
+            style={[styles.socialButton, linkingGoogle && styles.socialButtonDisabled]}
             onPress={handleGoogleAuth}
             disabled={linkingGoogle}
           >
-            <Image 
-              source={{ uri: "https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" }}
-              style={styles.socialIcon}
-              resizeMode="contain"
-            />
-            <Text style={styles.socialButtonText}>Google</Text>
+            {linkingGoogle ? (
+              <ActivityIndicator size="small" color={Colors.primary.text} />
+            ) : (
+              <>
+                <Image 
+                  source="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                  style={styles.socialIcon}
+                  contentFit="contain"
+                  cachePolicy="memory-disk"
+                  priority="high"
+                />
+                <Text style={styles.socialButtonText}>Google</Text>
+              </>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={styles.socialButton}
+            style={[styles.socialButton, linkingApple && styles.socialButtonDisabled]}
             onPress={handleAppleAuth}
+            disabled={linkingApple}
           >
-            <Image 
-              source={{ uri: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" }}
-              style={styles.socialIcon}
-              resizeMode="contain"
-            />
-            <Text style={styles.socialButtonText}>Apple</Text>
+            {linkingApple ? (
+              <ActivityIndicator size="small" color={Colors.primary.text} />
+            ) : (
+              <>
+                <Image 
+                  source="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"
+                  style={styles.socialIcon}
+                  contentFit="contain"
+                  cachePolicy="memory-disk"
+                  priority="high"
+                />
+                <Text style={styles.socialButtonText}>Apple</Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -178,11 +202,11 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: Colors.primary.bg,
   },
   container: {
     flex: 1,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: Colors.primary.bg,
   },
   scrollContent: {
     flexGrow: 1,
@@ -190,7 +214,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   formContainer: {
-    backgroundColor: "#1a1a1a",
+    backgroundColor: Colors.primary.bg,
     width: "100%",
     maxWidth: 450,
     alignSelf: "center",
@@ -199,7 +223,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   label: {
-    color: "#ffffff",
+    color: Colors.primary.text,
     fontWeight: "600" as const,
     fontSize: 20,
     marginBottom: 12,
@@ -212,7 +236,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingLeft: 16,
     paddingRight: 16,
-    backgroundColor: "#2a2a2a",
+    backgroundColor: Colors.surface.secondary,
   },
   input: {
     marginLeft: 12,
@@ -220,7 +244,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: "100%",
     fontSize: 16,
-    color: "#cccccc",
+    color: Colors.primary.textSecondary,
   },
   flexRow: {
     flexDirection: "row",
@@ -238,59 +262,59 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: "#ffffff",
+    borderColor: Colors.primary.text,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 8,
     backgroundColor: "transparent",
   },
   checkboxChecked: {
-    borderColor: "#ffffff",
-    backgroundColor: "#ffffff",
+    borderColor: Colors.primary.accent,
+    backgroundColor: Colors.primary.accent,
   },
   checkboxInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: Colors.primary.text,
   },
   rememberText: {
     fontSize: 15,
-    color: "#ffffff",
+    color: Colors.primary.text,
   },
   forgotPassword: {
     fontSize: 15,
-    color: "#007AFF",
+    color: Colors.primary.accent,
     fontWeight: "500" as const,
   },
   buttonSubmit: {
     marginTop: 10,
     marginBottom: 15,
-    backgroundColor: "#007AFF",
+    backgroundColor: Colors.primary.accent,
     height: 56,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
   },
   buttonSubmitText: {
-    color: "#ffffff",
+    color: Colors.primary.text,
     fontSize: 17,
     fontWeight: "600" as const,
   },
   signUpText: {
     textAlign: "center" as const,
-    color: "#ffffff",
+    color: Colors.primary.text,
     fontSize: 15,
     marginTop: 0,
     marginBottom: 20,
   },
   signUpLink: {
-    color: "#007AFF",
+    color: Colors.primary.accent,
     fontWeight: "600" as const,
   },
   orWith: {
     textAlign: "center" as const,
-    color: "#ffffff",
+    color: Colors.primary.text,
     fontSize: 16,
     marginTop: 10,
     marginBottom: 20,
@@ -310,13 +334,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     borderWidth: 1,
-    borderColor: "#333333",
-    backgroundColor: "#2a2a2a",
+    borderColor: Colors.card.border,
+    backgroundColor: Colors.surface.secondary,
+  },
+  socialButtonDisabled: {
+    opacity: 0.6,
   },
   socialButtonText: {
     fontSize: 16,
     fontWeight: "500" as const,
-    color: "#ffffff",
+    color: Colors.primary.text,
   },
   socialIcon: {
     width: 24,
@@ -328,15 +355,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#2a2a2a",
+    backgroundColor: Colors.surface.secondary,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#333333",
+    borderColor: Colors.card.border,
   },
   logoutButtonText: {
     fontSize: 16,
     fontWeight: "600" as const,
-    color: "#EF4444",
+    color: Colors.semantic.danger,
   },
 });

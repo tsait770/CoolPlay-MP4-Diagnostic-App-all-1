@@ -7,7 +7,7 @@ import {
   Text,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import {
   Play,
   Pause,
@@ -49,9 +49,16 @@ export default function UniversalVideoPlayer({
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
-  const videoRef = useRef<Video>(null);
   const webViewRef = useRef<WebView>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  const player = useVideoPlayer(url, (player) => {
+    player.loop = false;
+    player.muted = isMuted;
+    if (autoPlay) {
+      player.play();
+    }
+  });
 
   const sourceInfo = detectVideoSource(url);
   const playbackEligibility = canPlayVideo(url, tier);
@@ -68,14 +75,14 @@ export default function UniversalVideoPlayer({
     if (!playbackEligibility.canPlay) {
       const error = playbackEligibility.reason || 'Cannot play this video';
       setPlaybackError(error);
-      onError?.(error);
+      if (onError) onError(error);
     }
 
     if (sourceInfo.requiresAgeVerification) {
       console.log('[UniversalVideoPlayer] Age verification required');
-      onAgeVerificationRequired?.();
+      if (onAgeVerificationRequired) onAgeVerificationRequired();
     }
-  }, [url]);
+  }, [url, sourceInfo.type, sourceInfo.platform, sourceInfo.requiresAgeVerification, tier, playbackEligibility.canPlay, playbackEligibility.reason, onError, onAgeVerificationRequired]);
 
   useEffect(() => {
     if (showControls) {
@@ -93,43 +100,58 @@ export default function UniversalVideoPlayer({
     };
   }, [showControls]);
 
-  const handlePlayPause = async () => {
-    if (videoRef.current) {
+  const handlePlayPause = () => {
+    if (player) {
       if (isPlaying) {
-        await videoRef.current.pauseAsync();
+        player.pause();
       } else {
-        await videoRef.current.playAsync();
+        player.play();
         onPlaybackStart?.();
       }
       setIsPlaying(!isPlaying);
     }
   };
 
-  const handleMute = async () => {
-    if (videoRef.current) {
-      await videoRef.current.setIsMutedAsync(!isMuted);
+  const handleMute = () => {
+    if (player) {
+      player.muted = !isMuted;
       setIsMuted(!isMuted);
     }
   };
 
-  const handleSeek = async (seconds: number) => {
-    if (videoRef.current) {
-      const status = await videoRef.current.getStatusAsync();
-      if (status.isLoaded) {
-        const newPosition = Math.max(0, status.positionMillis + seconds * 1000);
-        await videoRef.current.setPositionAsync(newPosition);
-      }
+  const handleSeek = (seconds: number) => {
+    if (player) {
+      const currentTime = player.currentTime || 0;
+      const newPosition = Math.max(0, currentTime + seconds);
+      player.currentTime = newPosition;
     }
   };
 
-  const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
-    if (status.isLoaded) {
-      setIsPlaying(status.isPlaying);
-      if (status.didJustFinish) {
-        onPlaybackEnd?.();
+  useEffect(() => {
+    if (!player) return;
+
+    const subscription = player.addListener('playingChange', (event) => {
+      setIsPlaying(event.isPlaying);
+    });
+
+    const statusSubscription = player.addListener('statusChange', (status) => {
+      if (status.status === 'readyToPlay') {
+        setIsLoading(false);
+        if (autoPlay) {
+          onPlaybackStart?.();
+        }
+      } else if (status.status === 'error') {
+        const errorMsg = `Playback error: ${status.error}`;
+        setPlaybackError(errorMsg);
+        onError?.(errorMsg);
       }
-    }
-  };
+    });
+
+    return () => {
+      subscription.remove();
+      statusSubscription.remove();
+    };
+  }, [player, autoPlay, onPlaybackStart, onError]);
 
   const getYouTubeEmbedUrl = (videoId: string): string => {
     return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${autoPlay ? 1 : 0}&controls=1&rel=0&modestbranding=1`;
@@ -204,28 +226,13 @@ export default function UniversalVideoPlayer({
         activeOpacity={1}
         onPress={() => setShowControls(true)}
       >
-        <Video
-          ref={videoRef}
-          source={{ uri: url }}
+        <VideoView
+          player={player}
           style={styles.video}
-          resizeMode={ResizeMode.CONTAIN}
-          shouldPlay={autoPlay}
-          isLooping={false}
-          isMuted={isMuted}
-          onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
-          onError={(error) => {
-            console.error('[UniversalVideoPlayer] Native player error:', error);
-            const errorMsg = `Playback error: ${error}`;
-            setPlaybackError(errorMsg);
-            onError?.(errorMsg);
-          }}
-          onLoad={() => {
-            console.log('[UniversalVideoPlayer] Native player loaded');
-            setIsLoading(false);
-            if (autoPlay) {
-              onPlaybackStart?.();
-            }
-          }}
+          contentFit="contain"
+          nativeControls={false}
+          allowsFullscreen
+          allowsPictureInPicture
         />
         
         {showControls && (

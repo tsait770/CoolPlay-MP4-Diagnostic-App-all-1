@@ -71,8 +71,25 @@ export function extractTikTokVideoId(url: string): string | null {
 
 const twitterStrategies: EmbedStrategy[] = [
   {
-    name: 'Twitter oEmbed API',
+    name: 'Direct X.com URL',
     priority: 1,
+    getEmbedUrl: (url: string) => {
+      const twitterUrl = url.includes('x.com') 
+        ? url 
+        : url.replace('twitter.com', 'x.com');
+      
+      return twitterUrl;
+    },
+    headers: {
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Referer': 'https://x.com/',
+    },
+    userAgent: MOBILE_USER_AGENT,
+  },
+  {
+    name: 'Twitter oEmbed API',
+    priority: 2,
     getEmbedUrl: (url: string) => {
       const videoId = extractTwitterVideoId(url);
       if (!videoId) return null;
@@ -91,22 +108,20 @@ const twitterStrategies: EmbedStrategy[] = [
     userAgent: MOBILE_USER_AGENT,
   },
   {
-    name: 'Direct X.com Embed',
-    priority: 2,
-    getEmbedUrl: (url: string, videoId?: string | null) => {
-      const id = videoId ?? extractTwitterVideoId(url);
-      if (!id) return null;
+    name: 'Mobile Twitter URL',
+    priority: 3,
+    getEmbedUrl: (url: string) => {
+      const twitterUrl = url.includes('x.com') 
+        ? url 
+        : url.replace('twitter.com', 'x.com');
       
-      const username = url.match(/(?:twitter\.com|x\.com)\/(?:#!\/)?(\w+)/i)?.[1];
-      if (!username) return null;
-      
-      return `https://x.com/${username}/status/${id}`;
+      return `https://mobile.${twitterUrl.replace('https://', '').replace('http://', '')}`;
     },
     userAgent: MOBILE_USER_AGENT,
   },
   {
     name: 'Twitter Embed Widget',
-    priority: 3,
+    priority: 4,
     getEmbedUrl: (url: string) => {
       const videoId = extractTwitterVideoId(url);
       if (!videoId) return null;
@@ -147,8 +162,21 @@ const twitterStrategies: EmbedStrategy[] = [
 
 const instagramStrategies: EmbedStrategy[] = [
   {
-    name: 'Instagram oEmbed API',
+    name: 'Direct Instagram URL',
     priority: 1,
+    getEmbedUrl: (url: string) => {
+      return url;
+    },
+    headers: {
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Referer': 'https://www.instagram.com/',
+    },
+    userAgent: MOBILE_USER_AGENT,
+  },
+  {
+    name: 'Instagram oEmbed API',
+    priority: 2,
     getEmbedUrl: (url: string) => {
       const videoId = extractInstagramVideoId(url);
       if (!videoId) return null;
@@ -164,7 +192,7 @@ const instagramStrategies: EmbedStrategy[] = [
   },
   {
     name: 'Direct Instagram Embed',
-    priority: 2,
+    priority: 3,
     getEmbedUrl: (url: string, videoId?: string | null) => {
       const id = videoId ?? extractInstagramVideoId(url);
       if (!id) return null;
@@ -176,7 +204,7 @@ const instagramStrategies: EmbedStrategy[] = [
   },
   {
     name: 'Instagram Widget HTML',
-    priority: 3,
+    priority: 4,
     getEmbedUrl: (url: string) => {
       const videoId = extractInstagramVideoId(url);
       if (!videoId) return null;
@@ -214,8 +242,21 @@ const instagramStrategies: EmbedStrategy[] = [
 
 const tiktokStrategies: EmbedStrategy[] = [
   {
-    name: 'TikTok oEmbed API',
+    name: 'Direct TikTok URL',
     priority: 1,
+    getEmbedUrl: (url: string) => {
+      return url;
+    },
+    headers: {
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Referer': 'https://www.tiktok.com/',
+    },
+    userAgent: MOBILE_USER_AGENT,
+  },
+  {
+    name: 'TikTok oEmbed API',
+    priority: 2,
     getEmbedUrl: (url: string) => {
       const encodedUrl = encodeURIComponent(url);
       return `https://www.tiktok.com/oembed?url=${encodedUrl}`;
@@ -228,7 +269,7 @@ const tiktokStrategies: EmbedStrategy[] = [
   },
   {
     name: 'Direct TikTok Embed',
-    priority: 2,
+    priority: 3,
     getEmbedUrl: (url: string, videoId?: string | null) => {
       const id = videoId ?? extractTikTokVideoId(url);
       if (!id) return null;
@@ -242,7 +283,7 @@ const tiktokStrategies: EmbedStrategy[] = [
   },
   {
     name: 'TikTok Embed Widget',
-    priority: 3,
+    priority: 4,
     getEmbedUrl: (url: string, videoId?: string | null) => {
       const id = videoId ?? extractTikTokVideoId(url);
       if (!id) return null;

@@ -20,7 +20,9 @@ import {
   AlertCircle,
 } from 'lucide-react-native';
 import { detectVideoSource, canPlayVideo } from '@/utils/videoSourceDetector';
+import { getSocialMediaConfig } from '@/utils/socialMediaPlayer';
 import { useMembership } from '@/providers/MembershipProvider';
+import SocialMediaPlayer from '@/components/SocialMediaPlayer';
 import Colors from '@/constants/colors';
 
 export interface UniversalVideoPlayerProps {
@@ -329,24 +331,44 @@ export default function UniversalVideoPlayer({
     return renderError();
   }
 
+  const socialMediaConfig = getSocialMediaConfig(url);
+  const useSocialMediaPlayer = socialMediaConfig && 
+    (sourceInfo.type === 'twitter' || sourceInfo.type === 'instagram' || sourceInfo.type === 'tiktok');
+
   const shouldUseWebView =
-    sourceInfo.requiresWebView ||
+    !useSocialMediaPlayer &&
+    (sourceInfo.requiresWebView ||
     sourceInfo.type === 'youtube' ||
     sourceInfo.type === 'vimeo' ||
     sourceInfo.type === 'webview' ||
-    sourceInfo.type === 'adult';
+    sourceInfo.type === 'adult');
 
   const shouldUseNativePlayer =
-    sourceInfo.type === 'direct' ||
+    !useSocialMediaPlayer &&
+    (sourceInfo.type === 'direct' ||
     sourceInfo.type === 'stream' ||
     sourceInfo.type === 'hls' ||
-    sourceInfo.type === 'dash';
+    sourceInfo.type === 'dash');
 
   return (
     <View style={[styles.container, style]}>
-      {shouldUseWebView ? renderWebViewPlayer() : null}
-      {shouldUseNativePlayer ? renderNativePlayer() : null}
-      {!shouldUseWebView && !shouldUseNativePlayer ? renderError() : null}
+      {useSocialMediaPlayer ? (
+        <SocialMediaPlayer
+          url={url}
+          onError={onError}
+          onLoad={() => setIsLoading(false)}
+          onPlaybackStart={onPlaybackStart}
+          autoRetry={true}
+          maxRetries={3}
+          style={style}
+        />
+      ) : shouldUseWebView ? (
+        renderWebViewPlayer()
+      ) : shouldUseNativePlayer ? (
+        renderNativePlayer()
+      ) : (
+        renderError()
+      )}
     </View>
   );
 }

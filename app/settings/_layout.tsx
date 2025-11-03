@@ -10,12 +10,12 @@ export default function SettingsLayout() {
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: Colors.secondary.bg,
+          backgroundColor: Colors.primary.bgSecondary,
         },
         headerTintColor: Colors.primary.text,
         headerTitleStyle: {
-          fontWeight: "600" as const,
-          fontSize: 17,
+          fontWeight: "700" as const,
+          fontSize: 20,
           color: Colors.primary.text,
         },
         headerShadowVisible: false,

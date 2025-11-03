@@ -9,6 +9,7 @@ interface MembershipState {
   usageCount: number;
   dailyUsageCount: number;
   lastResetDate: string;
+  lastMonthlyResetDate: string;
   trialUsed: boolean;
   trialUsageRemaining: number;
   monthlyUsageRemaining: number;
@@ -48,6 +49,7 @@ export const [MembershipProvider, useMembership] = createContextHook(() => {
     usageCount: 0,
     dailyUsageCount: 0,
     lastResetDate: new Date().toISOString().split('T')[0],
+    lastMonthlyResetDate: new Date().toISOString().substring(0, 7),
     trialUsed: false,
     trialUsageRemaining: MEMBERSHIP_LIMITS.trial.total,
     monthlyUsageRemaining: 0,
@@ -82,6 +84,7 @@ export const [MembershipProvider, useMembership] = createContextHook(() => {
             usageCount: 0,
             dailyUsageCount: 0,
             lastResetDate: new Date().toISOString().split('T')[0],
+            lastMonthlyResetDate: new Date().toISOString().substring(0, 7),
             trialUsed: false,
             trialUsageRemaining: MEMBERSHIP_LIMITS.trial.total,
             monthlyUsageRemaining: 0,
@@ -92,10 +95,21 @@ export const [MembershipProvider, useMembership] = createContextHook(() => {
           return;
         }
         const today = new Date().toISOString().split('T')[0];
+        const currentMonth = new Date().toISOString().substring(0, 7);
         
         if (parsed.lastResetDate !== today) {
           parsed.dailyUsageCount = 0;
           parsed.lastResetDate = today;
+        }
+        
+        if (!parsed.lastMonthlyResetDate) {
+          parsed.lastMonthlyResetDate = currentMonth;
+        }
+        
+        if (parsed.lastMonthlyResetDate !== currentMonth && parsed.tier === 'basic') {
+          console.log('[MembershipProvider] Monthly quota reset for Basic member');
+          parsed.monthlyUsageRemaining = MEMBERSHIP_LIMITS.basic.monthly;
+          parsed.lastMonthlyResetDate = currentMonth;
         }
         
         setState(parsed);
@@ -105,6 +119,7 @@ export const [MembershipProvider, useMembership] = createContextHook(() => {
           usageCount: 0,
           dailyUsageCount: 0,
           lastResetDate: new Date().toISOString().split('T')[0],
+          lastMonthlyResetDate: new Date().toISOString().substring(0, 7),
           trialUsed: false,
           trialUsageRemaining: MEMBERSHIP_LIMITS.trial.total,
           monthlyUsageRemaining: 0,
@@ -216,12 +231,22 @@ export const [MembershipProvider, useMembership] = createContextHook(() => {
 
   const canUseFeature = useCallback((): boolean => {
     const today = new Date().toISOString().split('T')[0];
+    const currentMonth = new Date().toISOString().substring(0, 7);
     
     if (state.lastResetDate !== today) {
       setState(prev => ({
         ...prev,
         dailyUsageCount: 0,
         lastResetDate: today,
+      }));
+    }
+    
+    if (state.lastMonthlyResetDate !== currentMonth && state.tier === 'basic') {
+      console.log('[MembershipProvider] Resetting monthly quota for Basic member');
+      setState(prev => ({
+        ...prev,
+        monthlyUsageRemaining: MEMBERSHIP_LIMITS.basic.monthly,
+        lastMonthlyResetDate: currentMonth,
       }));
     }
 
@@ -325,7 +350,7 @@ export const [MembershipProvider, useMembership] = createContextHook(() => {
       updateUsageStats();
     }, 500);
     return () => clearTimeout(timeoutId);
-  }, [state.dailyUsageCount, state.usageCount]);
+  }, [state.dailyUsageCount, state.usageCount, updateUsageStats]);
 
   return useMemo(() => ({
     ...state,

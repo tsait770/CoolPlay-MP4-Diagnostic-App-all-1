@@ -28,13 +28,14 @@ export default function VoiceIndexScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <AnimatedBackButton
-          onPress={() => router.back()}
-          color="greenyellow"
-          style={styles.backButton}
-        />
-        <Text style={styles.headerTitle}>{t("voice_control")}</Text>
-        <View style={styles.headerSpacer} />
+        <View style={styles.headerContent}>
+          <AnimatedBackButton
+            onPress={() => router.back()}
+            color="greenyellow"
+            style={styles.backButton}
+          />
+          <Text style={styles.headerTitle}>{t("voice_control")}</Text>
+        </View>
       </View>
       <ScrollView>
         {voiceItems.map((item, index) => {
@@ -64,26 +65,24 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary.bg,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 12,
     backgroundColor: Colors.secondary.bg,
     borderBottomWidth: 1,
     borderBottomColor: Colors.card.border,
   },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
   backButton: {
-    minWidth: 100,
+    flexShrink: 0,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700" as const,
     color: Colors.primary.text,
-    textAlign: "center" as const,
-  },
-  headerSpacer: {
-    minWidth: 100,
   },
   item: {
     flexDirection: "row",

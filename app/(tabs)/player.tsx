@@ -991,6 +991,7 @@ export default function PlayerScreen() {
       setVideoSource(null);
       setUseUniversalPlayer(false);
       setVoiceStatus("");
+      setShowControls(true);
     });
   };
 
@@ -1074,20 +1075,22 @@ export default function PlayerScreen() {
 
         {/* PlayStation Voice Control Button - Floating Over Video */}
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
-          <PlayStationController
-            onCrossPress={startVoiceRecording}
-            onCirclePress={stopVoiceRecording}
-            onTrianglePress={togglePlayPause}
-            onSquarePress={() => {
-              if (videoPlayer) {
-                videoPlayer.currentTime = 0;
-                if (typeof videoPlayer.play === 'function') {
-                  videoPlayer.play();
+          <View style={styles.controllerWrapper}>
+            <PlayStationController
+              onCrossPress={startVoiceRecording}
+              onCirclePress={stopVoiceRecording}
+              onTrianglePress={togglePlayPause}
+              onSquarePress={() => {
+                if (videoPlayer) {
+                  videoPlayer.currentTime = 0;
+                  if (typeof videoPlayer.play === 'function') {
+                    videoPlayer.play();
+                  }
                 }
-              }
-            }}
-            containerHeight={Dimensions.get('window').height}
-          />
+              }}
+              containerHeight={Dimensions.get('window').height}
+            />
+          </View>
         )}
 
         {/* Status Bar - Only show when there's a status */}
@@ -3411,6 +3414,15 @@ const createStyles = () => {
     fontWeight: '600' as const,
     color: '#fff',
     textAlign: 'center' as const,
+  },
+  controllerWrapper: {
+    position: 'absolute' as const,
+    bottom: 0,
+    right: 0,
+    left: 0,
+    top: 0,
+    pointerEvents: 'box-none' as const,
+    zIndex: 9998,
   },
 
   });

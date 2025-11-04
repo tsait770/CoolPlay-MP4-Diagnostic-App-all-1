@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,39 +6,33 @@ import {
   PanResponder,
   TouchableOpacity,
   Dimensions,
-  Platform,
 } from 'react-native';
-import { Play, Pause, Mic, Volume2, FastForward } from 'lucide-react-native';
 
 interface PlayStationControllerProps {
-  onPlayPress?: () => void;
-  onVoicePress?: () => void;
-  onVolumeDownPress?: () => void;
-  onSpeedUpPress?: () => void;
+  onCrossPress?: () => void;
+  onCirclePress?: () => void;
+  onTrianglePress?: () => void;
+  onSquarePress?: () => void;
   initialPosition?: { x: number; y: number };
   containerHeight?: number;
-  isPlaying?: boolean;
-  isVoiceActive?: boolean;
 }
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function PlayStationController({
-  onPlayPress,
-  onVoicePress,
-  onVolumeDownPress,
-  onSpeedUpPress,
+  onCrossPress,
+  onCirclePress,
+  onTrianglePress,
+  onSquarePress,
   initialPosition,
   containerHeight = SCREEN_HEIGHT,
-  isPlaying = false,
-  isVoiceActive = false,
 }: PlayStationControllerProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeButton, setActiveButton] = useState<string | null>(null);
   
-  // 默認位置：右下角，覆蓋在工具列上方，留出安全距離
-  const defaultX = SCREEN_WIDTH - 90; // 減少邊距以確保可見
-  const defaultY = containerHeight - 140; // 調整Y位置確保在工具列上方可見
+  // 默認位置：中間下方
+  const defaultX = SCREEN_WIDTH / 2 - 50;
+  const defaultY = containerHeight - 200;
   
   const pan = useRef(
     new Animated.ValueXY({
@@ -50,10 +44,7 @@ export default function PlayStationController({
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        // 只有在移動超過一定距離時才激活拖動
-        return Math.abs(gestureState.dx) > 2 || Math.abs(gestureState.dy) > 2;
-      },
+      onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
         pan.setOffset({
           x: (pan.x as any)._value,
@@ -61,34 +52,11 @@ export default function PlayStationController({
         });
         pan.setValue({ x: 0, y: 0 });
       },
-      onPanResponderMove: Animated.event(
-        [null, { dx: pan.x, dy: pan.y }],
-        { useNativeDriver: false }
-      ),
-      onPanResponderRelease: (evt, gestureState) => {
+      onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
+        useNativeDriver: false,
+      }),
+      onPanResponderRelease: () => {
         pan.flattenOffset();
-        
-        // 確保控制器不會移出屏幕
-        const currentX = (pan.x as any)._value;
-        const currentY = (pan.y as any)._value;
-        const size = getContainerSize();
-        
-        let newX = currentX;
-        let newY = currentY;
-        
-        // 邊界檢查
-        if (currentX < 0) newX = 0;
-        if (currentX > SCREEN_WIDTH - size) newX = SCREEN_WIDTH - size;
-        if (currentY < 0) newY = 0;
-        if (currentY > containerHeight - size) newY = containerHeight - size;
-        
-        if (newX !== currentX || newY !== currentY) {
-          Animated.spring(pan, {
-            toValue: { x: newX, y: newY },
-            useNativeDriver: false,
-            friction: 7,
-          }).start();
-        }
       },
     })
   ).current;
@@ -99,49 +67,16 @@ export default function PlayStationController({
     setTimeout(() => setActiveButton(null), 200);
   };
 
-  // 縮小3分之一尺寸
   const getContainerSize = () => {
-    return isExpanded ? 139 : 67;
+    return isExpanded ? 208 : 100;
   };
 
   const getButtonSize = () => {
-    return isExpanded ? 43 : 0;
+    return isExpanded ? 64 : 0;
   };
-
-  // 語音控制呼吸動畫
-  const breathAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (isVoiceActive) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(breathAnim, {
-            toValue: 1.2,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(breathAnim, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-    } else {
-      breathAnim.setValue(1);
-    }
-  }, [isVoiceActive]);
 
   const size = getContainerSize();
   const buttonSize = getButtonSize();
-
-  console.log('[PlayStationController] Rendering at position:', {
-    x: (pan.x as any)._value,
-    y: (pan.y as any)._value,
-    size,
-    isExpanded,
-    containerHeight,
-  });
 
   return (
     <Animated.View
@@ -154,7 +89,6 @@ export default function PlayStationController({
         },
       ]}
       {...panResponder.panHandlers}
-      pointerEvents="box-none"
     >
       <TouchableOpacity
         activeOpacity={0.9}
@@ -162,11 +96,12 @@ export default function PlayStationController({
         style={[styles.mainButton, { width: size, height: size }]}
       >
         <View style={styles.innerCircle}>
+          {/* Center decorative element */}
           <View style={styles.centerDot} />
         </View>
       </TouchableOpacity>
 
-      {/* Voice Button (Bottom - with breathing animation) */}
+      {/* Cross Button (Bottom - Blue X) */}
       {isExpanded && (
         <Animated.View
           style={[
@@ -176,26 +111,26 @@ export default function PlayStationController({
               width: buttonSize,
               height: buttonSize,
               opacity: isExpanded ? 1 : 0,
-              transform: [{ scale: isVoiceActive ? breathAnim : 1 }],
             },
           ]}
         >
           <TouchableOpacity
             style={[
               styles.actionButton,
-              styles.voiceButton,
-              activeButton === 'voice' && styles.activeButton,
-              isVoiceActive && styles.voiceActiveButton,
+              activeButton === 'cross' && styles.activeButton,
             ]}
-            onPress={() => handleButtonPress('voice', onVoicePress)}
+            onPress={() => handleButtonPress('cross', onCrossPress)}
             activeOpacity={0.8}
           >
-            <Mic size={20} color="#fff" />
+            <View style={styles.crossIcon}>
+              <View style={[styles.crossLine, styles.crossLineVertical]} />
+              <View style={[styles.crossLine, styles.crossLineHorizontal]} />
+            </View>
           </TouchableOpacity>
         </Animated.View>
       )}
 
-      {/* Speed Up Button (Right - Fast Forward 1.5x) */}
+      {/* Circle Button (Right - Red) */}
       {isExpanded && (
         <Animated.View
           style={[
@@ -211,18 +146,17 @@ export default function PlayStationController({
           <TouchableOpacity
             style={[
               styles.actionButton,
-              styles.speedButton,
-              activeButton === 'speed' && styles.activeButton,
+              activeButton === 'circle' && styles.activeButton,
             ]}
-            onPress={() => handleButtonPress('speed', onSpeedUpPress)}
+            onPress={() => handleButtonPress('circle', onCirclePress)}
             activeOpacity={0.8}
           >
-            <FastForward size={20} color="#fff" />
+            <View style={styles.circleIcon} />
           </TouchableOpacity>
         </Animated.View>
       )}
 
-      {/* Play Button (Top) */}
+      {/* Triangle Button (Top - Green) */}
       {isExpanded && (
         <Animated.View
           style={[
@@ -238,22 +172,17 @@ export default function PlayStationController({
           <TouchableOpacity
             style={[
               styles.actionButton,
-              styles.playButton,
-              activeButton === 'play' && styles.activeButton,
+              activeButton === 'triangle' && styles.activeButton,
             ]}
-            onPress={() => handleButtonPress('play', onPlayPress)}
+            onPress={() => handleButtonPress('triangle', onTrianglePress)}
             activeOpacity={0.8}
           >
-            {isPlaying ? (
-              <Pause size={20} color="#fff" fill="#fff" />
-            ) : (
-              <Play size={20} color="#fff" fill="#fff" />
-            )}
+            <View style={styles.triangleIcon} />
           </TouchableOpacity>
         </Animated.View>
       )}
 
-      {/* Volume Down Button (Left) */}
+      {/* Square Button (Left - Pink) */}
       {isExpanded && (
         <Animated.View
           style={[
@@ -269,13 +198,12 @@ export default function PlayStationController({
           <TouchableOpacity
             style={[
               styles.actionButton,
-              styles.volumeButton,
-              activeButton === 'volume' && styles.activeButton,
+              activeButton === 'square' && styles.activeButton,
             ]}
-            onPress={() => handleButtonPress('volume', onVolumeDownPress)}
+            onPress={() => handleButtonPress('square', onSquarePress)}
             activeOpacity={0.8}
           >
-            <Volume2 size={20} color="#fff" />
+            <View style={styles.squareIcon} />
           </TouchableOpacity>
         </Animated.View>
       )}
@@ -286,8 +214,7 @@ export default function PlayStationController({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    zIndex: 10000, // 提高 z-index 確保在最上層
-    elevation: Platform.OS === 'android' ? 10000 : undefined,
+    zIndex: 9999,
   },
   mainButton: {
     borderRadius: 999,
@@ -321,27 +248,27 @@ const styles = StyleSheet.create({
   crossButton: {
     bottom: 0,
     left: '50%',
-    transform: [{ translateX: -21.5 }],
+    transform: [{ translateX: -32 }],
   },
   circleButton: {
     top: '50%',
     right: 0,
-    transform: [{ translateY: -21.5 }],
+    transform: [{ translateY: -32 }],
   },
   triangleButton: {
     top: 0,
     left: '50%',
-    transform: [{ translateX: -21.5 }],
+    transform: [{ translateX: -32 }],
   },
   squareButton: {
     top: '50%',
     left: 0,
-    transform: [{ translateY: -21.5 }],
+    transform: [{ translateY: -32 }],
   },
   actionButton: {
-    width: 37,
-    height: 37,
-    borderRadius: 18.5,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#323232',
     justifyContent: 'center',
     alignItems: 'center',
@@ -360,28 +287,51 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.95 }],
     shadowOffset: { width: 0, height: 0 },
   },
-  // Play Button (Green)
-  playButton: {
-    backgroundColor: '#2a3a2a',
+  // Cross Icon (Blue X)
+  crossIcon: {
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  // Voice Button (Blue with breathing effect)
-  voiceButton: {
-    backgroundColor: '#2a3a4a',
-  },
-  voiceActiveButton: {
+  crossLine: {
+    position: 'absolute',
     backgroundColor: 'rgb(124, 178, 232)',
-    shadowColor: 'rgb(124, 178, 232)',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-    elevation: 8,
   },
-  // Volume Button (Purple)
-  volumeButton: {
-    backgroundColor: '#3a2a4a',
+  crossLineVertical: {
+    width: 3,
+    height: 24,
   },
-  // Speed Button (Red/Orange)
-  speedButton: {
-    backgroundColor: '#4a2a2a',
+  crossLineHorizontal: {
+    width: 24,
+    height: 3,
+  },
+  // Circle Icon (Red)
+  circleIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2.5,
+    borderColor: 'rgb(255, 102, 102)',
+  },
+  // Triangle Icon (Green)
+  triangleIcon: {
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderLeftWidth: 13,
+    borderRightWidth: 13,
+    borderBottomWidth: 22,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: 'rgb(64, 226, 160)',
+  },
+  // Square Icon (Pink)
+  squareIcon: {
+    width: 24,
+    height: 24,
+    borderWidth: 2.5,
+    borderColor: 'rgb(255, 105, 248)',
   },
 });

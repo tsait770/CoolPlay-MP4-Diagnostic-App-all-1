@@ -31,7 +31,9 @@ import {
   Monitor,
   Gauge,
   Cog,
+  ChevronLeft,
 } from "lucide-react-native";
+import { useRouter } from "expo-router";
 import PlayStationController from "@/components/PlayStationController";
 import Colors from "@/constants/colors";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -122,6 +124,8 @@ export default function PlayerScreen() {
   const [commandAction, setCommandAction] = useState("");
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const backButtonScale = useRef(new Animated.Value(1)).current;
+  const router = useRouter();
 
   // Define callback functions first
   const skipForward = useCallback(async (seconds: number = 10) => {
@@ -972,6 +976,23 @@ export default function PlayerScreen() {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
+  const handleBackPress = () => {
+    Animated.sequence([
+      Animated.timing(backButtonScale, {
+        toValue: 0.85,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(backButtonScale, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      router.back();
+    });
+  };
+
   const getProgressPercentage = () => {
     if (duration === 0) return 0;
     return (position / duration) * 100;
@@ -993,6 +1014,23 @@ export default function PlayerScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.content, { paddingTop: insets.top }]}>
+
+        {/* Header Bar with Back Button */}
+        {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
+          <View style={styles.headerBar}>
+            <Animated.View style={{ transform: [{ scale: backButtonScale }] }}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={handleBackPress}
+                activeOpacity={0.7}
+              >
+                <ChevronLeft size={20} color="#fff" strokeWidth={2.5} />
+              </TouchableOpacity>
+            </Animated.View>
+            <Text style={styles.headerTitle}>{t('voice_control')}</Text>
+            <View style={styles.headerSpacer} />
+          </View>
+        )}
 
         {/* Video Player - Full Screen */}
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' ? (
@@ -3358,6 +3396,38 @@ const createStyles = () => {
     paddingVertical: 4,
     borderRadius: 8,
     fontWeight: "500" as const,
+  },
+  headerBar: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    zIndex: 1001,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#fff',
+    textAlign: 'center' as const,
+  },
+  headerSpacer: {
+    width: 32,
   },
   });
 };

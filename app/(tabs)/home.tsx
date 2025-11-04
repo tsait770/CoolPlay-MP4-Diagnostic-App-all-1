@@ -58,7 +58,7 @@ import { useCategories } from "@/providers/CategoryProvider";
 import { useMembership } from "@/providers/MembershipProvider";
 import ReferralCodeModal from "@/components/ReferralCodeModal";
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system/legacy";
+import * as FileSystem from "expo-file-system";
 import * as Clipboard from "expo-clipboard";
 import * as Linking from "expo-linking";
 import * as Sharing from "expo-sharing";
@@ -76,20 +76,12 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 const maxWidth = getMaxWidth();
 const screenType = getScreenType();
 
-// Helper to get cache directory safely
 const getCacheDirectory = () => {
-  try {
-    // For web, we can't use file system
-    if (Platform.OS === 'web') {
-      return null;
-    }
-    // Use the legacy FileSystem API cacheDirectory
-    // @ts-ignore - cacheDirectory exists in legacy API
-    return FileSystem.cacheDirectory || null;
-  } catch (error) {
-    console.error('Error getting cache directory:', error);
+  if (Platform.OS === 'web') {
     return null;
   }
+  // @ts-ignore - cacheDirectory exists but types may not be updated
+  return FileSystem.cacheDirectory || null;
 };
 
 export default function HomeScreen() {
@@ -198,10 +190,7 @@ export default function HomeScreen() {
         
         let content: string;
         try {
-          // Use the new FileSystem API
-          content = await FileSystem.readAsStringAsync(file.uri, {
-            encoding: 'utf8',
-          });
+          content = await FileSystem.readAsStringAsync(file.uri);
           console.log('[Home] File content length:', content.length);
         } catch (readError) {
           console.error('[Home] Error reading file:', readError);
@@ -260,9 +249,7 @@ export default function HomeScreen() {
         return;
       }
       const fileUri = cacheDir + "bookmarks.html";
-      await FileSystem.writeAsStringAsync(fileUri, html, {
-        encoding: 'utf8',
-      });
+      await FileSystem.writeAsStringAsync(fileUri, html);
       
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri);
@@ -543,12 +530,8 @@ export default function HomeScreen() {
               }
               const htmlUri = cacheDir + `bookmarks_${item.id}.html`;
               const jsonUri = cacheDir + `bookmarks_${item.id}.json`;
-              await FileSystem.writeAsStringAsync(htmlUri, html, {
-                encoding: 'utf8',
-              });
-              await FileSystem.writeAsStringAsync(jsonUri, json, {
-                encoding: 'utf8',
-              });
+              await FileSystem.writeAsStringAsync(htmlUri, html);
+              await FileSystem.writeAsStringAsync(jsonUri, json);
               if (await Sharing.isAvailableAsync()) {
                 await Sharing.shareAsync(htmlUri);
               } else {

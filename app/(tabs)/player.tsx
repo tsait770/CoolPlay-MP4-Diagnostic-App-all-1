@@ -2957,8 +2957,8 @@ const createStyles = () => {
   },
   backButtonContainer: {
     position: 'absolute',
-    top: 100,
-    right: 20,
+    bottom: 80,
+    left: 20,
     zIndex: 1001,
   },
   selectVideoButton: {

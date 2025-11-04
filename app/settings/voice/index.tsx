@@ -87,9 +87,9 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   backButton: {
-    width: 110,
+    width: 132,
     height: 24,
-    transform: [{ scale: 0.5 }],
+    transform: [{ scale: 0.6 }],
   },
   headerTitle: {
     fontSize: 20,

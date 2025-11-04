@@ -399,21 +399,7 @@ export default function UniversalVideoPlayer({
         }}
         onError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
-          
-          // Extract detailed error information
-          const errorDetails = {
-            code: nativeEvent?.code || 'UNKNOWN',
-            description: nativeEvent?.description || 'No description',
-            domain: nativeEvent?.domain || 'No domain',
-            url: nativeEvent?.url || embedUrl,
-            canGoBack: nativeEvent?.canGoBack,
-            canGoForward: nativeEvent?.canGoForward,
-            loading: nativeEvent?.loading,
-            title: nativeEvent?.title,
-          };
-          
-          console.error('[UniversalVideoPlayer] WebView error details:', errorDetails);
-          console.error('[UniversalVideoPlayer] Full nativeEvent:', JSON.stringify(nativeEvent, null, 2));
+          console.error('[UniversalVideoPlayer] WebView error:', nativeEvent);
           clearLoadTimeout();
           
           if (sourceInfo.type === 'youtube') {
@@ -433,8 +419,7 @@ export default function UniversalVideoPlayer({
               return;
             }
             
-            const errorMsg = errorDetails.description || 'Unknown error';
-            const error = `YouTube 視頻載入失敗\n\nError: ${errorMsg}\nCode: ${errorDetails.code}\n\n可能原因：\n• 視頻被設為私人或已刪除\n• 視頻限制嵌入播放\n• 地區限制\n• 網路連線問題\n\n已嘗試 ${maxRetries} 種不同的載入方式。\n\n建議：\n1. 檢查視頻連結是否正確\n2. 在瀏覽器中測試是否能播放\n3. 稍後再試`;
+            const error = `YouTube 視頻載入失敗\n\n可能原因：\n• 視頻被設為私人或已刪除\n• 視頻限制嵌入播放\n• 地區限制\n• 網路連線問題\n\n已嘗試 ${maxRetries} 種不同的載入方式。\n\n建議：\n1. 檢查視頻連結是否正確\n2. 在瀏覽器中測試是否能播放\n3. 稍後再試`;
             setPlaybackError(error);
             onError?.(error);
             return;
@@ -464,7 +449,7 @@ export default function UniversalVideoPlayer({
                 setPlaybackError(null);
               }, 1000);
             } else {
-              const error = `Failed to load ${sourceInfo.platform}\n\nError: ${errorDetails.description}\nCode: ${errorDetails.code}\nURL: ${errorDetails.url}`;
+              const error = `Failed to load ${sourceInfo.platform}: ${nativeEvent.description}`;
               setPlaybackError(error);
               onError?.(error);
             }
@@ -472,16 +457,7 @@ export default function UniversalVideoPlayer({
         }}
         onHttpError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
-          
-          // Extract HTTP error details
-          const httpErrorDetails = {
-            statusCode: nativeEvent?.statusCode || 'UNKNOWN',
-            description: nativeEvent?.description || 'No description',
-            url: nativeEvent?.url || embedUrl,
-          };
-          
-          console.error('[UniversalVideoPlayer] WebView HTTP error:', httpErrorDetails);
-          console.error('[UniversalVideoPlayer] Full HTTP nativeEvent:', JSON.stringify(nativeEvent, null, 2));
+          console.error('[UniversalVideoPlayer] WebView HTTP error:', nativeEvent);
           clearLoadTimeout();
           
           if (nativeEvent.statusCode >= 400) {
@@ -493,7 +469,7 @@ export default function UniversalVideoPlayer({
                 setPlaybackError(null);
               }, 2000);
             } else {
-              const error = `HTTP Error ${httpErrorDetails.statusCode}\n\nDescription: ${httpErrorDetails.description}\nURL: ${httpErrorDetails.url}`;
+              const error = `HTTP Error ${nativeEvent.statusCode}: ${nativeEvent.url}`;
               setPlaybackError(error);
               onError?.(error);
             }

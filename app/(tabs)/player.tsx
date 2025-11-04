@@ -32,7 +32,7 @@ import {
   Gauge,
   Cog,
 } from "lucide-react-native";
-import FloatingVideoControls from "@/components/FloatingVideoControls";
+import PlayStationController from "@/components/PlayStationController";
 import AnimatedBackButton from "@/components/AnimatedBackButton";
 import Colors from "@/constants/colors";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -1058,18 +1058,20 @@ export default function PlayerScreen() {
           </View>
         )}
 
-        {/* Floating Video Controls - Left Bottom Corner */}
+        {/* PlayStation Voice Control Button - Floating Over Video */}
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
-          <FloatingVideoControls
-            onRewind={() => skipBackward(10)}
-            onPlayPause={togglePlayPause}
-            onVoiceControl={startVoiceRecording}
-            onFullscreen={toggleFullscreen}
-            onSpeedChange={() => {
-              const newSpeed = playbackRate === 1.5 ? 1.0 : 1.5;
-              setVideoSpeed(newSpeed);
+          <PlayStationController
+            onCrossPress={startVoiceRecording}
+            onCirclePress={stopVoiceRecording}
+            onTrianglePress={togglePlayPause}
+            onSquarePress={() => {
+              if (videoPlayer) {
+                videoPlayer.currentTime = 0;
+                if (typeof videoPlayer.play === 'function') {
+                  videoPlayer.play();
+                }
+              }
             }}
-            isPlaying={isPlaying}
             containerHeight={Dimensions.get('window').height}
           />
         )}

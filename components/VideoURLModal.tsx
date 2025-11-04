@@ -46,20 +46,16 @@ export default function VideoURLModal({ visible, onClose, onSubmit }: VideoURLMo
       animationType="slide"
       onRequestClose={handleClose}
     >
-      <View style={styles.modalOverlay}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardAvoidView}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-          <View style={styles.modalContainer}>
-            <ScrollView
-              style={styles.scrollView}
-              contentContainerStyle={styles.scrollContent}
-              showsVerticalScrollIndicator={false}
-              bounces={true}
-              keyboardShouldPersistTaps="handled"
-            >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.modalOverlay}
+      >
+        <View style={styles.modalContainer}>
+          <ScrollView
+            style={styles.scrollView}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.headerLeft}>
@@ -207,10 +203,9 @@ export default function VideoURLModal({ visible, onClose, onSubmit }: VideoURLMo
                 <Text style={styles.confirmButtonText}>{t('load_video')}</Text>
               </TouchableOpacity>
             </View>
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </View>
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -314,23 +309,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'flex-end',
   },
-  keyboardAvoidView: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
   modalContainer: {
     backgroundColor: Colors.secondary.bg,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '95%',
+    maxHeight: '90%',
     width: '100%',
   },
   scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
     padding: 20,
-    paddingBottom: 40,
   },
   header: {
     flexDirection: 'row',

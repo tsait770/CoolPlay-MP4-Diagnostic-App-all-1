@@ -5,7 +5,7 @@ import { Mic, ChevronRight } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
 import { useTranslation } from "@/hooks/useTranslation";
-import AnimatedBackButton from "@/components/AnimatedBackButton";
+import BlackButton from "@/components/BlackButton";
 
 export default function VoiceIndexScreen() {
   const router = useRouter();
@@ -28,6 +28,13 @@ export default function VoiceIndexScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <View style={styles.backButtonWrapper}>
+          <BlackButton
+            label="BACK"
+            onPress={() => router.back()}
+            style={styles.backButton}
+          />
+        </View>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>{t("voice_control")}</Text>
         </View>
@@ -50,12 +57,6 @@ export default function VoiceIndexScreen() {
           );
         })}
       </ScrollView>
-      <View style={[styles.backButtonContainer, { bottom: insets.bottom + 20 }]}>
-        <AnimatedBackButton
-          onPress={() => router.back()}
-          color="greenyellow"
-        />
-      </View>
     </View>
   );
 }
@@ -77,10 +78,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  backButtonContainer: {
+  backButtonWrapper: {
     position: "absolute" as const,
-    left: 20,
+    left: 16,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
     zIndex: 1000,
+  },
+  backButton: {
+    width: 110,
+    height: 24,
+    transform: [{ scale: 0.5 }],
   },
   headerTitle: {
     fontSize: 20,

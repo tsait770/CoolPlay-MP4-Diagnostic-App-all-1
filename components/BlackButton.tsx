@@ -17,7 +17,7 @@ const BlackButton: React.FC<BlackButtonProps> = ({ label = "BLACK", onPress, sty
   const handlePressIn = () => {
     Animated.parallel([
       Animated.timing(widthAnim, {
-        toValue: 200,
+        toValue: 240,
         duration: 450,
         easing: Easing.bezier(0.65, 0, 0.076, 1),
         useNativeDriver: false,
@@ -63,7 +63,7 @@ const BlackButton: React.FC<BlackButtonProps> = ({ label = "BLACK", onPress, sty
 
   const interpolatedTextColor = textColor.interpolate({
     inputRange: [0, 1],
-    outputRange: ["#282936", "#ffffff"],
+    outputRange: ["#007AFF", "#ffffff"],
   });
 
   return (
@@ -81,10 +81,10 @@ const BlackButton: React.FC<BlackButtonProps> = ({ label = "BLACK", onPress, sty
 
 const styles = StyleSheet.create({
   container: {
-    width: 220,
+    width: 264,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#1F2130",
+    backgroundColor: "#001F3F",
     justifyContent: "center",
     overflow: "hidden",
   },
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: "#282936",
+    backgroundColor: "#007AFF",
     borderRadius: 24,
   },
   arrow: {

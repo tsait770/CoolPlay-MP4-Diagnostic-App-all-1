@@ -5,7 +5,7 @@ import { Mic, ChevronRight } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
 import { useTranslation } from "@/hooks/useTranslation";
-import AnimatedBackButton from "@/components/AnimatedBackButton";
+import BlackButton from "@/components/BlackButton";
 
 export default function VoiceIndexScreen() {
   const router = useRouter();
@@ -29,9 +29,10 @@ export default function VoiceIndexScreen() {
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.backButtonWrapper}>
-          <AnimatedBackButton
+          <BlackButton
+            label="BACK"
             onPress={() => router.back()}
-            color={Colors.secondary.bg}
+            style={styles.blackButton}
           />
         </View>
         <View style={styles.headerContent}>
@@ -84,6 +85,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: "center",
     zIndex: 1000,
+  },
+  blackButton: {
+    transform: [{ scale: 0.4 }],
   },
   headerTitle: {
     fontSize: 20,

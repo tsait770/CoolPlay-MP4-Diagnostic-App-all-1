@@ -76,12 +76,19 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 const maxWidth = getMaxWidth();
 const screenType = getScreenType();
 
+// Helper to get cache directory safely
 const getCacheDirectory = () => {
-  if (Platform.OS === 'web') {
+  try {
+    // For web, we can't use file system
+    if (Platform.OS === 'web') {
+      return null;
+    }
+    // Use the FileSystem API
+    return FileSystem.cacheDirectory || null;
+  } catch (error) {
+    console.error('Error getting cache directory:', error);
     return null;
   }
-  // @ts-ignore - cacheDirectory exists but types may not be updated
-  return FileSystem.cacheDirectory || null;
 };
 
 export default function HomeScreen() {
@@ -190,7 +197,10 @@ export default function HomeScreen() {
         
         let content: string;
         try {
-          content = await FileSystem.readAsStringAsync(file.uri);
+          // Use the new FileSystem API
+          content = await FileSystem.readAsStringAsync(file.uri, {
+            encoding: 'utf8',
+          });
           console.log('[Home] File content length:', content.length);
         } catch (readError) {
           console.error('[Home] Error reading file:', readError);
@@ -249,7 +259,9 @@ export default function HomeScreen() {
         return;
       }
       const fileUri = cacheDir + "bookmarks.html";
-      await FileSystem.writeAsStringAsync(fileUri, html);
+      await FileSystem.writeAsStringAsync(fileUri, html, {
+        encoding: 'utf8',
+      });
       
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri);
@@ -530,8 +542,12 @@ export default function HomeScreen() {
               }
               const htmlUri = cacheDir + `bookmarks_${item.id}.html`;
               const jsonUri = cacheDir + `bookmarks_${item.id}.json`;
-              await FileSystem.writeAsStringAsync(htmlUri, html);
-              await FileSystem.writeAsStringAsync(jsonUri, json);
+              await FileSystem.writeAsStringAsync(htmlUri, html, {
+                encoding: 'utf8',
+              });
+              await FileSystem.writeAsStringAsync(jsonUri, json, {
+                encoding: 'utf8',
+              });
               if (await Sharing.isAvailableAsync()) {
                 await Sharing.shareAsync(htmlUri);
               } else {

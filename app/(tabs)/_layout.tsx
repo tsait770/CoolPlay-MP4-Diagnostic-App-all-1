@@ -1,18 +1,16 @@
-import { Tabs, useRouter } from "expo-router";
+import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
 import { TouchableOpacity } from "react-native";
 import Colors from "@/constants/colors";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useLanguage } from "@/hooks/useLanguage";
-import AnimatedBackButton from "@/components/AnimatedBackButton";
 
 export default function TabLayout() {
   const { t } = useTranslation();
   const { language } = useLanguage();
   
   // Force re-render when language changes by using it as a dependency
-  const router = useRouter();
   const tabOptions = useMemo(() => ({
     home: {
       title: t("home"),
@@ -28,22 +26,6 @@ export default function TabLayout() {
     },
     player: {
       title: t("voice_control"),
-      headerLeft: () => (
-        <AnimatedBackButton
-          onPress={() => {
-            try {
-              if ((window as any)?.history?.length > 1) {
-                router.back();
-              } else {
-                router.replace("/(tabs)/home");
-              }
-            } catch {
-              router.replace("/(tabs)/home");
-            }
-          }}
-          style={{ marginLeft: 12, paddingHorizontal: 12, paddingVertical: 6 }}
-        />
-      ),
       tabBarIcon: ({ color }: { color: string }) => (
         <Ionicons name="mic-outline" size={24} color={color} />
       ),
@@ -60,7 +42,7 @@ export default function TabLayout() {
         <Ionicons name="settings-outline" size={24} color={color} />
       ),
     },
-  }), [t, router]);
+  }), [t]);
   
   return (
     <Tabs

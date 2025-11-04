@@ -2,12 +2,15 @@ import React from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Mic, ChevronRight } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
 import { useTranslation } from "@/hooks/useTranslation";
+import AnimatedBackButton from "@/components/AnimatedBackButton";
 
 export default function VoiceIndexScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   const voiceItems = [
     {
@@ -24,6 +27,15 @@ export default function VoiceIndexScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <AnimatedBackButton
+          onPress={() => router.back()}
+          color="greenyellow"
+          style={styles.backButton}
+        />
+        <Text style={styles.headerTitle}>{t("voice_control")}</Text>
+        <View style={styles.headerSpacer} />
+      </View>
       <ScrollView>
         {voiceItems.map((item, index) => {
           const Icon = item.icon;
@@ -50,6 +62,28 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.primary.bg,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: Colors.secondary.bg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.card.border,
+  },
+  backButton: {
+    minWidth: 100,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "700" as const,
+    color: Colors.primary.text,
+    textAlign: "center" as const,
+  },
+  headerSpacer: {
+    minWidth: 100,
   },
   item: {
     flexDirection: "row",

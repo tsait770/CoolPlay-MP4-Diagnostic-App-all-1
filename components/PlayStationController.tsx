@@ -30,9 +30,9 @@ export default function PlayStationController({
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeButton, setActiveButton] = useState<string | null>(null);
   
-  // 默認位置：中間下方
-  const defaultX = SCREEN_WIDTH / 2 - 45;
-  const defaultY = containerHeight * 0.75;
+  // 默認位置：右下角
+  const defaultX = SCREEN_WIDTH - 110;
+  const defaultY = containerHeight - 130;
   
   const pan = useRef(
     new Animated.ValueXY({

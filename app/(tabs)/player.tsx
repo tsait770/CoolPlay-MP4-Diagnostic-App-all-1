@@ -33,6 +33,7 @@ import {
   Cog,
 } from "lucide-react-native";
 import PlayStationController from "@/components/PlayStationController";
+import AnimatedBackButton from "@/components/AnimatedBackButton";
 import Colors from "@/constants/colors";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -1011,6 +1012,15 @@ export default function PlayerScreen() {
                 autoPlay={false}
                 style={styles.video}
               />
+              <View style={styles.backButtonContainer}>
+                <AnimatedBackButton
+                  onPress={() => {
+                    setVideoSource(null);
+                    setVideoUrl('');
+                  }}
+                  color="#1E3A8A"
+                />
+              </View>
             </View>
           ) : (
             <TouchableOpacity
@@ -2944,6 +2954,12 @@ const createStyles = () => {
     color: Colors.primary.textSecondary,
     textAlign: "center",
     marginBottom: 24,
+  },
+  backButtonContainer: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    zIndex: 1001,
   },
   selectVideoButton: {
     flexDirection: "row",

@@ -1067,10 +1067,10 @@ export default function PlayerScreen() {
         )}
 
         {/* Status Bar - Only show when there's a status */}
-        {voiceStatus && videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
+        {voiceStatus && typeof voiceStatus === 'string' && videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
           <View style={styles.floatingStatusBar}>
             <View style={styles.statusDot} />
-            <Text style={styles.statusText}>{String(voiceStatus)}</Text>
+            <Text style={styles.statusText}>{voiceStatus}</Text>
           </View>
         )}
 

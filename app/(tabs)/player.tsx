@@ -31,7 +31,6 @@ import {
   Monitor,
   Gauge,
   Cog,
-  ChevronLeft,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import PlayStationController from "@/components/PlayStationController";
@@ -1015,26 +1014,7 @@ export default function PlayerScreen() {
     <View style={styles.container}>
       <View style={[styles.content, { paddingTop: insets.top }]}>
 
-        {/* Header Bar with Back Button */}
-        {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
-          <View
-            style={[
-              styles.headerBar,
-              { top: insets.top + 6, backgroundColor: 'transparent', justifyContent: 'flex-start' }
-            ]}
-          >
-            <Animated.View style={{ transform: [{ scale: backButtonScale }] }}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={handleBackPress}
-                activeOpacity={0.7}
-                testID="back-button"
-              >
-                <ChevronLeft size={20} color="#fff" strokeWidth={2.5} />
-              </TouchableOpacity>
-            </Animated.View>
-          </View>
-        )}
+        {/* Header Back Button now rendered in Tab header */}
 
         {/* Video Player - Full Screen */}
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' ? (

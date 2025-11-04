@@ -1,50 +1,41 @@
-import React, { useRef } from 'react';
-import { TouchableOpacity, Animated, StyleSheet } from 'react-native';
-import { ChevronLeft } from 'lucide-react-native';
+import React, { useRef, useEffect } from 'react';
+import { TouchableOpacity, Animated, StyleSheet, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface AnimatedBackButtonProps {
   onPress: () => void;
-  color?: string;
   style?: any;
 }
 
 const AnimatedBackButton: React.FC<AnimatedBackButtonProps> = ({ 
   onPress,
-  color = 'greenyellow',
   style
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const circleAnim = useRef(new Animated.Value(0)).current;
-  const arr1Anim = useRef(new Animated.Value(0)).current;
-  const arr2Anim = useRef(new Animated.Value(-25)).current;
-  const textAnim = useRef(new Animated.Value(-12)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const blurAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 3000,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, [rotateAnim]);
 
   const handlePressIn = () => {
     Animated.parallel([
       Animated.timing(scaleAnim, {
-        toValue: 0.95,
-        duration: 100,
+        toValue: 0.7,
+        duration: 300,
         useNativeDriver: true,
       }),
-      Animated.timing(circleAnim, {
-        toValue: 1,
-        duration: 600,
+      Animated.timing(blurAnim, {
+        toValue: 30,
+        duration: 300,
         useNativeDriver: false,
-      }),
-      Animated.timing(arr1Anim, {
-        toValue: -25,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(arr2Anim, {
-        toValue: 16,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(textAnim, {
-        toValue: 12,
-        duration: 800,
-        useNativeDriver: true,
       }),
     ]).start();
   };
@@ -53,40 +44,20 @@ const AnimatedBackButton: React.FC<AnimatedBackButtonProps> = ({
     Animated.parallel([
       Animated.timing(scaleAnim, {
         toValue: 1,
-        duration: 100,
+        duration: 300,
         useNativeDriver: true,
       }),
-      Animated.timing(circleAnim, {
-        toValue: 0,
-        duration: 600,
+      Animated.timing(blurAnim, {
+        toValue: 20,
+        duration: 300,
         useNativeDriver: false,
-      }),
-      Animated.timing(arr1Anim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(arr2Anim, {
-        toValue: -25,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(textAnim, {
-        toValue: -12,
-        duration: 800,
-        useNativeDriver: true,
       }),
     ]).start();
   };
 
-  const circleSize = circleAnim.interpolate({
+  const rotation = rotateAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [20, 220],
-  });
-
-  const circleOpacity = circleAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0, 0.8, 1],
+    outputRange: ['0deg', '-180deg'],
   });
 
   return (
@@ -95,100 +66,92 @@ const AnimatedBackButton: React.FC<AnimatedBackButtonProps> = ({
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      style={style}
+      style={[styles.container, style]}
     >
       <Animated.View
         style={[
-          styles.button,
+          styles.glowEffect,
           {
-            transform: [{ scale: scaleAnim }],
-            borderColor: color,
-            shadowColor: color,
-            shadowOffset: { width: 0, height: 0 },
-            shadowOpacity: 1,
-            shadowRadius: 2,
+            shadowRadius: blurAnim,
+          },
+        ]}
+      />
+      
+      <Animated.View
+        style={[
+          styles.borderContainer,
+          {
+            transform: [{ scale: scaleAnim }, { rotate: rotation }],
           },
         ]}
       >
-        <Animated.View
-          style={[
-            styles.circle,
-            {
-              width: circleSize,
-              height: circleSize,
-              opacity: circleOpacity,
-              backgroundColor: color,
-            },
-          ]}
+        <LinearGradient
+          colors={['#00AEEF', '#0066CC']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientBorder}
         />
-        
-        <Animated.View
-          style={[
-            styles.arrowContainer,
-            {
-              transform: [{ translateX: arr1Anim }],
-            },
-          ]}
-        >
-          <ChevronLeft size={24} color={color} />
-        </Animated.View>
+      </Animated.View>
 
-        <Animated.View
-          style={[
-            styles.arrowContainer,
-            {
-              transform: [{ translateX: arr2Anim }],
-            },
-          ]}
-        >
-          <ChevronLeft size={24} color="#212121" />
-        </Animated.View>
-
+      <View style={styles.buttonInner}>
         <Animated.Text
           style={[
             styles.text,
             {
-              color: color,
-              transform: [{ translateX: textAnim }],
+              transform: [{ scale: scaleAnim }],
             },
           ]}
-        >Back</Animated.Text>
-      </Animated.View>
+        >{"B A C K"}</Animated.Text>
+      </View>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  button: {
+  container: {
     position: 'relative',
-    flexDirection: 'row',
+    width: 100,
+    height: 40,
+  },
+  glowEffect: {
+    position: 'absolute',
+    inset: 0,
+    backgroundColor: '#00AEEF',
+    borderRadius: 8,
+    shadowColor: '#00AEEF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    elevation: 10,
+  },
+  borderContainer: {
+    position: 'absolute',
+    inset: -4,
+    top: -1,
+    left: -4,
+    width: 108,
+    height: 48,
+    borderRadius: 10,
+    zIndex: -10,
+  },
+  gradientBorder: {
+    flex: 1,
+    borderRadius: 10,
+  },
+  buttonInner: {
+    position: 'absolute',
+    inset: 0,
+    backgroundColor: '#000',
+    borderRadius: 8,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 36,
-    paddingVertical: 16,
-    borderWidth: 4,
-    borderRadius: 100,
-    backgroundColor: 'transparent',
-    overflow: 'hidden',
-  },
-  circle: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    borderRadius: 1000,
-    marginLeft: -10,
-    marginTop: -10,
-  },
-  arrowContainer: {
-    position: 'absolute',
-    left: 16,
-    zIndex: 9,
+    flexDirection: 'column',
+    paddingHorizontal: 12,
   },
   text: {
-    fontSize: 16,
-    fontWeight: '600',
-    zIndex: 1,
-    marginLeft: 16,
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#00AEEF',
+    letterSpacing: 2,
   },
 });
 

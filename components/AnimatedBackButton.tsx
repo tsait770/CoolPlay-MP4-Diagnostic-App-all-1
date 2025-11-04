@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { TouchableOpacity, Animated, StyleSheet, Text } from 'react-native';
+import { TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
 
 interface AnimatedBackButtonProps {
@@ -152,9 +152,7 @@ const AnimatedBackButton: React.FC<AnimatedBackButtonProps> = ({
               transform: [{ translateX: textAnim }],
             },
           ]}
-        >
-          Back
-        </Animated.Text>
+        >Back</Animated.Text>
       </Animated.View>
     </TouchableOpacity>
   );

@@ -1017,18 +1017,22 @@ export default function PlayerScreen() {
 
         {/* Header Bar with Back Button */}
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
-          <View style={styles.headerBar}>
+          <View
+            style={[
+              styles.headerBar,
+              { top: insets.top + 6, backgroundColor: 'transparent', justifyContent: 'flex-start' }
+            ]}
+          >
             <Animated.View style={{ transform: [{ scale: backButtonScale }] }}>
               <TouchableOpacity
                 style={styles.backButton}
                 onPress={handleBackPress}
                 activeOpacity={0.7}
+                testID="back-button"
               >
                 <ChevronLeft size={20} color="#fff" strokeWidth={2.5} />
               </TouchableOpacity>
             </Animated.View>
-            <Text style={styles.headerTitle}>{t('voice_control')}</Text>
-            <View style={styles.headerSpacer} />
           </View>
         )}
 
@@ -3426,9 +3430,7 @@ const createStyles = () => {
     color: '#fff',
     textAlign: 'center' as const,
   },
-  headerSpacer: {
-    width: 32,
-  },
+
   });
 };
 

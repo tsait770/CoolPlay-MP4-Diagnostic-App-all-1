@@ -29,11 +29,6 @@ export default function VoiceIndexScreen() {
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerContent}>
-          <AnimatedBackButton
-            onPress={() => router.back()}
-            color="greenyellow"
-            style={styles.backButton}
-          />
           <Text style={styles.headerTitle}>{t("voice_control")}</Text>
         </View>
       </View>
@@ -55,6 +50,12 @@ export default function VoiceIndexScreen() {
           );
         })}
       </ScrollView>
+      <View style={[styles.backButtonContainer, { bottom: insets.bottom + 20 }]}>
+        <AnimatedBackButton
+          onPress={() => router.back()}
+          color="greenyellow"
+        />
+      </View>
     </View>
   );
 }
@@ -74,10 +75,12 @@ const styles = StyleSheet.create({
   headerContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    justifyContent: "center",
   },
-  backButton: {
-    flexShrink: 0,
+  backButtonContainer: {
+    position: "absolute" as const,
+    left: 20,
+    zIndex: 1000,
   },
   headerTitle: {
     fontSize: 20,

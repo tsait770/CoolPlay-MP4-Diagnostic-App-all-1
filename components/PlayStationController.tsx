@@ -32,7 +32,7 @@ export default function PlayStationController({
   
   // 默認位置：右下角
   const defaultX = SCREEN_WIDTH - 110;
-  const defaultY = containerHeight - 150;
+  const defaultY = containerHeight - 130;
   
   const pan = useRef(
     new Animated.ValueXY({

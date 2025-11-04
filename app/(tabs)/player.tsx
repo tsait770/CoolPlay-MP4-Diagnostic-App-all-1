@@ -1018,7 +1018,7 @@ export default function PlayerScreen() {
                     setVideoSource(null);
                     setVideoUrl('');
                   }}
-                  color="greenyellow"
+                  color="#1E3A8A"
                 />
               </View>
             </View>
@@ -2957,7 +2957,7 @@ const createStyles = () => {
   },
   backButtonContainer: {
     position: 'absolute',
-    top: 10,
+    top: 60,
     left: 20,
     zIndex: 1001,
   },

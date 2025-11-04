@@ -33,7 +33,7 @@ import {
   Cog,
 } from "lucide-react-native";
 import PlayStationController from "@/components/PlayStationController";
-import AnimatedBackButton from "@/components/AnimatedBackButton";
+import BlackButton from "@/components/BlackButton";
 import Colors from "@/constants/colors";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -1012,13 +1012,21 @@ export default function PlayerScreen() {
                 autoPlay={false}
                 style={styles.video}
               />
-              <View style={styles.backButtonContainer}>
-                <AnimatedBackButton
+              <View
+                style={{
+                  position: 'absolute',
+                  left: 16,
+                  bottom: (insets?.bottom ?? 0) + 68,
+                  zIndex: 1001,
+                }}
+              >
+                <BlackButton
+                  testID="black-button"
+                  label="BLACK"
                   onPress={() => {
                     setVideoSource(null);
                     setVideoUrl('');
                   }}
-                  color="greenyellow"
                 />
               </View>
             </View>

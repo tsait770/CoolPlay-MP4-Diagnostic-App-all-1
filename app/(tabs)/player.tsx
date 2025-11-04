@@ -1061,18 +1061,23 @@ export default function PlayerScreen() {
         {/* PlayStation Voice Control Button - Floating Over Video */}
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
           <PlayStationController
-            onCrossPress={startVoiceRecording}
-            onCirclePress={stopVoiceRecording}
-            onTrianglePress={togglePlayPause}
-            onSquarePress={() => {
-              if (videoPlayer) {
-                videoPlayer.currentTime = 0;
-                if (typeof videoPlayer.play === 'function') {
-                  videoPlayer.play();
-                }
+            onPlayPress={togglePlayPause}
+            onVoicePress={async () => {
+              if (isVoiceActive) {
+                await stopVoiceRecording();
+              } else {
+                await startVoiceRecording();
               }
             }}
+            onVolumeDownPress={() => {
+              setVideoVolume(Math.max(0, volume - 0.2));
+            }}
+            onSpeedUpPress={() => {
+              setVideoSpeed(1.5);
+            }}
             containerHeight={Dimensions.get('window').height}
+            isPlaying={isPlaying}
+            isVoiceActive={isVoiceActive}
           />
         )}
 

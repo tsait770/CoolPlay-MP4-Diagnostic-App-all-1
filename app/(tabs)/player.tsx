@@ -1070,7 +1070,7 @@ export default function PlayerScreen() {
         {voiceStatus && videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
           <View style={styles.floatingStatusBar}>
             <View style={styles.statusDot} />
-            <Text style={styles.statusText}>{voiceStatus}</Text>
+            <Text style={styles.statusText}>{String(voiceStatus)}</Text>
           </View>
         )}
 

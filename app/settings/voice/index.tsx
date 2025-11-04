@@ -81,13 +81,11 @@ const styles = StyleSheet.create({
   backButtonWrapper: {
     position: "absolute" as const,
     left: 16,
-    top: 0,
-    bottom: 0,
-    justifyContent: "center",
+    top: 12,
     zIndex: 1000,
   },
   blackButton: {
-    transform: [{ scale: 0.6 }],
+    transform: [{ scale: 0.5 }],
   },
   headerTitle: {
     fontSize: 20,

@@ -31,7 +31,7 @@ export default function PlayStationController({
   const [activeButton, setActiveButton] = useState<string | null>(null);
   
   // 默認位置：中間下方
-  const defaultX = SCREEN_WIDTH / 2 - 50;
+  const defaultX = SCREEN_WIDTH / 2 - 45;
   const defaultY = containerHeight * 0.75;
   
   const pan = useRef(
@@ -68,7 +68,7 @@ export default function PlayStationController({
   };
 
   const getContainerSize = () => {
-    return isExpanded ? 145.6 : 100;
+    return isExpanded ? 145.6 : 90;
   };
 
   const getButtonSize = () => {

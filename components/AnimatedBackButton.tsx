@@ -5,11 +5,13 @@ import { ChevronLeft } from 'lucide-react-native';
 interface AnimatedBackButtonProps {
   onPress: () => void;
   color?: string;
+  style?: any;
 }
 
 const AnimatedBackButton: React.FC<AnimatedBackButtonProps> = ({ 
   onPress,
-  color = '#1E3A8A'
+  color = 'greenyellow',
+  style
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const circleAnim = useRef(new Animated.Value(0)).current;
@@ -93,6 +95,7 @@ const AnimatedBackButton: React.FC<AnimatedBackButtonProps> = ({
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
+      style={style}
     >
       <Animated.View
         style={[

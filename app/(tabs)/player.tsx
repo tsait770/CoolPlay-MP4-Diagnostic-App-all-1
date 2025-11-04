@@ -32,6 +32,7 @@ import {
   Gauge,
   Cog,
 } from "lucide-react-native";
+import PlayStationController from "@/components/PlayStationController";
 import Colors from "@/constants/colors";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -1047,43 +1048,22 @@ export default function PlayerScreen() {
           </View>
         )}
 
-        {/* Voice Control Button - Floating Over Video */}
+        {/* PlayStation Voice Control Button - Floating Over Video */}
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
-          <View style={styles.floatingVoiceControl}>
-          {/* Status Bar */}
-          {voiceStatus ? (
-            <View style={styles.statusBar}>
-              <View style={styles.statusDot} />
-              <Text style={styles.statusText}>{voiceStatus}</Text>
-            </View>
-          ) : null}
-
-          {/* Main Voice Button */}
-          <Animated.View
-            style={[
-              styles.voiceButtonWrapper,
-              { transform: [{ scale: pulseAnim }] },
-            ]}
-          >
-            <TouchableOpacity
-              style={[
-                styles.voiceButton,
-                (isVoiceActive || isVoiceListening) && styles.voiceButtonActive,
-              ]}
-              onPress={(isVoiceActive || isVoiceListening) ? stopVoiceRecording : startVoiceRecording}
-              activeOpacity={0.8}
-            >
-              <View style={styles.voiceButtonInnerCircle}>
-                <Mic size={40} color="white" strokeWidth={2.5} />
-              </View>
-            </TouchableOpacity>
-          </Animated.View>
-
-          {/* Voice Status Text */}
-          <Text style={styles.voiceStatusLabel}>
-            {(isVoiceActive || isVoiceListening) ? t('listening') : t('tap_to_speak')}
-          </Text>
-          </View>
+          <PlayStationController
+            onCrossPress={startVoiceRecording}
+            onCirclePress={stopVoiceRecording}
+            onTrianglePress={togglePlayPause}
+            onSquarePress={() => {
+              if (videoPlayer) {
+                videoPlayer.currentTime = 0;
+                if (typeof videoPlayer.play === 'function') {
+                  videoPlayer.play();
+                }
+              }
+            }}
+            containerHeight={Dimensions.get('window').height}
+          />
         )}
 
         {/* Status Bar - Only show when there's a status */}

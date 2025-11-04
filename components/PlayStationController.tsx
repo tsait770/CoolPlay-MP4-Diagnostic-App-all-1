@@ -162,7 +162,6 @@ export default function PlayStationController({
         style={[styles.mainButton, { width: size, height: size }]}
       >
         <View style={styles.innerCircle}>
-          {/* Center decorative element */}
           <View style={styles.centerDot} />
         </View>
       </TouchableOpacity>

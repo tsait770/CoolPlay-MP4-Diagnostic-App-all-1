@@ -30,9 +30,9 @@ export default function PlayStationController({
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeButton, setActiveButton] = useState<string | null>(null);
   
-  // 默認位置：左下角，覆蓋在底部導航欄上方
-  const defaultX = 20;
-  const defaultY = containerHeight - 140;
+  // 默認位置：中間下方
+  const defaultX = SCREEN_WIDTH / 2 - 50;
+  const defaultY = containerHeight - 200;
   
   const pan = useRef(
     new Animated.ValueXY({
@@ -68,11 +68,11 @@ export default function PlayStationController({
   };
 
   const getContainerSize = () => {
-    return isExpanded ? 160 : 70;
+    return isExpanded ? 208 : 100;
   };
 
   const getButtonSize = () => {
-    return isExpanded ? 50 : 0;
+    return isExpanded ? 64 : 0;
   };
 
   const size = getContainerSize();
@@ -235,9 +235,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   centerDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: '#444',
   },
   buttonContainer: {
@@ -248,27 +248,27 @@ const styles = StyleSheet.create({
   crossButton: {
     bottom: 0,
     left: '50%',
-    transform: [{ translateX: -25 }],
+    transform: [{ translateX: -32 }],
   },
   circleButton: {
     top: '50%',
     right: 0,
-    transform: [{ translateY: -25 }],
+    transform: [{ translateY: -32 }],
   },
   triangleButton: {
     top: 0,
     left: '50%',
-    transform: [{ translateX: -25 }],
+    transform: [{ translateX: -32 }],
   },
   squareButton: {
     top: '50%',
     left: 0,
-    transform: [{ translateY: -25 }],
+    transform: [{ translateY: -32 }],
   },
   actionButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#323232',
     justifyContent: 'center',
     alignItems: 'center',
@@ -289,8 +289,8 @@ const styles = StyleSheet.create({
   },
   // Cross Icon (Blue X)
   crossIcon: {
-    width: 24,
-    height: 24,
+    width: 30,
+    height: 30,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -299,19 +299,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgb(124, 178, 232)',
   },
   crossLineVertical: {
-    width: 2.5,
-    height: 18,
+    width: 3,
+    height: 24,
   },
   crossLineHorizontal: {
-    width: 18,
-    height: 2.5,
+    width: 24,
+    height: 3,
   },
   // Circle Icon (Red)
   circleIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2.5,
     borderColor: 'rgb(255, 102, 102)',
   },
   // Triangle Icon (Green)
@@ -320,18 +320,18 @@ const styles = StyleSheet.create({
     height: 0,
     backgroundColor: 'transparent',
     borderStyle: 'solid',
-    borderLeftWidth: 10,
-    borderRightWidth: 10,
-    borderBottomWidth: 17,
+    borderLeftWidth: 13,
+    borderRightWidth: 13,
+    borderBottomWidth: 22,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
     borderBottomColor: 'rgb(64, 226, 160)',
   },
   // Square Icon (Pink)
   squareIcon: {
-    width: 18,
-    height: 18,
-    borderWidth: 2,
+    width: 24,
+    height: 24,
+    borderWidth: 2.5,
     borderColor: 'rgb(255, 105, 248)',
   },
 });

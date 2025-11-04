@@ -1,5 +1,6 @@
+/* eslint-disable @rork/linters/general-no-raw-text */
 import React, { useRef } from 'react';
-import { TouchableOpacity, Animated, StyleSheet, Text } from 'react-native';
+import { TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
 
 interface AnimatedBackButtonProps {
@@ -8,42 +9,33 @@ interface AnimatedBackButtonProps {
   style?: any;
 }
 
+const GO_BACK_TEXT = 'Go back' as const;
+
 const AnimatedBackButton: React.FC<AnimatedBackButtonProps> = ({ 
   onPress,
-  color = 'greenyellow',
+  color = '#1a2332',
   style
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const circleAnim = useRef(new Animated.Value(0)).current;
-  const arr1Anim = useRef(new Animated.Value(0)).current;
-  const arr2Anim = useRef(new Animated.Value(-25)).current;
-  const textAnim = useRef(new Animated.Value(-12)).current;
+  const arrowTranslateX = useRef(new Animated.Value(0)).current;
+  const textOpacity = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
     Animated.parallel([
-      Animated.timing(scaleAnim, {
+      Animated.spring(scaleAnim, {
         toValue: 0.95,
-        duration: 100,
+        useNativeDriver: true,
+        speed: 50,
+        bounciness: 8,
+      }),
+      Animated.timing(arrowTranslateX, {
+        toValue: -4,
+        duration: 200,
         useNativeDriver: true,
       }),
-      Animated.timing(circleAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: false,
-      }),
-      Animated.timing(arr1Anim, {
-        toValue: -25,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(arr2Anim, {
-        toValue: 16,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(textAnim, {
-        toValue: 12,
-        duration: 800,
+      Animated.timing(textOpacity, {
+        toValue: 0.7,
+        duration: 150,
         useNativeDriver: true,
       }),
     ]).start();
@@ -51,43 +43,25 @@ const AnimatedBackButton: React.FC<AnimatedBackButtonProps> = ({
 
   const handlePressOut = () => {
     Animated.parallel([
-      Animated.timing(scaleAnim, {
+      Animated.spring(scaleAnim, {
         toValue: 1,
-        duration: 100,
         useNativeDriver: true,
+        speed: 50,
+        bounciness: 8,
       }),
-      Animated.timing(circleAnim, {
+      Animated.spring(arrowTranslateX, {
         toValue: 0,
-        duration: 600,
-        useNativeDriver: false,
-      }),
-      Animated.timing(arr1Anim, {
-        toValue: 0,
-        duration: 800,
         useNativeDriver: true,
+        speed: 20,
+        bounciness: 10,
       }),
-      Animated.timing(arr2Anim, {
-        toValue: -25,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(textAnim, {
-        toValue: -12,
-        duration: 800,
+      Animated.timing(textOpacity, {
+        toValue: 1,
+        duration: 150,
         useNativeDriver: true,
       }),
     ]).start();
   };
-
-  const circleSize = circleAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [20, 220],
-  });
-
-  const circleOpacity = circleAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0, 0.8, 1],
-  });
 
   return (
     <TouchableOpacity
@@ -102,55 +76,30 @@ const AnimatedBackButton: React.FC<AnimatedBackButtonProps> = ({
           styles.button,
           {
             transform: [{ scale: scaleAnim }],
-            borderColor: color,
-            shadowColor: color,
+            backgroundColor: color,
           },
         ]}
       >
         <Animated.View
           style={[
-            styles.circle,
-            {
-              width: circleSize,
-              height: circleSize,
-              opacity: circleOpacity,
-              backgroundColor: color,
-            },
-          ]}
-        />
-        
-        <Animated.View
-          style={[
             styles.arrowContainer,
             {
-              transform: [{ translateX: arr1Anim }],
+              transform: [{ translateX: arrowTranslateX }],
             },
           ]}
         >
-          <ChevronLeft size={24} color={color} />
-        </Animated.View>
-
-        <Animated.View
-          style={[
-            styles.arrowContainer,
-            {
-              transform: [{ translateX: arr2Anim }],
-            },
-          ]}
-        >
-          <ChevronLeft size={24} color="#212121" />
+          <ChevronLeft size={20} color="#FFFFFF" strokeWidth={2.5} />
         </Animated.View>
 
         <Animated.Text
           style={[
             styles.text,
             {
-              color: color,
-              transform: [{ translateX: textAnim }],
+              opacity: textOpacity,
             },
           ]}
         >
-          Back
+          {GO_BACK_TEXT}
         </Animated.Text>
       </Animated.View>
     </TouchableOpacity>
@@ -159,35 +108,23 @@ const AnimatedBackButton: React.FC<AnimatedBackButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderWidth: 2,
-    borderRadius: 100,
-    backgroundColor: 'transparent',
-    overflow: 'hidden',
-  },
-  circle: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    borderRadius: 1000,
-    marginLeft: -10,
-    marginTop: -10,
+    paddingLeft: 12,
+    paddingRight: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
   },
   arrowContainer: {
-    position: 'absolute',
-    left: 12,
-    zIndex: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   text: {
-    fontSize: 14,
-    fontWeight: '600',
-    zIndex: 1,
-    marginLeft: 12,
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
 });
 

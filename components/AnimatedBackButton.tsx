@@ -163,8 +163,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderWidth: 2,
     borderRadius: 100,
     backgroundColor: 'transparent',
@@ -180,14 +180,14 @@ const styles = StyleSheet.create({
   },
   arrowContainer: {
     position: 'absolute',
-    left: 16,
+    left: 12,
     zIndex: 9,
   },
   text: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     zIndex: 1,
-    marginLeft: 16,
+    marginLeft: 12,
   },
 });
 

@@ -988,7 +988,9 @@ export default function PlayerScreen() {
         useNativeDriver: true,
       }),
     ]).start(() => {
-      router.back();
+      setVideoSource(null);
+      setUseUniversalPlayer(false);
+      setVoiceStatus("");
     });
   };
 

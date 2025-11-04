@@ -6,6 +6,7 @@ import {
   PanResponder,
   TouchableOpacity,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { Play, Pause, Mic, Volume2, FastForward } from 'lucide-react-native';
 
@@ -35,9 +36,9 @@ export default function PlayStationController({
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeButton, setActiveButton] = useState<string | null>(null);
   
-  // 默認位置：右下角，覆蓋在工具列上方
-  const defaultX = SCREEN_WIDTH - 110;
-  const defaultY = containerHeight - 160;
+  // 默認位置：右下角，覆蓋在工具列上方，留出安全距離
+  const defaultX = SCREEN_WIDTH - 90; // 減少邊距以確保可見
+  const defaultY = containerHeight - 140; // 調整Y位置確保在工具列上方可見
   
   const pan = useRef(
     new Animated.ValueXY({
@@ -49,7 +50,10 @@ export default function PlayStationController({
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // 只有在移動超過一定距離時才激活拖動
+        return Math.abs(gestureState.dx) > 2 || Math.abs(gestureState.dy) > 2;
+      },
       onPanResponderGrant: () => {
         pan.setOffset({
           x: (pan.x as any)._value,
@@ -57,11 +61,34 @@ export default function PlayStationController({
         });
         pan.setValue({ x: 0, y: 0 });
       },
-      onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
-        useNativeDriver: false,
-      }),
-      onPanResponderRelease: () => {
+      onPanResponderMove: Animated.event(
+        [null, { dx: pan.x, dy: pan.y }],
+        { useNativeDriver: false }
+      ),
+      onPanResponderRelease: (evt, gestureState) => {
         pan.flattenOffset();
+        
+        // 確保控制器不會移出屏幕
+        const currentX = (pan.x as any)._value;
+        const currentY = (pan.y as any)._value;
+        const size = getContainerSize();
+        
+        let newX = currentX;
+        let newY = currentY;
+        
+        // 邊界檢查
+        if (currentX < 0) newX = 0;
+        if (currentX > SCREEN_WIDTH - size) newX = SCREEN_WIDTH - size;
+        if (currentY < 0) newY = 0;
+        if (currentY > containerHeight - size) newY = containerHeight - size;
+        
+        if (newX !== currentX || newY !== currentY) {
+          Animated.spring(pan, {
+            toValue: { x: newX, y: newY },
+            useNativeDriver: false,
+            friction: 7,
+          }).start();
+        }
       },
     })
   ).current;
@@ -108,6 +135,14 @@ export default function PlayStationController({
   const size = getContainerSize();
   const buttonSize = getButtonSize();
 
+  console.log('[PlayStationController] Rendering at position:', {
+    x: (pan.x as any)._value,
+    y: (pan.y as any)._value,
+    size,
+    isExpanded,
+    containerHeight,
+  });
+
   return (
     <Animated.View
       style={[
@@ -119,6 +154,7 @@ export default function PlayStationController({
         },
       ]}
       {...panResponder.panHandlers}
+      pointerEvents="box-none"
     >
       <TouchableOpacity
         activeOpacity={0.9}
@@ -251,7 +287,8 @@ export default function PlayStationController({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    zIndex: 9999,
+    zIndex: 10000, // 提高 z-index 確保在最上層
+    elevation: Platform.OS === 'android' ? 10000 : undefined,
   },
   mainButton: {
     borderRadius: 999,

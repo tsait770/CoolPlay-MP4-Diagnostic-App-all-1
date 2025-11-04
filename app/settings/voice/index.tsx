@@ -28,13 +28,11 @@ export default function VoiceIndexScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.backButtonWrapper}>
-          <BlackButton
-            label="BACK"
-            onPress={() => router.back()}
-            style={styles.blackButton}
-          />
-        </View>
+        <BlackButton
+          label="BACK"
+          onPress={() => router.back()}
+          style={styles.blackButton}
+        />
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>{t("voice_control")}</Text>
         </View>
@@ -78,14 +76,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  backButtonWrapper: {
+  blackButton: {
     position: "absolute" as const,
     left: 16,
     top: 12,
+    transform: [{ scale: 0.8 }],
     zIndex: 1000,
-  },
-  blackButton: {
-    transform: [{ scale: 0.5 }],
   },
   headerTitle: {
     fontSize: 20,

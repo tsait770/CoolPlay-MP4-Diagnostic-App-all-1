@@ -172,7 +172,7 @@ export default function SettingsLayout() {
       <Stack.Screen
         name="voice/index"
         options={{
-          title: t("voice_control"),
+          headerShown: false,
         }}
       />
       <Stack.Screen

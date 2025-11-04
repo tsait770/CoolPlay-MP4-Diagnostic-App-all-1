@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   blackButton: {
-    transform: [{ scale: 0.4 }],
+    transform: [{ scale: 0.6 }],
   },
   headerTitle: {
     fontSize: 20,

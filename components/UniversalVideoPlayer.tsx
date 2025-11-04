@@ -372,9 +372,9 @@ export default function UniversalVideoPlayer({
         // YouTube 特定配置
         allowsProtectedMedia
         allowFileAccess
-        scalesPageToFit={false}
-        bounces={false}
-        scrollEnabled={false}
+        scalesPageToFit={true}
+        bounces={true}
+        scrollEnabled={true}
         automaticallyAdjustContentInsets={false}
         contentInset={{ top: 0, left: 0, bottom: 0, right: 0 }}
         webviewDebuggingEnabled={__DEV__}

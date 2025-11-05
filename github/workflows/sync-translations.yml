@@ -1,0 +1,42 @@
+name: Sync Translations
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'l10n/**'
+      - 'scripts/sync-translations.js'
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Run translation sync
+        run: node scripts/sync-translations.js
+        
+      - name: Check for changes
+        id: check_changes
+        run: |
+          git diff --exit-code l10n/ translation_missing_report.md || echo "has_changes=true" >> $GITHUB_OUTPUT
+          
+      - name: Commit changes
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add l10n/ translation_missing_report.md
+          git commit -m "chore: sync translation keys [automated]"
+          git push

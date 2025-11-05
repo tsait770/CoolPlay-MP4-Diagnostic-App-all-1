@@ -1071,7 +1071,7 @@ export default function PlayerScreen() {
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
           <View style={styles.voiceControlHeader}>
             <View style={styles.voiceControlIconCircle}>
-              <Mic size={32} color={Colors.accent.primary} />
+              <Mic size={28} color={Colors.accent.primary} />
             </View>
             <Text style={styles.voiceControlHeaderTitle}>{t('voice_control')}</Text>
             <Text style={styles.voiceControlHeaderSubtitle}>{t('voice_control_instruction')}</Text>
@@ -3420,20 +3420,21 @@ const createStyles = () => {
   },
   voiceControlHeader: {
     position: 'absolute' as const,
-    top: 140,
+    top: 120,
     left: 0,
     right: 0,
     alignItems: 'center' as const,
     zIndex: 998,
+    paddingHorizontal: 24,
   },
   voiceControlIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: 'rgba(30, 41, 59, 0.95)',
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
-    marginBottom: 16,
+    marginBottom: 12,
     borderWidth: 2,
     borderColor: Colors.accent.primary,
     shadowColor: Colors.accent.primary,
@@ -3443,19 +3444,19 @@ const createStyles = () => {
     elevation: 8,
   },
   voiceControlHeaderTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700' as const,
     color: '#fff',
-    marginBottom: 8,
+    marginBottom: 6,
     textAlign: 'center' as const,
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: {width: 0, height: 2},
     textShadowRadius: 4,
   },
   voiceControlHeaderSubtitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '500' as const,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.85)',
     textAlign: 'center' as const,
     paddingHorizontal: 32,
     textShadowColor: 'rgba(0, 0, 0, 0.5)',

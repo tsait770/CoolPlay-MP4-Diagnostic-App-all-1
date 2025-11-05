@@ -119,6 +119,7 @@ export default function PlayerScreen() {
   const [editingCommand, setEditingCommand] = useState<VoiceCommand | null>(null);
   const [commandName, setCommandName] = useState("");
   const [showUrlModal, setShowUrlModal] = useState(false);
+  const [isContentLoaded, setIsContentLoaded] = useState(false);
 
   const [commandAction, setCommandAction] = useState("");
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -433,6 +434,7 @@ export default function PlayerScreen() {
             type: "local",
             name: asset.name || "Local Video",
           });
+          setIsContentLoaded(true);
         } else {
           Alert.alert(t("error"), t("invalid_video_file"));
         }
@@ -583,6 +585,7 @@ export default function PlayerScreen() {
               if (source && source.uri && source.uri.trim() !== '') {
                 setVideoSource(source);
                 setVideoUrl("");
+                setIsContentLoaded(true);
                 setVoiceStatus(t("video_loaded_successfully"));
                 setTimeout(() => setVoiceStatus(""), 3000);
               } else {
@@ -609,6 +612,7 @@ export default function PlayerScreen() {
               if (source && source.uri && source.uri.trim() !== '') {
                 setVideoSource(source);
                 setVideoUrl("");
+                setIsContentLoaded(true);
                 setVoiceStatus(t("video_loaded_successfully"));
                 setTimeout(() => setVoiceStatus(""), 3000);
               } else {
@@ -627,6 +631,7 @@ export default function PlayerScreen() {
     if (source && source.uri && source.uri.trim() !== '') {
       setVideoSource(source);
       setVideoUrl("");
+      setIsContentLoaded(true);
       setVoiceStatus(t("video_loaded_successfully"));
       setTimeout(() => setVoiceStatus(""), 3000);
     } else {
@@ -1076,8 +1081,8 @@ export default function PlayerScreen() {
           </View>
         )}
 
-        {/* Voice Control Header Section */}
-        {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
+        {/* Voice Control Header Section - Hide when content is loaded */}
+        {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && !isContentLoaded && (
           <View style={styles.voiceControlHeader}>
             <View style={styles.voiceControlIconCircle}>
               <Mic size={28} color={Colors.accent.primary} />

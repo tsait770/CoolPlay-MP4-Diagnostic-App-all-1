@@ -90,7 +90,9 @@ export default function PlayerScreen() {
   const [videoSource, setVideoSource] = useState<VideoSource | null>(null);
   const [useUniversalPlayer, setUseUniversalPlayer] = useState(false);
   const defaultVideoUri = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-  const videoPlayer = useVideoPlayer(!useUniversalPlayer && videoSource?.uri && videoSource.uri.trim() !== '' ? videoSource.uri : defaultVideoUri, (player) => {
+  const [videoPlayerSource, setVideoPlayerSource] = useState(defaultVideoUri);
+  
+  const videoPlayer = useVideoPlayer(videoPlayerSource, (player) => {
     player.loop = false;
   });
   const [isPlaying, setIsPlaying] = useState(false);
@@ -483,6 +485,12 @@ export default function PlayerScreen() {
       sourceInfo.type === 'webview';
     
     setUseUniversalPlayer(needsUniversalPlayer);
+    
+    // Update video player source for native player
+    if (!needsUniversalPlayer && url && url.trim() !== '') {
+      setVideoPlayerSource(url);
+    }
+    
     console.log('[PlayerScreen] Use UniversalPlayer:', needsUniversalPlayer);
 
     // Handle adult content
@@ -586,6 +594,7 @@ export default function PlayerScreen() {
               if (source && source.uri && source.uri.trim() !== '') {
                 setVideoSource(source);
                 setVideoUrl("");
+                setShowUrlModal(false);
                 setIsContentLoaded(true);
                 setVoiceStatus(t("video_loaded_successfully"));
                 setTimeout(() => setVoiceStatus(""), 3000);
@@ -613,6 +622,7 @@ export default function PlayerScreen() {
               if (source && source.uri && source.uri.trim() !== '') {
                 setVideoSource(source);
                 setVideoUrl("");
+                setShowUrlModal(false);
                 setIsContentLoaded(true);
                 setVoiceStatus(t("video_loaded_successfully"));
                 setTimeout(() => setVoiceStatus(""), 3000);

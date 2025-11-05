@@ -234,10 +234,16 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       
       if (error instanceof Error) {
         errorMessage = error.message;
-      } else if (typeof error === 'object' && error !== null) {
-        errorMessage = JSON.stringify(error);
       } else if (typeof error === 'string') {
         errorMessage = error;
+      } else if (typeof error === 'object' && error !== null) {
+        try {
+          errorMessage = JSON.stringify(error);
+        } catch {
+          errorMessage = String(error);
+        }
+      } else {
+        errorMessage = String(error);
       }
       
       console.error('錯誤訊息:', errorMessage);

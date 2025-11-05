@@ -401,21 +401,21 @@ export default function UniversalVideoPlayer({
           const { nativeEvent } = syntheticEvent;
           
           const errorDetails = {
-            code: nativeEvent.code,
-            description: nativeEvent.description,
-            url: nativeEvent.url,
+            code: nativeEvent.code || 'N/A',
+            description: nativeEvent.description || 'No description',
+            url: nativeEvent.url || url,
             canGoBack: nativeEvent.canGoBack,
             canGoForward: nativeEvent.canGoForward,
             loading: nativeEvent.loading,
-            title: nativeEvent.title,
+            title: nativeEvent.title || 'N/A',
           };
           
-          console.error('[UniversalVideoPlayer] WebView error:', {
+          console.error('[UniversalVideoPlayer] WebView error:', JSON.stringify({
             ...errorDetails,
             sourceType: sourceInfo.type,
             platform: sourceInfo.platform,
             retryCount,
-          });
+          }, null, 2));
           
           clearLoadTimeout();
           

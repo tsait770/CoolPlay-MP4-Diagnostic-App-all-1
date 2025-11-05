@@ -378,7 +378,18 @@ export default function UniversalVideoPlayer({
         automaticallyAdjustContentInsets={false}
         contentInset={{ top: 0, left: 0, bottom: 0, right: 0 }}
         webviewDebuggingEnabled={__DEV__}
-        injectedJavaScript={injectedJavaScript}
+        injectedJavaScript={injectedJavaScript || `
+          (function() {
+            document.body.style.margin = '0';
+            document.body.style.padding = '0';
+            document.body.style.overflow = 'auto';
+            document.documentElement.style.overflow = 'auto';
+            
+            var style = document.createElement('style');
+            style.innerHTML = '* { -webkit-overflow-scrolling: touch !important; }';
+            document.head.appendChild(style);
+          })();
+        `}
         startInLoadingState
         renderLoading={() => (
           <View style={styles.loadingContainer}>
@@ -643,12 +654,15 @@ export default function UniversalVideoPlayer({
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     width: '100%',
     height: '100%',
     backgroundColor: '#000',
   },
   webView: {
     flex: 1,
+    width: '100%',
+    height: '100%',
     backgroundColor: '#000',
   },
   videoContainer: {

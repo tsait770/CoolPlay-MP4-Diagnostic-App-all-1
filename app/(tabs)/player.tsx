@@ -1047,6 +1047,15 @@ export default function PlayerScreen() {
           )
         ) : (
           <View style={styles.videoSelectionOverlay}>
+            {/* Voice Control Header Section */}
+            <View style={styles.voiceControlHeaderNonVideo}>
+              <View style={styles.voiceControlIconCircleNonVideo}>
+                <Mic size={28} color={Colors.accent.primary} />
+              </View>
+              <Text style={styles.voiceControlHeaderTitleNonVideo}>{t('voice_control')}</Text>
+              <Text style={styles.voiceControlHeaderSubtitleNonVideo}>{t('voice_control_instruction')}</Text>
+            </View>
+
             <View style={styles.videoSelectionCard}>
               <View style={styles.videoSelectionIcon}>
                 <Play size={48} color={Colors.accent.primary} />
@@ -3462,6 +3471,38 @@ const createStyles = () => {
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: {width: 0, height: 1},
     textShadowRadius: 3,
+  },
+  voiceControlHeaderNonVideo: {
+    alignItems: 'center' as const,
+    marginBottom: 32,
+    paddingHorizontal: 24,
+  },
+  voiceControlIconCircleNonVideo: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#0D47A1',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginBottom: 12,
+    shadowColor: Colors.accent.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  voiceControlHeaderTitleNonVideo: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: Colors.primary.text,
+    marginBottom: 4,
+    textAlign: 'center' as const,
+  },
+  voiceControlHeaderSubtitleNonVideo: {
+    fontSize: 14,
+    fontWeight: '400' as const,
+    color: '#B0BEC5',
+    textAlign: 'center' as const,
   },
 
   });

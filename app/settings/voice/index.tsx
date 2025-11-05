@@ -25,6 +25,16 @@ export default function VoiceIndexScreen() {
   return (
     <View style={styles.container}>
       <ScrollView>
+        <View style={styles.headerSection}>
+          <View style={styles.iconContainer}>
+            <Mic size={48} color={Colors.primary.accent} strokeWidth={2} />
+          </View>
+          <Text style={styles.headerTitle}>{t("voice_control")}</Text>
+          <Text style={styles.headerSubtitle}>
+            {t("voice_control_instruction")}
+          </Text>
+        </View>
+
         {voiceItems.map((item, index) => {
           const Icon = item.icon;
           return (
@@ -50,6 +60,34 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.primary.bg,
+  },
+  headerSection: {
+    alignItems: "center",
+    paddingTop: 32,
+    paddingBottom: 24,
+    paddingHorizontal: 24,
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.primary.accent + "20",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "700" as const,
+    color: Colors.primary.text,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: Colors.primary.textSecondary,
+    textAlign: "center",
+    lineHeight: 20,
   },
   item: {
     flexDirection: "row",

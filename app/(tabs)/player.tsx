@@ -35,6 +35,7 @@ import {
 import { useRouter } from "expo-router";
 import PlayStationController from "@/components/PlayStationController";
 import Colors from "@/constants/colors";
+import DesignTokens from "@/constants/designTokens";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useVoiceControl } from "@/providers/VoiceControlProvider";
@@ -1054,9 +1055,7 @@ export default function PlayerScreen() {
           <View style={styles.videoSelectionOverlay}>
             {/* Voice Control Header Section */}
             <View style={styles.voiceControlHeaderNonVideo}>
-              <View style={styles.voiceControlIconCircleNonVideo}>
-                <Mic size={28} color={Colors.accent.primary} />
-              </View>
+              <Mic testID="voice-header-mic" size={36} color={Colors.accent.primary} />
               <Text style={styles.voiceControlHeaderTitleNonVideo}>{t('voice_control')}</Text>
               <Text style={styles.voiceControlHeaderSubtitleNonVideo}>{t('voice_control_instruction')}</Text>
             </View>
@@ -2951,10 +2950,11 @@ const createStyles = () => {
     left: 0,
     right: 0,
     bottom: 0,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     backgroundColor: Colors.primary.bg,
     paddingHorizontal: 24,
+    paddingTop: 24,
   },
   videoSelectionCard: {
     backgroundColor: Colors.secondary.bg,
@@ -3483,31 +3483,23 @@ const createStyles = () => {
     paddingHorizontal: 24,
   },
   voiceControlIconCircleNonVideo: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#0D47A1',
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    marginBottom: 12,
-    shadowColor: Colors.accent.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    width: 0,
+    height: 0,
   },
   voiceControlHeaderTitleNonVideo: {
-    fontSize: 20,
-    fontWeight: '700' as const,
+    fontSize: DesignTokens.typography.display.small.fontSize,
+    fontWeight: DesignTokens.typography.display.small.fontWeight,
     color: Colors.primary.text,
     marginBottom: 4,
     textAlign: 'center' as const,
+    lineHeight: DesignTokens.typography.display.small.lineHeight,
   },
   voiceControlHeaderSubtitleNonVideo: {
-    fontSize: 14,
-    fontWeight: '400' as const,
-    color: '#B0BEC5',
+    fontSize: DesignTokens.typography.body.medium.fontSize,
+    fontWeight: DesignTokens.typography.body.medium.fontWeight,
+    color: Colors.primary.textSecondary,
     textAlign: 'center' as const,
+    lineHeight: DesignTokens.typography.body.medium.lineHeight,
   },
 
   });

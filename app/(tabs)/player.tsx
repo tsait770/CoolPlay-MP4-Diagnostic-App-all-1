@@ -1067,6 +1067,17 @@ export default function PlayerScreen() {
           </View>
         )}
 
+        {/* Voice Control Header Section */}
+        {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
+          <View style={styles.voiceControlHeader}>
+            <View style={styles.voiceControlIconCircle}>
+              <Mic size={32} color={Colors.accent.primary} />
+            </View>
+            <Text style={styles.voiceControlHeaderTitle}>{t('voice_control')}</Text>
+            <Text style={styles.voiceControlHeaderSubtitle}>{t('voice_control_instruction')}</Text>
+          </View>
+        )}
+
         {/* PlayStation Voice Control Button - Floating Over Video */}
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
           <PlayStationController
@@ -3406,6 +3417,50 @@ const createStyles = () => {
     fontWeight: '600' as const,
     color: '#fff',
     textAlign: 'center' as const,
+  },
+  voiceControlHeader: {
+    position: 'absolute' as const,
+    top: 140,
+    left: 0,
+    right: 0,
+    alignItems: 'center' as const,
+    zIndex: 998,
+  },
+  voiceControlIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(30, 41, 59, 0.95)',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: Colors.accent.primary,
+    shadowColor: Colors.accent.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  voiceControlHeaderTitle: {
+    fontSize: 28,
+    fontWeight: '700' as const,
+    color: '#fff',
+    marginBottom: 8,
+    textAlign: 'center' as const,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: {width: 0, height: 2},
+    textShadowRadius: 4,
+  },
+  voiceControlHeaderSubtitle: {
+    fontSize: 15,
+    fontWeight: '500' as const,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center' as const,
+    paddingHorizontal: 32,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: {width: 0, height: 1},
+    textShadowRadius: 3,
   },
 
   });

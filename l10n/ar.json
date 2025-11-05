@@ -1,6 +1,7 @@
 {
   "app_name": "CoolPlay",
   "voice_control": "التحكم الصوتي",
+  "voice_control_instruction": "استخدم الأوامر الصوتية للتحكم في الفيديو",
   "player": "المشغل",
   "community": "المجتمع",
   "settings": "الإعدادات",

@@ -1,6 +1,7 @@
 {
   "app_name": "CoolPlay",
   "voice_control": "Голосовое Управление",
+  "voice_control_instruction": "Используйте голосовые команды для управления видео",
   "player": "Плеер",
   "community": "Сообщество",
   "settings": "Настройки",

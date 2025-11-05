@@ -1,6 +1,7 @@
 {
   "app_name": "CoolPlay",
   "voice_control": "语音控制",
+  "voice_control_instruction": "使用语音指令控制视频",
   "player": "播放器",
   "community": "社区",
   "settings": "设置",

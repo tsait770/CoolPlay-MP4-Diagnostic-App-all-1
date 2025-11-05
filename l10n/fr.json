@@ -1,6 +1,7 @@
 {
   "app_name": "CoolPlay",
   "voice_control": "Commande Vocale",
+  "voice_control_instruction": "Utilisez des commandes vocales pour contrôler la vidéo",
   "player": "Lecteur",
   "community": "Communauté",
   "settings": "Paramètres",

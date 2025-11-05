@@ -1,6 +1,7 @@
 {
   "app_name": "CoolPlay",
   "voice_control": "Sprachsteuerung",
+  "voice_control_instruction": "Verwenden Sie Sprachbefehle zur Videosteuerung",
   "player": "Player",
   "community": "Gemeinschaft",
   "settings": "Einstellungen",

@@ -1,6 +1,7 @@
 {
   "app_name": "CoolPlay",
   "voice_control": "音声コントロール",
+  "voice_control_instruction": "音声コマンドで動画を制御",
   "player": "プレーヤー",
   "community": "コミュニティ",
   "settings": "設定",

@@ -1,6 +1,7 @@
 {
   "app_name": "CoolPlay",
   "voice_control": "음성 제어",
+  "voice_control_instruction": "음성 명령으로 동영상을 제어합니다",
   "player": "플레이어",
   "community": "커뮤니티",
   "settings": "설정",

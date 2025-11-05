@@ -994,14 +994,7 @@ export default function PlayerScreen() {
         useNativeDriver: true,
       }),
     ]).start(() => {
-      if (videoSource && videoSource.uri && videoSource.uri.trim() !== '') {
-        setVideoSource(null);
-        setIsContentLoaded(false);
-        setVideoUrl("");
-        setVoiceStatus("");
-      } else {
-        router.back();
-      }
+      router.back();
     });
   };
 
@@ -3430,15 +3423,14 @@ const createStyles = () => {
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   backButton: {
-    width: 31.84,
-    height: 31.84,
-    borderRadius: 15.92,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
-    marginLeft: 5.67,
   },
   headerTitle: {
     fontSize: 16,

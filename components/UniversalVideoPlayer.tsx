@@ -399,24 +399,7 @@ export default function UniversalVideoPlayer({
         }}
         onError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
-          
-          const errorDetails = {
-            code: nativeEvent.code || 'N/A',
-            description: nativeEvent.description || 'No description',
-            url: nativeEvent.url || url,
-            canGoBack: nativeEvent.canGoBack,
-            canGoForward: nativeEvent.canGoForward,
-            loading: nativeEvent.loading,
-            title: nativeEvent.title || 'N/A',
-          };
-          
-          console.error('[UniversalVideoPlayer] WebView error:', JSON.stringify({
-            ...errorDetails,
-            sourceType: sourceInfo.type,
-            platform: sourceInfo.platform,
-            retryCount,
-          }, null, 2));
-          
+          console.error('[UniversalVideoPlayer] WebView error:', nativeEvent);
           clearLoadTimeout();
           
           if (sourceInfo.type === 'youtube') {
@@ -466,8 +449,7 @@ export default function UniversalVideoPlayer({
                 setPlaybackError(null);
               }, 1000);
             } else {
-              const errorMsg = nativeEvent.description || nativeEvent.code || 'Unknown error';
-            const error = `Failed to load ${sourceInfo.platform}: ${errorMsg}`;
+              const error = `Failed to load ${sourceInfo.platform}: ${nativeEvent.description}`;
               setPlaybackError(error);
               onError?.(error);
             }

@@ -40,11 +40,11 @@ export default function SignInScreen() {
 
   const handleGoogleSignIn = async () => {
     setError('');
-    const { error: signInError } = await signInWithGoogle();
+    const { error: signInError, data } = await signInWithGoogle();
 
     if (signInError) {
       setError(signInError.message);
-    } else {
+    } else if (data) {
       router.replace('/(tabs)/home');
     }
   };

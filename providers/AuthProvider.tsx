@@ -218,7 +218,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             }
           } else if (result.type === 'cancel') {
             console.log('用戶取消認證');
-            throw new Error('用戶取消了 Google 登入');
+            return { data: null, error: null };
           } else {
             console.error('認證失敗，類型:', result.type);
             throw new Error('Google 認證失敗');
@@ -230,7 +230,17 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       }
     } catch (error) {
       console.error('❌ Google 認證失敗:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Google 登入失敗';
+      let errorMessage = 'Google 登入失敗';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        errorMessage = JSON.stringify(error);
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      console.error('錯誤訊息:', errorMessage);
       return { data: null, error: { message: errorMessage, name: 'GoogleAuthError', status: 400 } as AuthError };
     } finally {
       setLoading(false);

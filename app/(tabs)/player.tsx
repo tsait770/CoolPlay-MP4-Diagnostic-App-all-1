@@ -1013,9 +1013,6 @@ export default function PlayerScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.content, { paddingTop: insets.top }]}>
-
-        {/* Header Back Button now rendered in Tab header */}
-
         {/* Video Player - Full Screen */}
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' ? (
           useUniversalPlayer ? (

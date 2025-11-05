@@ -3489,10 +3489,6 @@ const createStyles = () => {
     paddingHorizontal: 24,
   },
   micIconCircleNonVideo: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: Colors.secondary.bg,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
     marginBottom: 16,

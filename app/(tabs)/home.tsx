@@ -207,9 +207,7 @@ export default function HomeScreen() {
           throw new Error('Failed to read file. Please try again.');
         }
         
-        // Import the improved importer
-        const bookmarkImporterModule = await import('@/utils/bookmarkImporter');
-        const { importBookmarksFromFile } = bookmarkImporterModule;
+        const { importBookmarksFromFile } = await import('@/utils/bookmarkImporter');
         
         // Auto-detect format
         const importResult = await importBookmarksFromFile(content, 'auto');

@@ -208,7 +208,8 @@ export default function HomeScreen() {
         }
         
         // Import the improved importer
-        const { importBookmarksFromFile } = await import('@/utils/bookmarkImporter');
+        const bookmarkImporterModule = await import('@/utils/bookmarkImporter');
+        const { importBookmarksFromFile } = bookmarkImporterModule;
         
         // Auto-detect format
         const importResult = await importBookmarksFromFile(content, 'auto');

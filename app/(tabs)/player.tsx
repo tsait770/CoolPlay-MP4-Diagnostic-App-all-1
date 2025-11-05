@@ -1054,11 +1054,15 @@ export default function PlayerScreen() {
         ) : (
           <View style={styles.videoSelectionOverlay}>
             {/* Voice Control Header Section */}
-            <View style={styles.voiceControlHeaderNonVideo}>
-              <Mic testID="voice-header-mic" size={36} color={Colors.accent.primary} />
-              <Text style={styles.voiceControlHeaderTitleNonVideo}>{t('voice_control')}</Text>
-              <Text style={styles.voiceControlHeaderSubtitleNonVideo}>{t('voice_control_instruction')}</Text>
-            </View>
+            {!isContentLoaded && (
+              <View style={styles.voiceControlHeaderNonVideo}>
+                <View style={styles.micIconCircleNonVideo}>
+                  <Mic testID="voice-header-mic" size={28} color={Colors.accent.primary} />
+                </View>
+                <Text style={styles.voiceControlHeaderTitleNonVideo}>{t('voice_control')}</Text>
+                <Text style={styles.voiceControlHeaderSubtitleNonVideo}>{t('voice_control_instruction')}</Text>
+              </View>
+            )}
 
             <View style={styles.videoSelectionCard}>
               <View style={styles.videoSelectionIcon}>
@@ -3484,25 +3488,29 @@ const createStyles = () => {
     marginBottom: 40,
     paddingHorizontal: 24,
   },
-  voiceControlIconCircleNonVideo: {
-    width: 0,
-    height: 0,
+  micIconCircleNonVideo: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.secondary.bg,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginBottom: 16,
   },
   voiceControlHeaderTitleNonVideo: {
-    fontSize: DesignTokens.typography.display.small.fontSize,
-    fontWeight: DesignTokens.typography.display.small.fontWeight,
+    fontSize: 24,
+    fontWeight: '700' as const,
     color: Colors.primary.text,
     marginBottom: 8,
-    marginTop: 12,
     textAlign: 'center' as const,
-    lineHeight: DesignTokens.typography.display.small.lineHeight,
+    lineHeight: 32,
   },
   voiceControlHeaderSubtitleNonVideo: {
-    fontSize: DesignTokens.typography.body.medium.fontSize,
-    fontWeight: DesignTokens.typography.body.medium.fontWeight,
+    fontSize: 15,
+    fontWeight: '400' as const,
     color: Colors.primary.textSecondary,
     textAlign: 'center' as const,
-    lineHeight: DesignTokens.typography.body.medium.lineHeight,
+    lineHeight: 22,
     marginBottom: 0,
   },
 

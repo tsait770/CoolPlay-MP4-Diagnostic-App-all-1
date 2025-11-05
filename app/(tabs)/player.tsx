@@ -994,7 +994,13 @@ export default function PlayerScreen() {
         useNativeDriver: true,
       }),
     ]).start(() => {
-      router.back();
+      if (isContentLoaded || (videoSource && videoSource.uri && videoSource.uri.trim() !== '')) {
+        setVideoSource(null);
+        setIsContentLoaded(false);
+        setVideoUrl("");
+      } else {
+        router.back();
+      }
     });
   };
 
@@ -1019,6 +1025,26 @@ export default function PlayerScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.content, { paddingTop: insets.top }]}>
+        {/* Back Button - Absolute positioned over video */}
+        {(videoSource && videoSource.uri && videoSource.uri.trim() !== '') && (
+          <Animated.View 
+            style={[
+              styles.headerBar,
+              { transform: [{ scale: backButtonScale }] }
+            ]}
+          >
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={handleBackPress}
+              activeOpacity={0.7}
+            >
+              <Text style={{ fontSize: 18, color: '#fff', fontWeight: '600' as const }}>{'<'}</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{t('voice_control')}</Text>
+            <View style={{ width: 32 }} />
+          </Animated.View>
+        )}
+
         {/* Video Player - Full Screen */}
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' ? (
           useUniversalPlayer ? (
@@ -3431,6 +3457,7 @@ const createStyles = () => {
     alignItems: 'center' as const,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
+    marginLeft: 7.56,
   },
   headerTitle: {
     fontSize: 16,

@@ -1120,7 +1120,7 @@ export default function PlayerScreen() {
 
             <View style={styles.card2Container}>
               <View style={{ alignItems: 'center', marginBottom: DesignTokens.spacing.lg }}>
-                <Animated.View style={[{ transform: [{ scale: pulseAnim }] }]}>
+                <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                   <TouchableOpacity
                     testID="tap-to-speak-button"
                     accessibilityLabel="Tap to Speak"

@@ -1059,7 +1059,7 @@ export default function PlayerScreen() {
         ) : (
           <ScrollView 
             style={styles.scrollContainer}
-            contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 8, paddingHorizontal: 24 }]}
+            contentContainerStyle={[styles.scrollContent, { paddingTop: Math.max(insets.top - 60, 20), paddingHorizontal: 24 }]}
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.card1Container}>
@@ -2814,10 +2814,10 @@ const createStyles = () => {
     width: 94,
     height: 94,
     borderRadius: 47,
-    backgroundColor: Colors.accent.primary,
+    backgroundColor: "#40C8E0",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: Colors.accent.primary,
+    shadowColor: "#40C8E0",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 14,
@@ -3009,7 +3009,7 @@ const createStyles = () => {
     alignItems: "center",
     justifyContent: "center",
     gap: DesignTokens.spacing.sm,
-    backgroundColor: Colors.accent.primary,
+    backgroundColor: "#40C8E0",
     paddingVertical: DesignTokens.spacing.md,
     paddingHorizontal: DesignTokens.spacing.lg,
     borderRadius: DesignTokens.borderRadius.lg,

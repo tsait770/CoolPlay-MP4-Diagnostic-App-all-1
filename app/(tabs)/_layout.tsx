@@ -69,8 +69,8 @@ export default function TabLayout() {
     },
     community: {
       title: t("community_share"),
-      tabBarIcon: ({ color }: { color: string }) => (
-        <Ionicons name="share-social" size={24} color={color} />
+      tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+        <Ionicons name="share-social" size={24} color={focused ? "#1E293B" : color} />
       ),
     },
     settings: {

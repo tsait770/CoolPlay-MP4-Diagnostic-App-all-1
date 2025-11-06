@@ -247,10 +247,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#323232',
   },
   mainButtonActive: {
-    shadowColor: 'rgb(124, 178, 232)',
-    shadowOffset: { width: 0, height: -5 },
+    shadowColor: '#969696',
+    shadowOffset: { width: 0, height: -1 },
     shadowOpacity: 1,
-    shadowRadius: 10,
+    shadowRadius: 1,
   },
   centerDotActive: {
     backgroundColor: '#fff',

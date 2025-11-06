@@ -1098,7 +1098,7 @@ export default function PlayerScreen() {
             <View style={styles.card1Container}>
               <View style={styles.voiceControlHeaderNonVideo}>
                 <View style={styles.micIconCircleNonVideo}>
-                  <Mic testID="voice-header-mic" size={getResponsiveSize(32, 40, 48)} color={Colors.accent.primary} />
+                  <Mic testID="voice-header-mic" size={getResponsiveSize(32, 40, 48)} color="#69E7D8" />
                 </View>
                 <Text style={styles.voiceControlHeaderTitleNonVideo}>{t('voice_control')}</Text>
                 <Text style={styles.voiceControlHeaderSubtitleNonVideo}>{t('voice_control_instruction')}</Text>
@@ -2873,18 +2873,18 @@ const createStyles = () => {
     width: getResponsiveSize(94, 112, 130, 150),
     height: getResponsiveSize(94, 112, 130, 150),
     borderRadius: getResponsiveSize(47, 56, 65, 75),
-    backgroundColor: Colors.accent.primary,
+    backgroundColor: '#69E7D8',
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: Colors.accent.primary,
+    shadowColor: '#69E7D8',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 14,
     elevation: 10,
   },
   mainVoiceButtonActive: {
-    backgroundColor: Colors.danger,
-    shadowColor: Colors.danger,
+    backgroundColor: '#69E7D8',
+    shadowColor: '#69E7D8',
   },
   voiceButtonHint: {
     fontSize: getResponsiveFontSize(17),
@@ -3556,7 +3556,7 @@ const createStyles = () => {
     width: getResponsiveSize(64, 72, 80, 96),
     height: getResponsiveSize(64, 72, 80, 96),
     borderRadius: getResponsiveSize(32, 36, 40, 48),
-    backgroundColor: Colors.accent.primary + '15',
+    backgroundColor: '#69E7D8' + '15',
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
     marginBottom: getResponsivePadding(DesignTokens.spacing.md),

@@ -233,13 +233,13 @@ export default function PlayerScreen() {
     }
   }, [showControls, isPlaying, fadeAnim]);
 
-  // Pulse animation for voice button (70% slower: 840ms * 1.7 = 1428ms)
+  // Pulse animation for voice button (70% slower: 840ms * 1.7 = 1428ms, amplitude reduced by 10%)
   useEffect(() => {
     if (isVoiceActive || isVoiceListening || alwaysListening) {
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
-            toValue: 1.15,
+            toValue: 1.135,
             duration: 1428,
             useNativeDriver: true,
           }),
@@ -1098,7 +1098,7 @@ export default function PlayerScreen() {
             <View style={styles.card1Container}>
               <View style={styles.voiceControlHeaderNonVideo}>
                 <View style={styles.micIconCircleNonVideo}>
-                  <Mic testID="voice-header-mic" size={getResponsiveSize(32, 40, 48)} color="#69E7D8" />
+                  <Mic testID="voice-header-mic" size={getResponsiveSize(32, 40, 48)} color={Colors.accent.primary} />
                 </View>
                 <Text style={styles.voiceControlHeaderTitleNonVideo}>{t('voice_control')}</Text>
                 <Text style={styles.voiceControlHeaderSubtitleNonVideo}>{t('voice_control_instruction')}</Text>
@@ -1141,7 +1141,7 @@ export default function PlayerScreen() {
                 </Animated.View>
                 <Text style={styles.voiceButtonHint}>
                   {(isVoiceActive || isVoiceListening || alwaysListening) 
-                    ? (t('stop_listening') !== 'stop_listening' ? t('stop_listening') : '停止聆聽') 
+                    ? '持續聆聽'
                     : (t('tap_to_speak') !== 'tap_to_speak' ? t('tap_to_speak') : 'Tap to Speak')}
                 </Text>
               </View>
@@ -2877,10 +2877,10 @@ const createStyles = () => {
     width: getResponsiveSize(94, 112, 130, 150),
     height: getResponsiveSize(94, 112, 130, 150),
     borderRadius: getResponsiveSize(47, 56, 65, 75),
-    backgroundColor: '#69E7D8',
+    backgroundColor: Colors.accent.primary,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: '#69E7D8',
+    shadowColor: Colors.accent.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 14,
@@ -3078,7 +3078,7 @@ const createStyles = () => {
     alignItems: "center",
     justifyContent: "center",
     gap: DesignTokens.spacing.sm,
-    backgroundColor: '#69E7D8',
+    backgroundColor: Colors.accent.primary,
     paddingVertical: DesignTokens.spacing.md,
     paddingHorizontal: DesignTokens.spacing.lg,
     borderRadius: DesignTokens.borderRadius.lg,
@@ -3560,7 +3560,7 @@ const createStyles = () => {
     width: getResponsiveSize(64, 72, 80, 96),
     height: getResponsiveSize(64, 72, 80, 96),
     borderRadius: getResponsiveSize(32, 36, 40, 48),
-    backgroundColor: '#69E7D8' + '15',
+    backgroundColor: Colors.accent.primary + '15',
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
     marginBottom: getResponsivePadding(DesignTokens.spacing.md),

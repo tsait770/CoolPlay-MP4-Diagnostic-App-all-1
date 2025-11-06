@@ -1153,11 +1153,9 @@ export default function PlayerScreen() {
                 </View>
                 <Switch
                   value={alwaysListening}
-                  onValueChange={async (value) => {
+                  onValueChange={async () => {
+                    // Toggle Always Listen
                     await toggleAlwaysListening();
-                    if (!value && (isVoiceActive || isVoiceListening)) {
-                      stopVoiceRecording();
-                    }
                   }}
                   trackColor={{ false: Colors.card.border, true: Colors.accent.primary }}
                   thumbColor="white"
@@ -1426,17 +1424,12 @@ export default function PlayerScreen() {
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
           <PlayStationController
             onCrossPress={async () => {
-              if (alwaysListening) {
-                await toggleAlwaysListening();
-                if (isVoiceActive || isVoiceListening) {
-                  stopVoiceRecording();
-                }
-              } else {
-                await startVoiceRecording();
-              }
+              // Toggle Always Listen when X button is pressed
+              await toggleAlwaysListening();
             }}
             onCirclePress={async () => {
-              if (!alwaysListening && (isVoiceActive || isVoiceListening)) {
+              // Stop listening when Circle button is pressed
+              if (isVoiceActive || isVoiceListening) {
                 await stopVoiceRecording();
               }
             }}
@@ -1450,6 +1443,7 @@ export default function PlayerScreen() {
               }
             }}
             containerHeight={Dimensions.get('window').height}
+            isVoiceActive={alwaysListening || isVoiceListening}
           />
         )}
 

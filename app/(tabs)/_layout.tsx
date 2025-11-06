@@ -70,7 +70,7 @@ export default function TabLayout() {
     community: {
       title: t("community_share"),
       tabBarIcon: ({ color }: { color: string }) => (
-        <Ionicons name="share-social" size={24} color={color} />
+        <Ionicons name="people-outline" size={24} color={color} />
       ),
     },
     settings: {
@@ -85,7 +85,7 @@ export default function TabLayout() {
     <Tabs
       key={language}
       screenOptions={{
-        tabBarActiveTintColor: Colors.primary.accent,
+        tabBarActiveTintColor: "#1E3A8A",
         tabBarInactiveTintColor: Colors.primary.textSecondary,
         tabBarStyle: {
           backgroundColor: Colors.secondary.bg,

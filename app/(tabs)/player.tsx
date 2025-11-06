@@ -1063,35 +1063,293 @@ export default function PlayerScreen() {
         ) : (
           <ScrollView 
             style={styles.scrollContainer}
-            contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20 }]}
+            contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20, paddingHorizontal: 24 }]}
             showsVerticalScrollIndicator={false}
           >
-          <View style={styles.videoSelectionOverlay}>
-            {/* Voice Control Header Section */}
+            {/* 圖片一區塊：語音控制頭部 + Tap to Speak */}
             <View style={styles.voiceControlHeaderNonVideo}>
-              <Mic testID="voice-header-mic" size={32} color={Colors.accent.primary} />
-              <Text style={styles.voiceControlHeaderTitleNonVideo}>{t('voice_control')}</Text>
-              <Text style={styles.voiceControlHeaderSubtitleNonVideo}>{t('voice_control_instruction')}</Text>
+              <View style={styles.tapToSpeakContainer}>
+                <Animated.View style={[styles.modernVoiceButton, isVoiceActive && styles.modernVoiceButtonActive, { transform: [{ scale: pulseAnim }] }]}>
+                  <TouchableOpacity
+                    onPress={isVoiceActive ? stopVoiceRecording : startVoiceRecording}
+                    style={styles.voiceButtonInner}
+                    activeOpacity={0.8}
+                  >
+                    <Mic size={32} color="white" />
+                  </TouchableOpacity>
+                </Animated.View>
+                <Text style={styles.tapToSpeakText}>{t('tap_to_speak') || 'Tap to Speak'}</Text>
+              </View>
             </View>
 
-            <View style={styles.videoSelectionCard}>
-              <View style={styles.videoSelectionIcon}>
-                <Play size={48} color={Colors.accent.primary} />
+            {/* 圖片一區塊：Always Listen 開關 */}
+            <View style={styles.alwaysListenCard}>
+              <View style={styles.alwaysListenContent}>
+                <View style={styles.alwaysListenIcon}>
+                  <Mic size={20} color={alwaysListening ? Colors.accent.primary : Colors.primary.textSecondary} />
+                </View>
+                <View style={styles.alwaysListenText}>
+                  <Text style={styles.alwaysListenTitle}>{t('always_listen') || 'Always Listen'}</Text>
+                </View>
               </View>
-              <Text style={styles.videoSelectionTitle}>{t('select_video')}</Text>
-              <Text style={styles.videoSelectionSubtitle}>{t('select_video_subtitle')}</Text>
-              
-              <TouchableOpacity style={styles.selectVideoButton} onPress={pickVideo}>
-                <Upload size={20} color="white" />
-                <Text style={styles.selectVideoButtonText}>{t('select_video')}</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.loadUrlButton} onPress={() => setShowUrlModal(true)}>
-                <LinkIcon size={20} color={Colors.accent.primary} />
-                <Text style={styles.loadUrlButtonText}>{t('load_from_url')}</Text>
+              <Switch
+                value={alwaysListening}
+                onValueChange={toggleAlwaysListening}
+                trackColor={{ false: Colors.card.border, true: Colors.accent.primary }}
+                thumbColor="white"
+                ios_backgroundColor={Colors.card.border}
+              />
+            </View>
+
+            {/* 圖片一區塊：使用量統計卡片 */}
+            <View style={styles.statsCard}>
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>{voiceState.usageCount || 0}</Text>
+                  <Text style={styles.statLabel}>{t('commands_used') || 'Commands Used'}</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>2000</Text>
+                  <Text style={styles.statLabel}>{t('monthly_limit') || 'Monthly Limit'}</Text>
+                </View>
+              </View>
+              <View style={styles.progressBarContainer}>
+                <View style={styles.progressBarBg}>
+                  <View 
+                    style={[
+                      styles.progressBarFill,
+                      { width: `${Math.min(((voiceState.usageCount || 0) / 2000) * 100, 100)}%` }
+                    ]} 
+                  />
+                </View>
+              </View>
+              <TouchableOpacity style={styles.upgradeButton} onPress={() => router.push('/subscription')}>
+                <Text style={styles.upgradeButtonText}>{t('upgrade_plan') || 'Upgrade Plan'}</Text>
+                <ChevronUp size={16} color={Colors.accent.primary} style={{ transform: [{ rotate: '90deg' }] }} />
               </TouchableOpacity>
             </View>
-          </View>
+
+            {/* 圖片二/三區塊：Available Commands 標題 */}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>{t('available_commands') || 'Available Commands'}</Text>
+              <TouchableOpacity 
+                style={styles.addCommandButton}
+                onPress={() => setShowCustomCommandModal(true)}
+              >
+                <Plus size={18} color={Colors.accent.primary} />
+                <Text style={styles.addCommandText}>{t('custom') || 'Custom'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 圖片二區塊：Playback Control */}
+            <TouchableOpacity
+              style={styles.commandCard}
+              onPress={() => setShowCommandList(!showCommandList)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.commandCardHeader}>
+                <View style={styles.commandIconWrapper}>
+                  <Play size={22} color={Colors.accent.primary} fill={Colors.accent.primary + '20'} />
+                </View>
+                <View style={styles.commandCardContent}>
+                  <Text style={styles.commandCardTitle}>{t('playback_control') || 'Playback Control'}</Text>
+                  <Text style={styles.commandCardSubtitle}>{`6 ${t('commands') || 'commands'}`}</Text>
+                </View>
+                <View style={styles.commandCardArrow}>
+                  {showCommandList ? (
+                    <ChevronUp size={20} color={Colors.primary.textSecondary} />
+                  ) : (
+                    <ChevronDown size={20} color={Colors.primary.textSecondary} />
+                  )}
+                </View>
+              </View>
+
+              {showCommandList && (
+                <View style={styles.commandCardExpanded}>
+                  {[
+                    { action: t('play') || 'Play', example: t('play_example') || '"Play"' },
+                    { action: t('pause') || 'Pause', example: t('pause_example') || '"Pause"' },
+                    { action: t('stop') || 'Stop', example: t('stop_example') || '"Stop"' },
+                    { action: t('next_video') || 'Next', example: t('next_example') || '"Next"' },
+                    { action: t('previous_video') || 'Previous', example: t('previous_example') || '"Previous"' },
+                    { action: t('replay') || 'Replay', example: t('replay_example') || '"Replay"' },
+                  ].map((cmd, index) => (
+                    <View key={index} style={styles.commandRow}>
+                      <View style={styles.commandDot} />
+                      <Text style={styles.commandText}>{cmd.action}</Text>
+                      <Text style={styles.commandBadge}>{cmd.example}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* 圖片三區塊：Progress Control */}
+            <TouchableOpacity
+              style={styles.commandCard}
+              onPress={() => setShowProgressControl(!showProgressControl)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.commandCardHeader}>
+                <View style={styles.commandIconWrapper}>
+                  <SkipForward size={22} color={Colors.accent.primary} />
+                </View>
+                <View style={styles.commandCardContent}>
+                  <Text style={styles.commandCardTitle}>{t('progress_control') || 'Progress Control'}</Text>
+                  <Text style={styles.commandCardSubtitle}>{`6 ${t('commands') || 'commands'}`}</Text>
+                </View>
+                <View style={styles.commandCardArrow}>
+                  {showProgressControl ? (
+                    <ChevronUp size={20} color={Colors.primary.textSecondary} />
+                  ) : (
+                    <ChevronDown size={20} color={Colors.primary.textSecondary} />
+                  )}
+                </View>
+              </View>
+              
+              {showProgressControl && (
+                <View style={styles.commandCardExpanded}>
+                  {[
+                    { action: t('forward_10s') || 'Forward 10s', example: t('forward_10s_example') || '"Forward 10"' },
+                    { action: t('forward_20s') || 'Forward 20s', example: t('forward_20s_example') || '"Forward 20"' },
+                    { action: t('forward_30s') || 'Forward 30s', example: t('forward_30s_example') || '"Forward 30"' },
+                    { action: t('rewind_10s') || 'Rewind 10s', example: t('rewind_10s_example') || '"Rewind 10"' },
+                    { action: t('rewind_20s') || 'Rewind 20s', example: t('rewind_20s_example') || '"Rewind 20"' },
+                    { action: t('rewind_30s') || 'Rewind 30s', example: t('rewind_30s_example') || '"Rewind 30"' },
+                  ].map((cmd, index) => (
+                    <View key={index} style={styles.commandRow}>
+                      <View style={styles.commandDot} />
+                      <Text style={styles.commandText}>{cmd.action}</Text>
+                      <Text style={styles.commandBadge}>{cmd.example}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* 圖片三區塊：Volume Control */}
+            <TouchableOpacity
+              style={styles.commandCard}
+              onPress={() => setShowVolumeControl(!showVolumeControl)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.commandCardHeader}>
+                <View style={styles.commandIconWrapper}>
+                  <Volume2 size={22} color={Colors.accent.primary} />
+                </View>
+                <View style={styles.commandCardContent}>
+                  <Text style={styles.commandCardTitle}>{t('volume_control') || 'Volume Control'}</Text>
+                  <Text style={styles.commandCardSubtitle}>{`5 ${t('commands') || 'commands'}`}</Text>
+                </View>
+                <View style={styles.commandCardArrow}>
+                  {showVolumeControl ? (
+                    <ChevronUp size={20} color={Colors.primary.textSecondary} />
+                  ) : (
+                    <ChevronDown size={20} color={Colors.primary.textSecondary} />
+                  )}
+                </View>
+              </View>
+              
+              {showVolumeControl && (
+                <View style={styles.commandCardExpanded}>
+                  {[
+                    { action: t('max_volume') || 'Max Volume', example: t('max_volume_example') || '"Max Volume"' },
+                    { action: t('mute') || 'Mute', example: t('mute_example') || '"Mute"' },
+                    { action: t('unmute') || 'Unmute', example: t('unmute_example') || '"Unmute"' },
+                    { action: t('volume_up') || 'Volume Up', example: t('volume_up_example') || '"Volume Up"' },
+                    { action: t('volume_down') || 'Volume Down', example: t('volume_down_example') || '"Volume Down"' },
+                  ].map((cmd, index) => (
+                    <View key={index} style={styles.commandRow}>
+                      <View style={styles.commandDot} />
+                      <Text style={styles.commandText}>{cmd.action}</Text>
+                      <Text style={styles.commandBadge}>{cmd.example}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* 圖片三區塊：Screen Control */}
+            <TouchableOpacity
+              style={styles.commandCard}
+              onPress={() => setShowScreenControl(!showScreenControl)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.commandCardHeader}>
+                <View style={styles.commandIconWrapper}>
+                  <Monitor size={22} color={Colors.accent.primary} />
+                </View>
+                <View style={styles.commandCardContent}>
+                  <Text style={styles.commandCardTitle}>{t('screen_control') || 'Screen Control'}</Text>
+                  <Text style={styles.commandCardSubtitle}>{`2 ${t('commands') || 'commands'}`}</Text>
+                </View>
+                <View style={styles.commandCardArrow}>
+                  {showScreenControl ? (
+                    <ChevronUp size={20} color={Colors.primary.textSecondary} />
+                  ) : (
+                    <ChevronDown size={20} color={Colors.primary.textSecondary} />
+                  )}
+                </View>
+              </View>
+              
+              {showScreenControl && (
+                <View style={styles.commandCardExpanded}>
+                  {[
+                    { action: t('fullscreen') || 'Fullscreen', example: t('fullscreen_example') || '"Fullscreen"' },
+                    { action: t('exit_fullscreen') || 'Exit Fullscreen', example: t('exit_fullscreen_example') || '"Exit Fullscreen"' },
+                  ].map((cmd, index) => (
+                    <View key={index} style={styles.commandRow}>
+                      <View style={styles.commandDot} />
+                      <Text style={styles.commandText}>{cmd.action}</Text>
+                      <Text style={styles.commandBadge}>{cmd.example}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* 圖片三區塊：Playback Speed */}
+            <TouchableOpacity
+              style={styles.commandCard}
+              onPress={() => setShowSpeedControl(!showSpeedControl)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.commandCardHeader}>
+                <View style={styles.commandIconWrapper}>
+                  <Gauge size={22} color={Colors.accent.primary} />
+                </View>
+                <View style={styles.commandCardContent}>
+                  <Text style={styles.commandCardTitle}>{t('playback_speed') || 'Playback Speed'}</Text>
+                  <Text style={styles.commandCardSubtitle}>{`5 ${t('commands') || 'commands'}`}</Text>
+                </View>
+                <View style={styles.commandCardArrow}>
+                  {showSpeedControl ? (
+                    <ChevronUp size={20} color={Colors.primary.textSecondary} />
+                  ) : (
+                    <ChevronDown size={20} color={Colors.primary.textSecondary} />
+                  )}
+                </View>
+              </View>
+              
+              {showSpeedControl && (
+                <View style={styles.commandCardExpanded}>
+                  {[
+                    { action: t('speed_0_5') || 'Speed 0.5x', example: t('speed_0_5_example') || '"0.5x"' },
+                    { action: t('normal_speed') || 'Normal Speed', example: t('normal_speed_example') || '"Normal"' },
+                    { action: t('speed_1_25') || 'Speed 1.25x', example: t('speed_1_25_example') || '"1.25x"' },
+                    { action: t('speed_1_5') || 'Speed 1.5x', example: t('speed_1_5_example') || '"1.5x"' },
+                    { action: t('speed_2_0') || 'Speed 2.0x', example: t('speed_2_0_example') || '"2x"' },
+                  ].map((cmd, index) => (
+                    <View key={index} style={styles.commandRow}>
+                      <View style={styles.commandDot} />
+                      <Text style={styles.commandText}>{cmd.action}</Text>
+                      <Text style={styles.commandBadge}>{cmd.example}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </TouchableOpacity>
           </ScrollView>
         )}
 
@@ -1132,8 +1390,8 @@ export default function PlayerScreen() {
           </View>
         )}
 
-        {/* Hidden when video is loaded */}
-        {false && !videoSource && (
+        {/* Always Listen Card - Removed from here as it's now in ScrollView */}
+        {false && (
         <View style={styles.alwaysListenCard}>
           <View style={styles.alwaysListenContent}>
             <View style={styles.alwaysListenIcon}>
@@ -1153,8 +1411,8 @@ export default function PlayerScreen() {
         </View>
         )}
 
-        {/* Hidden when video is loaded */}
-        {false && !videoSource && (
+        {/* Stats Card - Removed from here as it's now in ScrollView */}
+        {false && (
         <View style={styles.statsCard}>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
@@ -1184,8 +1442,8 @@ export default function PlayerScreen() {
         </View>
         )}
 
-        {/* Hidden when video is loaded */}
-        {false && !videoSource && (<>
+        {/* Command Cards - Removed from here as they're now in ScrollView */}
+        {false && (<>
         
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{t('available_commands')}</Text>
@@ -2980,6 +3238,18 @@ const createStyles = () => {
     alignItems: 'center',
     backgroundColor: Colors.primary.bg,
     paddingHorizontal: 24,
+  },
+  tapToSpeakContainer: {
+    alignItems: 'center' as const,
+    marginBottom: 32,
+    paddingVertical: 20,
+  },
+  tapToSpeakText: {
+    fontSize: 20,
+    fontWeight: '600' as const,
+    color: Colors.primary.text,
+    marginTop: 20,
+    textAlign: 'center' as const,
   },
   videoSelectionCard: {
     backgroundColor: Colors.secondary.bg,

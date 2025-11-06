@@ -1102,25 +1102,25 @@ export default function PlayerScreen() {
             {/* Card 1: Voice Control Header + Video Selection */}
             <View style={styles.card1Container}>
               <View style={styles.voiceControlHeaderNonVideo}>
-                <Mic testID="voice-header-mic" size={32} color={Colors.accent.primary} />
+                <Mic testID="voice-header-mic" size={36} color={Colors.accent.primary} />
                 <Text style={styles.voiceControlHeaderTitleNonVideo}>{t('voice_control')}</Text>
                 <Text style={styles.voiceControlHeaderSubtitleNonVideo}>{t('voice_control_instruction')}</Text>
               </View>
 
               <View style={styles.videoSelectionCard}>
                 <View style={styles.videoSelectionIcon}>
-                  <Play size={48} color={Colors.accent.primary} />
+                  <Play size={56} color={Colors.accent.primary} />
                 </View>
                 <Text style={styles.videoSelectionTitle}>{t('select_video')}</Text>
                 <Text style={styles.videoSelectionSubtitle}>{t('select_video_subtitle')}</Text>
                 
                 <TouchableOpacity style={styles.selectVideoButton} onPress={pickVideo}>
-                  <Upload size={20} color="white" />
+                  <Upload size={22} color="white" />
                   <Text style={styles.selectVideoButtonText}>{t('select_video')}</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity style={styles.loadUrlButton} onPress={() => setShowUrlModal(true)}>
-                  <LinkIcon size={20} color={Colors.accent.primary} />
+                  <LinkIcon size={22} color={Colors.accent.primary} />
                   <Text style={styles.loadUrlButtonText}>{t('load_from_url')}</Text>
                 </TouchableOpacity>
               </View>
@@ -1143,7 +1143,7 @@ export default function PlayerScreen() {
                     }}
                     activeOpacity={0.8}
                  >
-                    <Mic size={44} color="#fff" />
+                    <Mic size={52} color="#fff" />
                   </TouchableOpacity>
                 </Animated.View>
                 <Text style={styles.voiceButtonHint}>{t('tap_to_speak') !== 'tap_to_speak' ? t('tap_to_speak') : 'Tap to Speak'}</Text>
@@ -1152,7 +1152,7 @@ export default function PlayerScreen() {
               <View style={styles.alwaysListenCard}>
                 <View style={styles.alwaysListenContent}>
                   <View style={styles.alwaysListenIcon}>
-                    <Mic size={20} color={alwaysListening ? Colors.accent.primary : Colors.primary.textSecondary} />
+                    <Mic size={22} color={alwaysListening ? Colors.accent.primary : Colors.primary.textSecondary} />
                   </View>
                   <View style={styles.alwaysListenText}>
                     <Text style={styles.alwaysListenTitle}>{t('always_listen')}</Text>
@@ -1204,7 +1204,7 @@ export default function PlayerScreen() {
                   style={styles.addCommandButton}
                   onPress={() => setShowCustomCommandModal(true)}
                 >
-                  <Plus size={18} color={Colors.accent.primary} />
+                  <Plus size={20} color={Colors.accent.primary} />
                   <Text style={styles.addCommandText}>{t('custom')}</Text>
                 </TouchableOpacity>
               </View>
@@ -1217,7 +1217,7 @@ export default function PlayerScreen() {
               >
                 <View style={styles.commandCardHeader}>
                   <View style={styles.commandIconWrapper}>
-                    <Play size={22} color={Colors.accent.primary} fill={Colors.accent.primary + '20'} />
+                    <Play size={24} color={Colors.accent.primary} fill={Colors.accent.primary + '20'} />
                   </View>
                   <View style={styles.commandCardContent}>
                     <Text style={styles.commandCardTitle}>{t('playback_control')}</Text>
@@ -1225,9 +1225,9 @@ export default function PlayerScreen() {
                   </View>
                   <View style={styles.commandCardArrow}>
                     {showCommandList ? (
-                      <ChevronUp size={20} color={Colors.primary.textSecondary} />
+                      <ChevronUp size={22} color={Colors.primary.textSecondary} />
                     ) : (
-                      <ChevronDown size={20} color={Colors.primary.textSecondary} />
+                      <ChevronDown size={22} color={Colors.primary.textSecondary} />
                     )}
                   </View>
                 </View>
@@ -1260,7 +1260,7 @@ export default function PlayerScreen() {
               >
                 <View style={styles.commandCardHeader}>
                   <View style={styles.commandIconWrapper}>
-                    <SkipForward size={22} color={Colors.accent.primary} />
+                    <SkipForward size={24} color={Colors.accent.primary} />
                   </View>
                   <View style={styles.commandCardContent}>
                     <Text style={styles.commandCardTitle}>{t('progress_control')}</Text>
@@ -1268,9 +1268,9 @@ export default function PlayerScreen() {
                   </View>
                   <View style={styles.commandCardArrow}>
                     {showProgressControl ? (
-                      <ChevronUp size={20} color={Colors.primary.textSecondary} />
+                      <ChevronUp size={22} color={Colors.primary.textSecondary} />
                     ) : (
-                      <ChevronDown size={20} color={Colors.primary.textSecondary} />
+                      <ChevronDown size={22} color={Colors.primary.textSecondary} />
                     )}
                   </View>
                 </View>
@@ -1303,7 +1303,7 @@ export default function PlayerScreen() {
               >
                 <View style={styles.commandCardHeader}>
                   <View style={styles.commandIconWrapper}>
-                    <Volume2 size={22} color={Colors.accent.primary} />
+                    <Volume2 size={24} color={Colors.accent.primary} />
                   </View>
                   <View style={styles.commandCardContent}>
                     <Text style={styles.commandCardTitle}>{t('volume_control')}</Text>
@@ -1311,9 +1311,9 @@ export default function PlayerScreen() {
                   </View>
                   <View style={styles.commandCardArrow}>
                     {showVolumeControl ? (
-                      <ChevronUp size={20} color={Colors.primary.textSecondary} />
+                      <ChevronUp size={22} color={Colors.primary.textSecondary} />
                     ) : (
-                      <ChevronDown size={20} color={Colors.primary.textSecondary} />
+                      <ChevronDown size={22} color={Colors.primary.textSecondary} />
                     )}
                   </View>
                 </View>
@@ -1345,7 +1345,7 @@ export default function PlayerScreen() {
               >
                 <View style={styles.commandCardHeader}>
                   <View style={styles.commandIconWrapper}>
-                    <Monitor size={22} color={Colors.accent.primary} />
+                    <Monitor size={24} color={Colors.accent.primary} />
                   </View>
                   <View style={styles.commandCardContent}>
                     <Text style={styles.commandCardTitle}>{t('screen_control')}</Text>
@@ -1353,9 +1353,9 @@ export default function PlayerScreen() {
                   </View>
                   <View style={styles.commandCardArrow}>
                     {showScreenControl ? (
-                      <ChevronUp size={20} color={Colors.primary.textSecondary} />
+                      <ChevronUp size={22} color={Colors.primary.textSecondary} />
                     ) : (
-                      <ChevronDown size={20} color={Colors.primary.textSecondary} />
+                      <ChevronDown size={22} color={Colors.primary.textSecondary} />
                     )}
                   </View>
                 </View>
@@ -1384,7 +1384,7 @@ export default function PlayerScreen() {
               >
                 <View style={styles.commandCardHeader}>
                   <View style={styles.commandIconWrapper}>
-                    <Gauge size={22} color={Colors.accent.primary} />
+                    <Gauge size={24} color={Colors.accent.primary} />
                   </View>
                   <View style={styles.commandCardContent}>
                     <Text style={styles.commandCardTitle}>{t('playback_speed')}</Text>
@@ -1392,9 +1392,9 @@ export default function PlayerScreen() {
                   </View>
                   <View style={styles.commandCardArrow}>
                     {showSpeedControl ? (
-                      <ChevronUp size={20} color={Colors.primary.textSecondary} />
+                      <ChevronUp size={22} color={Colors.primary.textSecondary} />
                     ) : (
-                      <ChevronDown size={20} color={Colors.primary.textSecondary} />
+                      <ChevronDown size={22} color={Colors.primary.textSecondary} />
                     )}
                   </View>
                 </View>
@@ -2289,8 +2289,8 @@ const createStyles = () => {
     marginBottom: 32,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600" as const,
+    fontSize: 20,
+    fontWeight: "700" as const,
     color: Colors.primary.text,
     marginBottom: 16,
   },
@@ -2864,7 +2864,7 @@ const createStyles = () => {
     flex: 1,
   },
   alwaysListenTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "600" as const,
     color: Colors.primary.text,
     marginBottom: 2,
@@ -2878,9 +2878,9 @@ const createStyles = () => {
     marginBottom: 32,
   },
   mainVoiceButton: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
     backgroundColor: "#4ECDC4",
     justifyContent: "center",
     alignItems: "center",
@@ -2895,8 +2895,8 @@ const createStyles = () => {
     shadowColor: Colors.danger,
   },
   voiceButtonHint: {
-    fontSize: 17,
-    fontWeight: "500" as const,
+    fontSize: 18,
+    fontWeight: "600" as const,
     color: Colors.primary.text,
     marginTop: 16,
     textAlign: "center",
@@ -3060,7 +3060,7 @@ const createStyles = () => {
     marginBottom: 20,
   },
   videoSelectionTitle: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "600" as const,
     color: Colors.primary.text,
     marginBottom: 8,
@@ -3068,7 +3068,7 @@ const createStyles = () => {
     lineHeight: 32,
   },
   videoSelectionSubtitle: {
-    fontSize: 15,
+    fontSize: 16,
     color: Colors.primary.textSecondary,
     textAlign: "center",
     marginBottom: 24,
@@ -3080,9 +3080,9 @@ const createStyles = () => {
     justifyContent: "center",
     gap: 10,
     backgroundColor: "#4ECDC4",
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 28,
-    borderRadius: 14,
+    borderRadius: 16,
     marginBottom: 12,
     width: "100%",
     shadowColor: "#4ECDC4",
@@ -3092,7 +3092,7 @@ const createStyles = () => {
     elevation: 8,
   },
   selectVideoButtonText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "600" as const,
     color: "white",
   },
@@ -3104,13 +3104,13 @@ const createStyles = () => {
     backgroundColor: Colors.card.bg,
     paddingVertical: 16,
     paddingHorizontal: 28,
-    borderRadius: 14,
+    borderRadius: 16,
     width: "100%",
     borderWidth: 1,
     borderColor: Colors.card.border,
   },
   loadUrlButtonText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "600" as const,
     color: Colors.accent.primary,
   },
@@ -3344,13 +3344,13 @@ const createStyles = () => {
     alignItems: "center",
   },
   statValue: {
-    fontSize: 34,
+    fontSize: 36,
     fontWeight: "700" as const,
     color: Colors.primary.text,
     marginBottom: 6,
   },
   statLabel: {
-    fontSize: 15,
+    fontSize: 14,
     color: Colors.primary.textSecondary,
     textAlign: "center",
   },
@@ -3386,7 +3386,7 @@ const createStyles = () => {
     borderColor: Colors.accent.primary,
   },
   upgradeButtonText: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "600" as const,
     color: Colors.accent.primary,
   },
@@ -3406,7 +3406,7 @@ const createStyles = () => {
     borderRadius: 14,
   },
   addCommandText: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "600" as const,
     color: Colors.accent.primary,
   },
@@ -3429,9 +3429,9 @@ const createStyles = () => {
     padding: 20,
   },
   commandIconWrapper: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: Colors.accent.primary + '15',
     justifyContent: "center",
     alignItems: "center",
@@ -3441,13 +3441,13 @@ const createStyles = () => {
     flex: 1,
   },
   commandCardTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "600" as const,
     color: Colors.primary.text,
     marginBottom: 4,
   },
   commandCardSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.primary.textSecondary,
   },
   commandCardArrow: {
@@ -3474,12 +3474,12 @@ const createStyles = () => {
   },
   commandText: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.primary.text,
     fontWeight: "500" as const,
   },
   commandBadge: {
-    fontSize: 13,
+    fontSize: 12,
     color: Colors.primary.textSecondary,
     backgroundColor: Colors.card.bg,
     paddingHorizontal: 10,
@@ -3563,23 +3563,23 @@ const createStyles = () => {
   },
   voiceControlHeaderNonVideo: {
     alignItems: 'center' as const,
-    marginBottom: 40,
+    marginBottom: 32,
   },
   micIconCircleNonVideo: {
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   voiceControlHeaderTitleNonVideo: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '700' as const,
     color: Colors.primary.text,
     marginBottom: 8,
     textAlign: 'center' as const,
-    lineHeight: 36,
+    lineHeight: 40,
   },
   voiceControlHeaderSubtitleNonVideo: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '400' as const,
     color: Colors.primary.textSecondary,
     textAlign: 'center' as const,

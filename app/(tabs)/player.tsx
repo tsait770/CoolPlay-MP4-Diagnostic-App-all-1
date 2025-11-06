@@ -1094,78 +1094,72 @@ export default function PlayerScreen() {
             </TouchableOpacity>
           )
         ) : (
-          <View style={[styles.videoSelectionOverlay, { paddingTop: insets.top + 8, paddingHorizontal: 20 }]}> 
-            {!isContentLoaded && (
-              <View style={styles.voiceControlHeaderNonVideo}>
-                <View style={styles.micIconCircleNonVideo}>
-                  <Mic testID="voice-header-mic" size={28} color={Colors.accent.primary} />
-                </View>
-                <Text style={styles.voiceControlHeaderTitleNonVideo}>{t('voice_control')}</Text>
-                <Text style={styles.voiceControlHeaderSubtitleNonVideo}>{t('voice_control_instruction')}</Text>
-              </View>
-            )}
-
-            <View style={styles.videoSelectionCard}>
-              <View style={styles.videoSelectionIcon}>
-                <Play size={48} color={Colors.accent.primary} />
-              </View>
-              <Text style={styles.videoSelectionTitle}>{t('select_video')}</Text>
-              <Text style={styles.videoSelectionSubtitle}>{t('select_video_subtitle')}</Text>
-              
-              <TouchableOpacity style={styles.selectVideoButton} onPress={pickVideo}>
-                <Upload size={20} color="white" />
-                <Text style={styles.selectVideoButtonText}>{t('select_video')}</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.loadUrlButton} onPress={() => setShowUrlModal(true)}>
-                <LinkIcon size={20} color={Colors.accent.primary} />
-                <Text style={styles.loadUrlButtonText}>{t('load_from_url')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {/* Voice Control UI when video is loaded */}
-        {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
           <ScrollView 
             style={styles.scrollContainer}
             contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 8, paddingHorizontal: 24 }]}
             showsVerticalScrollIndicator={false}
           >
-            {/* Card 2: Voice Control Center */}
-            <View style={styles.card2Container}>
-              {/* Voice Button */}
-              <View style={styles.voiceControlCenter}>
-                <TouchableOpacity
-                  testID="tap-to-speak-button"
-                  accessibilityLabel="Tap to Speak"
-                  style={[styles.mainVoiceButton, (isVoiceActive || isVoiceListening) && styles.mainVoiceButtonActive]}
-                  onPress={() => {
-                    if (isVoiceActive || isVoiceListening) {
-                      stopVoiceRecording();
-                    } else {
-                      startVoiceRecording();
-                    }
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <Animated.View style={[styles.voiceButtonInner, { transform: [{ scale: pulseAnim }] }]}>
-                    <Mic size={48} color="#fff" />
-                  </Animated.View>
-                </TouchableOpacity>
-                <Text style={styles.voiceControlStatus}>
-                  {isVoiceActive || isVoiceListening ? t('listening') : t('tap_to_speak')}
-                </Text>
+            {/* Card 1: Voice Control Header + Video Selection */}
+            <View style={styles.card1Container}>
+              <View style={styles.voiceControlHeaderNonVideo}>
+                <Mic testID="voice-header-mic" size={32} color={Colors.accent.primary} />
+                <Text style={styles.voiceControlHeaderTitleNonVideo}>{t('voice_control')}</Text>
+                <Text style={styles.voiceControlHeaderSubtitleNonVideo}>{t('voice_control_instruction')}</Text>
               </View>
 
-              {/* Always Listen Card */}
+              <View style={styles.videoSelectionCard}>
+                <View style={styles.videoSelectionIcon}>
+                  <Play size={48} color={Colors.accent.primary} />
+                </View>
+                <Text style={styles.videoSelectionTitle}>{t('select_video')}</Text>
+                <Text style={styles.videoSelectionSubtitle}>{t('select_video_subtitle')}</Text>
+                
+                <TouchableOpacity style={styles.selectVideoButton} onPress={pickVideo}>
+                  <Upload size={20} color="white" />
+                  <Text style={styles.selectVideoButtonText}>{t('select_video')}</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.loadUrlButton} onPress={() => setShowUrlModal(true)}>
+                  <LinkIcon size={20} color={Colors.accent.primary} />
+                  <Text style={styles.loadUrlButtonText}>{t('load_from_url')}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Card 2: Always Listen + Stats Card */}
+            <View style={styles.card2Container}>
+              <View style={{ alignItems: 'center', marginBottom: 24 }}>
+                <Animated.View style={[{ transform: [{ scale: pulseAnim }] }]}>
+                  <TouchableOpacity
+                    testID="tap-to-speak-button"
+                    accessibilityLabel="Tap to Speak"
+                    style={[styles.mainVoiceButton, (isVoiceActive || isVoiceListening) && styles.mainVoiceButtonActive]}
+                    onPress={() => {
+                      if (isVoiceActive || isVoiceListening) {
+                        stopVoiceRecording();
+                      } else {
+                        startVoiceRecording();
+                      }
+                    }}
+                    activeOpacity={0.8}
+                 >
+                    <Mic size={44} color="#fff" />
+                  </TouchableOpacity>
+                </Animated.View>
+                <Text style={styles.voiceButtonHint}>{t('tap_to_speak') !== 'tap_to_speak' ? t('tap_to_speak') : 'Tap to Speak'}</Text>
+              </View>
+
               <View style={styles.alwaysListenCard}>
                 <View style={styles.alwaysListenContent}>
-                  <Mic size={20} color={alwaysListening ? Colors.accent.primary : Colors.primary.textSecondary} />
-                  <Text style={styles.alwaysListenTitle}>{t('always_listen')}</Text>
+                  <View style={styles.alwaysListenIcon}>
+                    <Mic size={20} color={alwaysListening ? Colors.accent.primary : Colors.primary.textSecondary} />
+                  </View>
+                  <View style={styles.alwaysListenText}>
+                    <Text style={styles.alwaysListenTitle}>{t('always_listen')}</Text>
+                  </View>
                 </View>
-                <Switch 
-                  value={alwaysListening} 
+                <Switch
+                  value={alwaysListening}
                   onValueChange={toggleAlwaysListening}
                   trackColor={{ false: Colors.card.border, true: Colors.accent.primary }}
                   thumbColor="white"
@@ -1173,7 +1167,6 @@ export default function PlayerScreen() {
                 />
               </View>
 
-              {/* Usage Stats Card */}
               <View style={styles.statsCard}>
                 <View style={styles.statsRow}>
                   <View style={styles.statItem}>
@@ -1203,7 +1196,7 @@ export default function PlayerScreen() {
               </View>
             </View>
 
-            {/* Card 3: Available Commands */}
+            {/* Card 3: Available Commands List */}
             <View style={styles.card3Container}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>{t('available_commands')}</Text>
@@ -1228,7 +1221,7 @@ export default function PlayerScreen() {
                   </View>
                   <View style={styles.commandCardContent}>
                     <Text style={styles.commandCardTitle}>{t('playback_control')}</Text>
-                    <Text style={styles.commandCardSubtitle}>6 {t('commands')}</Text>
+                    <Text style={styles.commandCardSubtitle}>{`6 ${t('commands')}`}</Text>
                   </View>
                   <View style={styles.commandCardArrow}>
                     {showCommandList ? (
@@ -1238,6 +1231,7 @@ export default function PlayerScreen() {
                     )}
                   </View>
                 </View>
+
                 {showCommandList && (
                   <View style={styles.commandCardExpanded}>
                     {[
@@ -1251,6 +1245,7 @@ export default function PlayerScreen() {
                       <View key={index} style={styles.commandRow}>
                         <View style={styles.commandDot} />
                         <Text style={styles.commandText}>{cmd.action}</Text>
+                        <Text style={styles.commandBadge}>{cmd.example}</Text>
                       </View>
                     ))}
                   </View>
@@ -1265,11 +1260,11 @@ export default function PlayerScreen() {
               >
                 <View style={styles.commandCardHeader}>
                   <View style={styles.commandIconWrapper}>
-                    <SkipForward size={22} color={Colors.accent.primary} fill={Colors.accent.primary + '20'} />
+                    <SkipForward size={22} color={Colors.accent.primary} />
                   </View>
                   <View style={styles.commandCardContent}>
                     <Text style={styles.commandCardTitle}>{t('progress_control')}</Text>
-                    <Text style={styles.commandCardSubtitle}>6 {t('commands')}</Text>
+                    <Text style={styles.commandCardSubtitle}>{`6 ${t('commands')}`}</Text>
                   </View>
                   <View style={styles.commandCardArrow}>
                     {showProgressControl ? (
@@ -1279,19 +1274,21 @@ export default function PlayerScreen() {
                     )}
                   </View>
                 </View>
+                
                 {showProgressControl && (
                   <View style={styles.commandCardExpanded}>
                     {[
-                      { action: t('forward_10s'), example: t('forward_10_example') },
-                      { action: t('forward_20s'), example: t('forward_20_example') },
-                      { action: t('forward_30s'), example: t('forward_30_example') },
-                      { action: t('rewind_10s'), example: t('rewind_10_example') },
-                      { action: t('rewind_20s'), example: t('rewind_20_example') },
-                      { action: t('rewind_30s'), example: t('rewind_30_example') },
+                      { action: t('forward_10s'), example: t('forward_10s_example') },
+                      { action: t('forward_20s'), example: t('forward_20s_example') },
+                      { action: t('forward_30s'), example: t('forward_30s_example') },
+                      { action: t('rewind_10s'), example: t('rewind_10s_example') },
+                      { action: t('rewind_20s'), example: t('rewind_20s_example') },
+                      { action: t('rewind_30s'), example: t('rewind_30s_example') },
                     ].map((cmd, index) => (
                       <View key={index} style={styles.commandRow}>
                         <View style={styles.commandDot} />
                         <Text style={styles.commandText}>{cmd.action}</Text>
+                        <Text style={styles.commandBadge}>{cmd.example}</Text>
                       </View>
                     ))}
                   </View>
@@ -1306,11 +1303,11 @@ export default function PlayerScreen() {
               >
                 <View style={styles.commandCardHeader}>
                   <View style={styles.commandIconWrapper}>
-                    <Volume2 size={22} color={Colors.accent.primary} fill={Colors.accent.primary + '20'} />
+                    <Volume2 size={22} color={Colors.accent.primary} />
                   </View>
                   <View style={styles.commandCardContent}>
                     <Text style={styles.commandCardTitle}>{t('volume_control')}</Text>
-                    <Text style={styles.commandCardSubtitle}>5 {t('commands')}</Text>
+                    <Text style={styles.commandCardSubtitle}>{`5 ${t('commands')}`}</Text>
                   </View>
                   <View style={styles.commandCardArrow}>
                     {showVolumeControl ? (
@@ -1320,6 +1317,7 @@ export default function PlayerScreen() {
                     )}
                   </View>
                 </View>
+                
                 {showVolumeControl && (
                   <View style={styles.commandCardExpanded}>
                     {[
@@ -1332,6 +1330,7 @@ export default function PlayerScreen() {
                       <View key={index} style={styles.commandRow}>
                         <View style={styles.commandDot} />
                         <Text style={styles.commandText}>{cmd.action}</Text>
+                        <Text style={styles.commandBadge}>{cmd.example}</Text>
                       </View>
                     ))}
                   </View>
@@ -1346,11 +1345,11 @@ export default function PlayerScreen() {
               >
                 <View style={styles.commandCardHeader}>
                   <View style={styles.commandIconWrapper}>
-                    <Monitor size={22} color={Colors.accent.primary} fill={Colors.accent.primary + '20'} />
+                    <Monitor size={22} color={Colors.accent.primary} />
                   </View>
                   <View style={styles.commandCardContent}>
                     <Text style={styles.commandCardTitle}>{t('screen_control')}</Text>
-                    <Text style={styles.commandCardSubtitle}>2 {t('commands')}</Text>
+                    <Text style={styles.commandCardSubtitle}>{`2 ${t('commands')}`}</Text>
                   </View>
                   <View style={styles.commandCardArrow}>
                     {showScreenControl ? (
@@ -1360,6 +1359,7 @@ export default function PlayerScreen() {
                     )}
                   </View>
                 </View>
+                
                 {showScreenControl && (
                   <View style={styles.commandCardExpanded}>
                     {[
@@ -1369,6 +1369,7 @@ export default function PlayerScreen() {
                       <View key={index} style={styles.commandRow}>
                         <View style={styles.commandDot} />
                         <Text style={styles.commandText}>{cmd.action}</Text>
+                        <Text style={styles.commandBadge}>{cmd.example}</Text>
                       </View>
                     ))}
                   </View>
@@ -1383,11 +1384,11 @@ export default function PlayerScreen() {
               >
                 <View style={styles.commandCardHeader}>
                   <View style={styles.commandIconWrapper}>
-                    <Gauge size={22} color={Colors.accent.primary} fill={Colors.accent.primary + '20'} />
+                    <Gauge size={22} color={Colors.accent.primary} />
                   </View>
                   <View style={styles.commandCardContent}>
                     <Text style={styles.commandCardTitle}>{t('playback_speed')}</Text>
-                    <Text style={styles.commandCardSubtitle}>5 {t('commands')}</Text>
+                    <Text style={styles.commandCardSubtitle}>{`5 ${t('commands')}`}</Text>
                   </View>
                   <View style={styles.commandCardArrow}>
                     {showSpeedControl ? (
@@ -1397,6 +1398,7 @@ export default function PlayerScreen() {
                     )}
                   </View>
                 </View>
+                
                 {showSpeedControl && (
                   <View style={styles.commandCardExpanded}>
                     {[
@@ -1409,6 +1411,7 @@ export default function PlayerScreen() {
                       <View key={index} style={styles.commandRow}>
                         <View style={styles.commandDot} />
                         <Text style={styles.commandText}>{cmd.action}</Text>
+                        <Text style={styles.commandBadge}>{cmd.example}</Text>
                       </View>
                     ))}
                   </View>
@@ -1418,13 +1421,44 @@ export default function PlayerScreen() {
           </ScrollView>
         )}
 
+        {/* Voice Control Header Section - Hide when content is loaded */}
+        {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && !isContentLoaded && (
+          <View style={styles.voiceControlHeader}>
+            <View style={styles.voiceControlIconCircle}>
+              <Mic size={28} color={Colors.accent.primary} />
+            </View>
+            <Text style={styles.voiceControlHeaderTitle}>{t('voice_control')}</Text>
+            <Text style={styles.voiceControlHeaderSubtitle}>{t('voice_control_instruction')}</Text>
+          </View>
+        )}
+
+        {/* PlayStation Voice Control Button - Floating Over Video */}
+        {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
+          <PlayStationController
+            onCrossPress={startVoiceRecording}
+            onCirclePress={stopVoiceRecording}
+            onTrianglePress={togglePlayPause}
+            onSquarePress={() => {
+              if (videoPlayer) {
+                videoPlayer.currentTime = 0;
+                if (typeof videoPlayer.play === 'function') {
+                  videoPlayer.play();
+                }
+              }
+            }}
+            containerHeight={Dimensions.get('window').height}
+          />
+        )}
+
         {/* Status Bar - Only show when there's a status */}
-        {voiceStatus && typeof voiceStatus === 'string' && (
+        {voiceStatus && typeof voiceStatus === 'string' && videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
           <View style={styles.floatingStatusBar}>
             <View style={styles.statusDot} />
             <Text style={styles.statusText}>{voiceStatus}</Text>
           </View>
         )}
+
+
 
         {/* Siri Setup Modal */}
         <Modal
@@ -2584,10 +2618,9 @@ const createStyles = () => {
     marginBottom: 12,
   },
   voiceControlStatus: {
-    fontSize: 14,
+    fontSize: getResponsiveSize(13, 14, 15),
     fontWeight: "600" as const,
     color: Colors.primary.text,
-    marginTop: 16,
     textAlign: "center",
   },
   quickVoiceActions: {
@@ -2799,17 +2832,24 @@ const createStyles = () => {
   },
   alwaysListenCard: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: Colors.card.bg,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    justifyContent: "space-between",
+    backgroundColor: Colors.secondary.bg,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: Colors.card.border,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
   alwaysListenContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    flex: 1,
   },
   alwaysListenIcon: {
     width: 44,
@@ -2824,9 +2864,10 @@ const createStyles = () => {
     flex: 1,
   },
   alwaysListenTitle: {
-    fontSize: 16,
-    fontWeight: "500" as const,
+    fontSize: 18,
+    fontWeight: "600" as const,
     color: Colors.primary.text,
+    marginBottom: 2,
   },
   alwaysListenSubtitle: {
     fontSize: 14,
@@ -2837,16 +2878,16 @@ const createStyles = () => {
     marginBottom: 32,
   },
   mainVoiceButton: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: Colors.accent.primary,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: "#4ECDC4",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: Colors.accent.primary,
-    shadowOffset: { width: 0, height: 6 },
+    shadowColor: "#4ECDC4",
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
-    shadowRadius: 12,
+    shadowRadius: 16,
     elevation: 12,
   },
   mainVoiceButtonActive: {
@@ -2994,55 +3035,61 @@ const createStyles = () => {
     marginBottom: 32,
   },
   videoSelectionOverlay: {
-    flex: 1,
-    backgroundColor: Colors.primary.bg,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
+    backgroundColor: Colors.primary.bg,
   },
   videoSelectionCard: {
-    backgroundColor: Colors.card.bg,
+    backgroundColor: Colors.secondary.bg,
     borderRadius: 24,
     padding: 32,
     alignItems: "center",
     width: '100%',
     maxWidth: 400,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 10,
+    borderWidth: 2,
+    borderColor: Colors.card.border,
+    borderStyle: "dashed",
   },
   videoSelectionIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.accent.primary + '20',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: Colors.accent.primary + '15',
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
   },
   videoSelectionTitle: {
-    fontSize: 18,
+    fontSize: 26,
     fontWeight: "600" as const,
     color: Colors.primary.text,
     marginBottom: 8,
     textAlign: "center",
+    lineHeight: 32,
   },
   videoSelectionSubtitle: {
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.primary.textSecondary,
     textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 24,
   },
   selectVideoButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    backgroundColor: Colors.accent.primary,
-    paddingVertical: 14,
-    borderRadius: 12,
+    gap: 10,
+    backgroundColor: "#4ECDC4",
+    paddingVertical: 16,
+    paddingHorizontal: 28,
+    borderRadius: 14,
+    marginBottom: 12,
     width: "100%",
-    marginTop: 20,
+    shadowColor: "#4ECDC4",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   selectVideoButtonText: {
     fontSize: 18,
@@ -3053,16 +3100,19 @@ const createStyles = () => {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    paddingVertical: 10,
-    borderRadius: 12,
+    gap: 10,
+    backgroundColor: Colors.card.bg,
+    paddingVertical: 16,
+    paddingHorizontal: 28,
+    borderRadius: 14,
     width: "100%",
-    marginTop: 10,
+    borderWidth: 1,
+    borderColor: Colors.card.border,
   },
   loadUrlButtonText: {
-    color: Colors.accent.primary,
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: "600" as const,
+    color: Colors.accent.primary,
   },
   
   // New Redesigned Styles
@@ -3272,145 +3322,161 @@ const createStyles = () => {
     color: "white",
   },
   statsCard: {
-    backgroundColor: Colors.card.bg,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    backgroundColor: Colors.secondary.bg,
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 0,
+    borderWidth: 1,
+    borderColor: Colors.card.border,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
   statsRow: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 16,
+    alignItems: "center",
+    marginBottom: 20,
   },
   statItem: {
+    flex: 1,
     alignItems: "center",
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 34,
     fontWeight: "700" as const,
     color: Colors.primary.text,
+    marginBottom: 6,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 15,
     color: Colors.primary.textSecondary,
+    textAlign: "center",
   },
   statDivider: {
     width: 1,
     height: 40,
     backgroundColor: Colors.card.border,
-    marginHorizontal: 16,
   },
   progressBarContainer: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   progressBarBg: {
-    height: 8,
+    height: 10,
     backgroundColor: Colors.card.border,
-    borderRadius: 4,
+    borderRadius: 5,
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
     backgroundColor: Colors.accent.primary,
-    borderRadius: 4,
+    borderRadius: 5,
   },
   upgradeButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    backgroundColor: Colors.primary.bg,
-    paddingVertical: 12,
-    borderRadius: 12,
+    gap: 10,
+    backgroundColor: Colors.card.bg,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: Colors.accent.primary,
   },
   upgradeButtonText: {
-    color: Colors.accent.primary,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "600" as const,
+    color: Colors.accent.primary,
   },
   sectionHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
-    marginTop: 24,
+    justifyContent: "space-between",
+    marginBottom: 24,
   },
   addCommandButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: Colors.accent.primary + '10',
+    gap: 8,
+    backgroundColor: Colors.accent.primary + '15',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 14,
   },
   addCommandText: {
-    color: Colors.accent.primary,
-    fontSize: 14,
+    fontSize: 17,
     fontWeight: "600" as const,
+    color: Colors.accent.primary,
   },
   commandCard: {
-    backgroundColor: Colors.card.bg,
-    borderRadius: 16,
-    marginBottom: 12,
-    overflow: "hidden",
+    backgroundColor: Colors.secondary.bg,
+    borderRadius: 20,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: Colors.card.border,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   commandCardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    padding: 20,
   },
   commandIconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: Colors.accent.primary + '15',
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 14,
   },
   commandCardContent: {
     flex: 1,
   },
   commandCardTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600" as const,
     color: Colors.primary.text,
+    marginBottom: 4,
   },
   commandCardSubtitle: {
-    fontSize: 12,
+    fontSize: 14,
     color: Colors.primary.textSecondary,
-    marginTop: 2,
   },
   commandCardArrow: {
-    marginLeft: 12,
+    marginLeft: 8,
   },
   commandCardExpanded: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: Colors.card.border,
-    marginTop: 8,
   },
   commandRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 6,
+    paddingVertical: 12,
+    gap: 14,
   },
   commandDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
     backgroundColor: Colors.accent.primary,
-    marginRight: 12,
   },
   commandText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.primary.text,
+    fontWeight: "500" as const,
   },
   commandBadge: {
     fontSize: 13,
@@ -3500,10 +3566,6 @@ const createStyles = () => {
     marginBottom: 40,
   },
   micIconCircleNonVideo: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: Colors.secondary.bg,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
     marginBottom: 16,

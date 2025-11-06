@@ -1143,7 +1143,7 @@ export default function PlayerScreen() {
                     }}
                     activeOpacity={0.8}
                  >
-                    <Mic size={28} color="#fff" />
+                    <Mic size={44} color="#fff" />
                   </TouchableOpacity>
                 </Animated.View>
                 <Text style={styles.voiceButtonHint}>{t('tap_to_speak') !== 'tap_to_speak' ? t('tap_to_speak') : 'Tap to Speak'}</Text>
@@ -2289,7 +2289,7 @@ const createStyles = () => {
     marginBottom: 32,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600" as const,
     color: Colors.primary.text,
     marginBottom: 16,
@@ -2878,9 +2878,9 @@ const createStyles = () => {
     marginBottom: 32,
   },
   mainVoiceButton: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
     backgroundColor: "#4ECDC4",
     justifyContent: "center",
     alignItems: "center",
@@ -2895,7 +2895,7 @@ const createStyles = () => {
     shadowColor: Colors.danger,
   },
   voiceButtonHint: {
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: "500" as const,
     color: Colors.primary.text,
     marginTop: 16,
@@ -3051,16 +3051,16 @@ const createStyles = () => {
     borderStyle: "dashed",
   },
   videoSelectionIcon: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: Colors.accent.primary + '15',
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
   },
   videoSelectionTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: "600" as const,
     color: Colors.primary.text,
     marginBottom: 8,
@@ -3068,7 +3068,7 @@ const createStyles = () => {
     lineHeight: 32,
   },
   videoSelectionSubtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.primary.textSecondary,
     textAlign: "center",
     marginBottom: 24,
@@ -3092,7 +3092,7 @@ const createStyles = () => {
     elevation: 8,
   },
   selectVideoButtonText: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "600" as const,
     color: "white",
   },
@@ -3110,7 +3110,7 @@ const createStyles = () => {
     borderColor: Colors.card.border,
   },
   loadUrlButtonText: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "600" as const,
     color: Colors.accent.primary,
   },
@@ -3344,7 +3344,7 @@ const createStyles = () => {
     alignItems: "center",
   },
   statValue: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: "700" as const,
     color: Colors.primary.text,
     marginBottom: 6,
@@ -3406,7 +3406,7 @@ const createStyles = () => {
     borderRadius: 14,
   },
   addCommandText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "600" as const,
     color: Colors.accent.primary,
   },
@@ -3429,9 +3429,9 @@ const createStyles = () => {
     padding: 20,
   },
   commandIconWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: Colors.accent.primary + '15',
     justifyContent: "center",
     alignItems: "center",

@@ -240,6 +240,39 @@ export default function PlayerScreen() {
     }
   }, [isVoiceActive, isVoiceListening, pulseAnim]);
 
+  // Listen for mic/voice permission errors
+  useEffect(() => {
+    const handler = (e: Event) => {
+      try {
+        const detail = (e as CustomEvent).detail as { code?: string; message?: string } | undefined;
+        const code = detail?.code || 'mic-error';
+        if (code === 'mic-denied') {
+          Alert.alert(
+            t('error'),
+            t('microphone_permission_denied') !== 'microphone_permission_denied'
+              ? t('microphone_permission_denied')
+              : 'Microphone permission denied. Please allow mic access in your browser settings and reload the page. For web, use HTTPS.',
+          );
+        } else {
+          Alert.alert(
+            t('error'),
+            detail?.message || 'Microphone access error. Please check permissions and try again.'
+          );
+        }
+        setVoiceStatus('');
+        setIsVoiceActive(false);
+      } catch {}
+    };
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('voiceError', handler as EventListener);
+    }
+    return () => {
+      if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+        window.removeEventListener('voiceError', handler as EventListener);
+      }
+    };
+  }, [t]);
+
   // Listen for voice commands from Siri integration
   useEffect(() => {
     const handleVoiceCommand = (event: CustomEvent) => {

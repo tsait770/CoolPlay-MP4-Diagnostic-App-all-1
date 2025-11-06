@@ -377,14 +377,28 @@ export const [VoiceControlProvider, useVoiceControl] = createContextHook(() => {
         return;
       }
       
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      let stream: MediaStream | null = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (e: any) {
+        console.error('getUserMedia failed:', e?.name || e);
+        setState(prev => ({ ...prev, isListening: false, isProcessing: false }));
+        try {
+          if (typeof window !== 'undefined') {
+            const code = e?.name === 'NotAllowedError' ? 'mic-denied' : 'mic-error';
+            window.dispatchEvent(new CustomEvent('voiceError', { detail: { code, message: e?.message || 'Microphone access error' } }));
+          }
+        } catch {}
+        return;
+      }
+      if (!stream) return;
       if (typeof MediaRecorder === 'undefined') {
         console.warn('MediaRecorder not available');
         stream.getTracks().forEach(track => track.stop());
         return;
       }
       
-      mediaRecorder.current = new MediaRecorder(stream);
+      mediaRecorder.current = new MediaRecorder(stream as MediaStream);
       audioChunks.current = [];
 
       mediaRecorder.current.ondataavailable = (event) => {
@@ -489,6 +503,11 @@ export const [VoiceControlProvider, useVoiceControl] = createContextHook(() => {
               } else if (event.error === 'audio-capture') {
                 console.error('Microphone access error - please check permissions');
                 setState(prev => ({ ...prev, isListening: false, isProcessing: false }));
+                try {
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('voiceError', { detail: { code: 'mic-error', message: 'Microphone access error' } }));
+                  }
+                } catch {}
                 // Don't auto-restart on permission errors
               } else if (event.error === 'network') {
                 console.error('Network error during speech recognition');
@@ -505,6 +524,11 @@ export const [VoiceControlProvider, useVoiceControl] = createContextHook(() => {
               } else if (event.error === 'not-allowed') {
                 console.error('Microphone permission denied');
                 setState(prev => ({ ...prev, isListening: false, isProcessing: false, alwaysListening: false }));
+                try {
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('voiceError', { detail: { code: 'mic-denied', message: 'Microphone permission denied' } }));
+                  }
+                } catch {}
                 // Don't auto-restart on permission denied
               } else {
                 console.error('Unhandled speech recognition error:', event.error);

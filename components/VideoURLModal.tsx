@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
     color: Colors.primary.text,
   },
   confirmButton: {
-    backgroundColor: Colors.primary.accent,
+    backgroundColor: '#69E7D8',
   },
   confirmButtonText: {
     fontSize: 15,

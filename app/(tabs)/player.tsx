@@ -3078,7 +3078,7 @@ const createStyles = () => {
     alignItems: "center",
     justifyContent: "center",
     gap: DesignTokens.spacing.sm,
-    backgroundColor: Colors.accent.primary,
+    backgroundColor: '#69E7D8',
     paddingVertical: DesignTokens.spacing.md,
     paddingHorizontal: DesignTokens.spacing.lg,
     borderRadius: DesignTokens.borderRadius.lg,

@@ -233,19 +233,19 @@ export default function PlayerScreen() {
     }
   }, [showControls, isPlaying, fadeAnim]);
 
-  // Pulse animation for voice button (40% slower: 840ms * 1.4 = 1176ms)
+  // Pulse animation for voice button (70% slower: 840ms * 1.7 = 1428ms)
   useEffect(() => {
-    if (isVoiceActive || isVoiceListening) {
+    if (isVoiceActive || isVoiceListening || alwaysListening) {
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
             toValue: 1.15,
-            duration: 1176,
+            duration: 1428,
             useNativeDriver: true,
           }),
           Animated.timing(pulseAnim, {
             toValue: 1,
-            duration: 1176,
+            duration: 1428,
             useNativeDriver: true,
           }),
         ])
@@ -253,7 +253,7 @@ export default function PlayerScreen() {
     } else {
       pulseAnim.setValue(1);
     }
-  }, [isVoiceActive, isVoiceListening, pulseAnim]);
+  }, [isVoiceActive, isVoiceListening, alwaysListening, pulseAnim]);
 
   // Listen for mic/voice permission errors
   useEffect(() => {
@@ -1139,7 +1139,11 @@ export default function PlayerScreen() {
                     <Mic size={getResponsiveSize(40, 48, 56)} color="#fff" />
                   </TouchableOpacity>
                 </Animated.View>
-                <Text style={styles.voiceButtonHint}>{t('tap_to_speak') !== 'tap_to_speak' ? t('tap_to_speak') : 'Tap to Speak'}</Text>
+                <Text style={styles.voiceButtonHint}>
+                  {(isVoiceActive || isVoiceListening || alwaysListening) 
+                    ? (t('stop_listening') !== 'stop_listening' ? t('stop_listening') : '停止聆聽') 
+                    : (t('tap_to_speak') !== 'tap_to_speak' ? t('tap_to_speak') : 'Tap to Speak')}
+                </Text>
               </View>
 
               <View style={styles.alwaysListenCard}>
@@ -2883,8 +2887,8 @@ const createStyles = () => {
     elevation: 10,
   },
   mainVoiceButtonActive: {
-    backgroundColor: '#69E7D8',
-    shadowColor: '#69E7D8',
+    backgroundColor: '#FF3B30',
+    shadowColor: '#FF3B30',
   },
   voiceButtonHint: {
     fontSize: getResponsiveFontSize(17),

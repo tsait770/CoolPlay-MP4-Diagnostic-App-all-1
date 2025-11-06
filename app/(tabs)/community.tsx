@@ -966,7 +966,7 @@ Digite o meu código de referência para obter 300 créditos extras 🎫
 const getStyles = (screenWidth: number) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1E2A38',
+    backgroundColor: Colors.primary.bg,
   },
   content: {
     padding: Platform.select({

@@ -1063,7 +1063,7 @@ export default function PlayerScreen() {
         ) : (
           <ScrollView 
             style={styles.scrollContainer}
-            contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20, paddingHorizontal: 24 }]}
+            contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 8, paddingHorizontal: 24 }]}
             showsVerticalScrollIndicator={false}
           >
             {/* Card 1: Voice Control Header + Video Selection */}
@@ -1095,6 +1095,27 @@ export default function PlayerScreen() {
 
             {/* Card 2: Always Listen + Stats Card */}
             <View style={styles.card2Container}>
+              <View style={{ alignItems: 'center', marginBottom: 24 }}>
+                <Animated.View style={[{ transform: [{ scale: pulseAnim }] }]}>
+                  <TouchableOpacity
+                    testID="tap-to-speak-button"
+                    accessibilityLabel="Tap to Speak"
+                    style={[styles.mainVoiceButton, (isVoiceActive || isVoiceListening) && styles.mainVoiceButtonActive]}
+                    onPress={() => {
+                      if (isVoiceActive || isVoiceListening) {
+                        stopVoiceRecording();
+                      } else {
+                        startVoiceRecording();
+                      }
+                    }}
+                    activeOpacity={0.8}
+                 >
+                    <Mic size={28} color="#fff" />
+                  </TouchableOpacity>
+                </Animated.View>
+                <Text style={styles.voiceButtonHint}>{t('tap_to_speak') !== 'tap_to_speak' ? t('tap_to_speak') : 'Tap to Speak'}</Text>
+              </View>
+
               <View style={styles.alwaysListenCard}>
                 <View style={styles.alwaysListenContent}>
                   <View style={styles.alwaysListenIcon}>

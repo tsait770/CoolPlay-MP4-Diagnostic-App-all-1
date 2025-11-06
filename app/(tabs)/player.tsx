@@ -262,11 +262,12 @@ export default function PlayerScreen() {
         const detail = (e as CustomEvent).detail as { code?: string; message?: string } | undefined;
         const code = detail?.code || 'mic-error';
         if (code === 'mic-denied') {
+          const errorMsg = t('microphone_permission_denied');
           Alert.alert(
             t('error'),
-            t('microphone_permission_denied') !== 'microphone_permission_denied'
-              ? t('microphone_permission_denied')
-              : 'Microphone permission denied. Please allow mic access in your browser settings and reload the page. For web, use HTTPS.',
+            errorMsg !== 'microphone_permission_denied' && errorMsg
+              ? errorMsg
+              : 'Microphone permission denied. Please enable microphone access in your device settings.',
           );
         } else {
           Alert.alert(
@@ -276,6 +277,10 @@ export default function PlayerScreen() {
         }
         setVoiceStatus('');
         setIsVoiceActive(false);
+        // Also turn off always listening if permission denied
+        if (code === 'mic-denied' && alwaysListening) {
+          toggleAlwaysListening();
+        }
       } catch {}
     };
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
@@ -286,7 +291,7 @@ export default function PlayerScreen() {
         window.removeEventListener('voiceError', handler as EventListener);
       }
     };
-  }, [t]);
+  }, [t, alwaysListening, toggleAlwaysListening]);
 
   // Listen for voice commands from Siri integration
   useEffect(() => {
@@ -1559,12 +1564,12 @@ export default function PlayerScreen() {
 
               <View style={styles.urlModalExamples}>
                 <Text style={styles.urlModalExamplesTitle}>{t('example_formats')}</Text>
-                <Text style={styles.urlModalExampleItem}>{t('example_direct_mp4')}</Text>
-                <Text style={styles.urlModalExampleItem}>{t('example_hls_stream')}</Text>
-                <Text style={styles.urlModalExampleItem}>{t('example_youtube')}</Text>
-                <Text style={styles.urlModalExampleItem}>{t('example_vimeo')}</Text>
-                <Text style={styles.urlModalExampleItem}>{t('example_adult_sites')}</Text>
-                <Text style={styles.urlModalExampleItem}>{t('example_social_media')}</Text>
+                <Text style={styles.urlModalExampleItem}>• Direct MP4: video.mp4</Text>
+                <Text style={styles.urlModalExampleItem}>• HLS Stream: stream.m3u8</Text>
+                <Text style={styles.urlModalExampleItem}>• YouTube: youtube.com/watch</Text>
+                <Text style={styles.urlModalExampleItem}>• Vimeo: vimeo.com/video</Text>
+                <Text style={styles.urlModalExampleItem}>• Adult sites (18+)</Text>
+                <Text style={styles.urlModalExampleItem}>• Social media videos</Text>
               </View>
 
               <View style={styles.urlModalButtons}>

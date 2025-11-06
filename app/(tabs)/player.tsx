@@ -1210,7 +1210,7 @@ export default function PlayerScreen() {
             </View>
             <View style={styles.commandCardContent}>
               <Text style={styles.commandCardTitle}>{t('playback_control')}</Text>
-              <Text style={styles.commandCardSubtitle}>6 {t('commands')}</Text>
+              <Text style={styles.commandCardSubtitle}>{`6 ${t('commands')}`}</Text>
             </View>
             <View style={styles.commandCardArrow}>
               {showCommandList ? (
@@ -1253,7 +1253,7 @@ export default function PlayerScreen() {
             </View>
             <View style={styles.commandCardContent}>
               <Text style={styles.commandCardTitle}>{t('progress_control')}</Text>
-              <Text style={styles.commandCardSubtitle}>6 {t('commands')}</Text>
+              <Text style={styles.commandCardSubtitle}>{`6 ${t('commands')}`}</Text>
             </View>
             <View style={styles.commandCardArrow}>
               {showProgressControl ? (
@@ -1296,7 +1296,7 @@ export default function PlayerScreen() {
             </View>
             <View style={styles.commandCardContent}>
               <Text style={styles.commandCardTitle}>{t('volume_control')}</Text>
-              <Text style={styles.commandCardSubtitle}>5 {t('commands')}</Text>
+              <Text style={styles.commandCardSubtitle}>{`5 ${t('commands')}`}</Text>
             </View>
             <View style={styles.commandCardArrow}>
               {showVolumeControl ? (
@@ -1338,7 +1338,7 @@ export default function PlayerScreen() {
             </View>
             <View style={styles.commandCardContent}>
               <Text style={styles.commandCardTitle}>{t('screen_control')}</Text>
-              <Text style={styles.commandCardSubtitle}>2 {t('commands')}</Text>
+              <Text style={styles.commandCardSubtitle}>{`2 ${t('commands')}`}</Text>
             </View>
             <View style={styles.commandCardArrow}>
               {showScreenControl ? (
@@ -1377,7 +1377,7 @@ export default function PlayerScreen() {
             </View>
             <View style={styles.commandCardContent}>
               <Text style={styles.commandCardTitle}>{t('playback_speed')}</Text>
-              <Text style={styles.commandCardSubtitle}>5 {t('commands')}</Text>
+              <Text style={styles.commandCardSubtitle}>{`5 ${t('commands')}`}</Text>
             </View>
             <View style={styles.commandCardArrow}>
               {showSpeedControl ? (

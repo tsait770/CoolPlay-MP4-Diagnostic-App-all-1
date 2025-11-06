@@ -8,7 +8,6 @@ import {
   TextInput,
   Alert,
   Dimensions,
-  Platform,
   Animated,
   Modal,
   Switch,
@@ -30,7 +29,6 @@ import {
   Volume2,
   Monitor,
   Gauge,
-  Cog,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import PlayStationController from "@/components/PlayStationController";
@@ -179,7 +177,6 @@ export default function PlayerScreen() {
   useEffect(() => {
     const initializeVoiceControl = async () => {
       try {
-        // Initialize voice control
         console.log('Voice control initialized');
       } catch (error) {
         console.error('Error initializing voice control:', error);
@@ -188,7 +185,6 @@ export default function PlayerScreen() {
     
     initializeVoiceControl();
     
-    // Cleanup on unmount
     return () => {
       if (isVoiceListening && stopVoiceListening && typeof stopVoiceListening === 'function') {
         stopVoiceListening().catch(error => {
@@ -218,19 +214,19 @@ export default function PlayerScreen() {
     }
   }, [showControls, isPlaying, fadeAnim]);
 
-  // Pulse animation for voice button
+  // Pulse animation for voice button (40% slower: 840ms * 1.4 = 1176ms)
   useEffect(() => {
     if (isVoiceActive || isVoiceListening) {
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
             toValue: 1.15,
-            duration: 840,
+            duration: 1176,
             useNativeDriver: true,
           }),
           Animated.timing(pulseAnim, {
             toValue: 1,
-            duration: 840,
+            duration: 1176,
             useNativeDriver: true,
           }),
         ])
@@ -280,7 +276,6 @@ export default function PlayerScreen() {
         const { command } = event.detail || {};
         if (!command) return;
         
-        // Map Siri intent to player actions
         switch (command) {
           case 'PlayVideoIntent':
             if (videoPlayer && typeof videoPlayer.play === 'function') {
@@ -299,11 +294,9 @@ export default function PlayerScreen() {
             }
             break;
           case 'NextVideoIntent':
-            // Handle next video logic
             console.log('Next video command');
             break;
           case 'PreviousVideoIntent':
-            // Handle previous video logic
             console.log('Previous video command');
             break;
           case 'ReplayVideoIntent':
@@ -450,8 +443,6 @@ export default function PlayerScreen() {
   };
 
   const toggleFullscreen = async () => {
-    // Note: expo-video fullscreen API may differ
-    // This is a placeholder - check expo-video docs for actual implementation
     setIsFullscreen(!isFullscreen);
   };
 
@@ -480,7 +471,6 @@ export default function PlayerScreen() {
     }
   };
 
-  // Import detectVideoSource from utils
   const getVideoSourceType = (url: string): VideoSourceType => {
     const sourceInfo = require('@/utils/videoSourceDetector').detectVideoSource(url);
     
@@ -496,7 +486,6 @@ export default function PlayerScreen() {
     console.log('[PlayerScreen] Processing URL:', url);
     console.log('[PlayerScreen] Source info:', sourceInfo);
     
-    // Check for unsupported DRM platforms
     if (sourceInfo.type === 'unsupported') {
       Alert.alert(
         t("unsupported_source"),
@@ -506,7 +495,6 @@ export default function PlayerScreen() {
       return null;
     }
 
-    // Determine if UniversalVideoPlayer should be used
     const needsUniversalPlayer = 
       sourceInfo.requiresWebView ||
       sourceInfo.type === 'youtube' ||
@@ -519,14 +507,12 @@ export default function PlayerScreen() {
     
     setUseUniversalPlayer(needsUniversalPlayer);
     
-    // Update video player source for native player
     if (!needsUniversalPlayer && url && url.trim() !== '') {
       setVideoPlayerSource(url);
     }
     
     console.log('[PlayerScreen] Use UniversalPlayer:', needsUniversalPlayer);
 
-    // Handle adult content
     if (sourceInfo.type === 'adult') {
       console.log('[PlayerScreen] Adult content detected:', sourceInfo.platform);
       return {
@@ -536,7 +522,6 @@ export default function PlayerScreen() {
       };
     }
 
-    // Handle YouTube
     if (sourceInfo.type === 'youtube') {
       return {
         uri: url,
@@ -545,7 +530,6 @@ export default function PlayerScreen() {
       };
     }
 
-    // Handle Vimeo
     if (sourceInfo.type === 'vimeo') {
       return {
         uri: url,
@@ -554,7 +538,6 @@ export default function PlayerScreen() {
       };
     }
 
-    // Handle social media
     if (sourceInfo.type === 'twitter' || sourceInfo.type === 'instagram' || sourceInfo.type === 'tiktok') {
       return {
         uri: url,
@@ -563,7 +546,6 @@ export default function PlayerScreen() {
       };
     }
 
-    // Handle direct video files (can use native player)
     if (sourceInfo.type === 'direct') {
       return {
         uri: url,
@@ -572,7 +554,6 @@ export default function PlayerScreen() {
       };
     }
 
-    // Handle streams (HLS, DASH, etc. - can use native player)
     if (sourceInfo.type === 'stream') {
       return {
         uri: url,
@@ -581,7 +562,6 @@ export default function PlayerScreen() {
       };
     }
 
-    // Handle WebView-required platforms
     if (sourceInfo.requiresWebView || sourceInfo.type === 'webview') {
       return {
         uri: url,
@@ -590,7 +570,6 @@ export default function PlayerScreen() {
       };
     }
 
-    // Default: try as generic URL if not empty
     if (url && url.trim() !== '') {
       return {
         uri: url,
@@ -614,7 +593,6 @@ export default function PlayerScreen() {
     console.log('[PlayerScreen] Loading video from URL:', trimmedUrl);
     console.log('[PlayerScreen] Detected source:', sourceInfo);
     
-    // Check if it's YouTube and show confirmation
     if (sourceInfo.type === 'youtube') {
       Alert.alert(
         t("youtube_support"),
@@ -642,7 +620,6 @@ export default function PlayerScreen() {
       return;
     }
 
-    // Check if it's adult content and show confirmation
     if (sourceInfo.type === 'adult') {
       Alert.alert(
         t("extended_source"),
@@ -670,7 +647,6 @@ export default function PlayerScreen() {
       return;
     }
 
-    // Process all other sources directly
     const source = processVideoUrl(trimmedUrl);
     if (source && source.uri && source.uri.trim() !== '') {
       setVideoSource(source);
@@ -683,15 +659,12 @@ export default function PlayerScreen() {
     }
   };
 
-
-
   const saveCustomCommand = () => {
     if (!commandName.trim() || !commandAction.trim()) {
       Alert.alert(t("error"), t("fill_all_fields"));
       return;
     }
 
-    // Check if command name already exists (for new commands)
     if (!editingCommand && customCommands.some(cmd => cmd.name.toLowerCase() === commandName.toLowerCase())) {
       Alert.alert(t("error"), t("command_name_exists"));
       return;
@@ -700,7 +673,7 @@ export default function PlayerScreen() {
     const newCommand: VoiceCommand = {
       id: editingCommand?.id || Date.now().toString(),
       name: commandName,
-      triggers: [commandName.toLowerCase()], // Use command name as trigger
+      triggers: [commandName.toLowerCase()],
       action: commandAction,
     };
 
@@ -714,7 +687,6 @@ export default function PlayerScreen() {
       Alert.alert(t("success"), t("command_added_successfully"));
     }
 
-    // Reset form
     setCommandName("");
     setCommandAction("");
     setEditingCommand(null);
@@ -774,13 +746,11 @@ export default function PlayerScreen() {
 
   const processVoiceCommand = async (audioData: string | Blob) => {
     try {
-      // Send audio to speech-to-text API
       const formData = new FormData();
       
       if (audioData instanceof Blob) {
         formData.append("audio", audioData, "recording.webm");
       } else if (typeof audioData === 'string') {
-        // Handle URI case for mobile
         const response = await fetch(audioData);
         const blob = await response.blob();
         formData.append("audio", blob, "recording.webm");
@@ -810,7 +780,6 @@ export default function PlayerScreen() {
   };
 
   const executeVoiceCommand = (command: string) => {
-    // Play/Pause commands
     if (command.includes(t("play")) || command.includes("play")) {
       try {
         if (videoPlayer && typeof videoPlayer.play === 'function') {
@@ -836,7 +805,6 @@ export default function PlayerScreen() {
         console.error('Error stopping video:', error);
       }
     }
-    // Skip commands
     else if (command.includes(t("forward_30")) || command.includes("forward 30")) {
       skipForward(30);
     } else if (command.includes(t("forward_20")) || command.includes("forward 20")) {
@@ -850,7 +818,6 @@ export default function PlayerScreen() {
     } else if (command.includes(t("backward_10")) || command.includes("backward 10")) {
       skipBackward(10);
     }
-    // Volume commands
     else if (command.includes(t("mute")) || command.includes("mute")) {
       try {
         if (videoPlayer) {
@@ -876,7 +843,6 @@ export default function PlayerScreen() {
     } else if (command.includes(t("max_volume")) || command.includes("max volume")) {
       setVideoVolume(1.0);
     }
-    // Speed commands
     else if (command.includes("0.5") || command.includes(t("half_speed"))) {
       setVideoSpeed(0.5);
     } else if (command.includes("1.25")) {
@@ -888,14 +854,12 @@ export default function PlayerScreen() {
     } else if (command.includes(t("normal_speed")) || command.includes("normal")) {
       setVideoSpeed(1.0);
     }
-    // Fullscreen commands
     else if (command.includes(t("fullscreen")) || command.includes("fullscreen")) {
       toggleFullscreen();
     } else if (command.includes(t("exit_fullscreen")) || command.includes("exit fullscreen")) {
       if (isFullscreen) toggleFullscreen();
     }
 
-    // Check custom commands
     customCommands.forEach((cmd) => {
       cmd.triggers.forEach((trigger) => {
         if (command.includes(trigger.toLowerCase())) {
@@ -1052,7 +1016,7 @@ export default function PlayerScreen() {
       const { locationX } = event.nativeEvent;
       const progressBarWidth = Dimensions.get("window").width - 32;
       const percentage = locationX / progressBarWidth;
-      const newPosition = (percentage * duration) / 1000; // Convert to seconds
+      const newPosition = (percentage * duration) / 1000;
       videoPlayer.currentTime = newPosition;
     } catch (error) {
       console.error('Error seeking video:', error);
@@ -1061,7 +1025,6 @@ export default function PlayerScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Video Player - Full Screen */}
       {videoSource && videoSource.uri && videoSource.uri.trim() !== '' ? (
           useUniversalPlayer ? (
             <View style={styles.videoContainer}>
@@ -1099,36 +1062,36 @@ export default function PlayerScreen() {
             contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 8, paddingHorizontal: 24 }]}
             showsVerticalScrollIndicator={false}
           >
-            {/* Card 1: Voice Control Header + Video Selection */}
             <View style={styles.card1Container}>
               <View style={styles.voiceControlHeaderNonVideo}>
-                <Mic testID="voice-header-mic" size={36} color={Colors.accent.primary} />
+                <View style={styles.micIconCircleNonVideo}>
+                  <Mic testID="voice-header-mic" size={32} color={Colors.accent.primary} />
+                </View>
                 <Text style={styles.voiceControlHeaderTitleNonVideo}>{t('voice_control')}</Text>
                 <Text style={styles.voiceControlHeaderSubtitleNonVideo}>{t('voice_control_instruction')}</Text>
               </View>
 
               <View style={styles.videoSelectionCard}>
                 <View style={styles.videoSelectionIcon}>
-                  <Play size={56} color={Colors.accent.primary} />
+                  <Play size={48} color={Colors.accent.primary} />
                 </View>
                 <Text style={styles.videoSelectionTitle}>{t('select_video')}</Text>
                 <Text style={styles.videoSelectionSubtitle}>{t('select_video_subtitle')}</Text>
                 
                 <TouchableOpacity style={styles.selectVideoButton} onPress={pickVideo}>
-                  <Upload size={22} color="white" />
+                  <Upload size={20} color="white" />
                   <Text style={styles.selectVideoButtonText}>{t('select_video')}</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity style={styles.loadUrlButton} onPress={() => setShowUrlModal(true)}>
-                  <LinkIcon size={22} color={Colors.accent.primary} />
+                  <LinkIcon size={20} color={Colors.accent.primary} />
                   <Text style={styles.loadUrlButtonText}>{t('load_from_url')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* Card 2: Always Listen + Stats Card */}
             <View style={styles.card2Container}>
-              <View style={{ alignItems: 'center', marginBottom: 24 }}>
+              <View style={{ alignItems: 'center', marginBottom: DesignTokens.spacing.lg }}>
                 <Animated.View style={[{ transform: [{ scale: pulseAnim }] }]}>
                   <TouchableOpacity
                     testID="tap-to-speak-button"
@@ -1143,7 +1106,7 @@ export default function PlayerScreen() {
                     }}
                     activeOpacity={0.8}
                  >
-                    <Mic size={44} color="#fff" />
+                    <Mic size={40} color="#fff" />
                   </TouchableOpacity>
                 </Animated.View>
                 <Text style={styles.voiceButtonHint}>{t('tap_to_speak') !== 'tap_to_speak' ? t('tap_to_speak') : 'Tap to Speak'}</Text>
@@ -1152,7 +1115,7 @@ export default function PlayerScreen() {
               <View style={styles.alwaysListenCard}>
                 <View style={styles.alwaysListenContent}>
                   <View style={styles.alwaysListenIcon}>
-                    <Mic size={22} color={alwaysListening ? Colors.accent.primary : Colors.primary.textSecondary} />
+                    <Mic size={20} color={alwaysListening ? Colors.accent.primary : Colors.primary.textSecondary} />
                   </View>
                   <View style={styles.alwaysListenText}>
                     <Text style={styles.alwaysListenTitle}>{t('always_listen')}</Text>
@@ -1196,7 +1159,6 @@ export default function PlayerScreen() {
               </View>
             </View>
 
-            {/* Card 3: Available Commands List */}
             <View style={styles.card3Container}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>{t('available_commands')}</Text>
@@ -1204,12 +1166,11 @@ export default function PlayerScreen() {
                   style={styles.addCommandButton}
                   onPress={() => setShowCustomCommandModal(true)}
                 >
-                  <Plus size={20} color={Colors.accent.primary} />
+                  <Plus size={18} color={Colors.accent.primary} />
                   <Text style={styles.addCommandText}>{t('custom')}</Text>
                 </TouchableOpacity>
               </View>
 
-              {/* Playback Control Section */}
               <TouchableOpacity
                 style={styles.commandCard}
                 onPress={() => setShowCommandList(!showCommandList)}
@@ -1217,7 +1178,7 @@ export default function PlayerScreen() {
               >
                 <View style={styles.commandCardHeader}>
                   <View style={styles.commandIconWrapper}>
-                    <Play size={24} color={Colors.accent.primary} fill={Colors.accent.primary + '20'} />
+                    <Play size={22} color={Colors.accent.primary} fill={Colors.accent.primary + '20'} />
                   </View>
                   <View style={styles.commandCardContent}>
                     <Text style={styles.commandCardTitle}>{t('playback_control')}</Text>
@@ -1225,9 +1186,9 @@ export default function PlayerScreen() {
                   </View>
                   <View style={styles.commandCardArrow}>
                     {showCommandList ? (
-                      <ChevronUp size={22} color={Colors.primary.textSecondary} />
+                      <ChevronUp size={20} color={Colors.primary.textSecondary} />
                     ) : (
-                      <ChevronDown size={22} color={Colors.primary.textSecondary} />
+                      <ChevronDown size={20} color={Colors.primary.textSecondary} />
                     )}
                   </View>
                 </View>
@@ -1252,7 +1213,6 @@ export default function PlayerScreen() {
                 )}
               </TouchableOpacity>
 
-              {/* Progress Control Section */}
               <TouchableOpacity
                 style={styles.commandCard}
                 onPress={() => setShowProgressControl(!showProgressControl)}
@@ -1260,7 +1220,7 @@ export default function PlayerScreen() {
               >
                 <View style={styles.commandCardHeader}>
                   <View style={styles.commandIconWrapper}>
-                    <SkipForward size={24} color={Colors.accent.primary} />
+                    <SkipForward size={22} color={Colors.accent.primary} />
                   </View>
                   <View style={styles.commandCardContent}>
                     <Text style={styles.commandCardTitle}>{t('progress_control')}</Text>
@@ -1268,9 +1228,9 @@ export default function PlayerScreen() {
                   </View>
                   <View style={styles.commandCardArrow}>
                     {showProgressControl ? (
-                      <ChevronUp size={22} color={Colors.primary.textSecondary} />
+                      <ChevronUp size={20} color={Colors.primary.textSecondary} />
                     ) : (
-                      <ChevronDown size={22} color={Colors.primary.textSecondary} />
+                      <ChevronDown size={20} color={Colors.primary.textSecondary} />
                     )}
                   </View>
                 </View>
@@ -1295,7 +1255,6 @@ export default function PlayerScreen() {
                 )}
               </TouchableOpacity>
 
-              {/* Volume Control Section */}
               <TouchableOpacity
                 style={styles.commandCard}
                 onPress={() => setShowVolumeControl(!showVolumeControl)}
@@ -1303,7 +1262,7 @@ export default function PlayerScreen() {
               >
                 <View style={styles.commandCardHeader}>
                   <View style={styles.commandIconWrapper}>
-                    <Volume2 size={24} color={Colors.accent.primary} />
+                    <Volume2 size={22} color={Colors.accent.primary} />
                   </View>
                   <View style={styles.commandCardContent}>
                     <Text style={styles.commandCardTitle}>{t('volume_control')}</Text>
@@ -1311,9 +1270,9 @@ export default function PlayerScreen() {
                   </View>
                   <View style={styles.commandCardArrow}>
                     {showVolumeControl ? (
-                      <ChevronUp size={22} color={Colors.primary.textSecondary} />
+                      <ChevronUp size={20} color={Colors.primary.textSecondary} />
                     ) : (
-                      <ChevronDown size={22} color={Colors.primary.textSecondary} />
+                      <ChevronDown size={20} color={Colors.primary.textSecondary} />
                     )}
                   </View>
                 </View>
@@ -1337,7 +1296,6 @@ export default function PlayerScreen() {
                 )}
               </TouchableOpacity>
 
-              {/* Screen Control Section */}
               <TouchableOpacity
                 style={styles.commandCard}
                 onPress={() => setShowScreenControl(!showScreenControl)}
@@ -1345,7 +1303,7 @@ export default function PlayerScreen() {
               >
                 <View style={styles.commandCardHeader}>
                   <View style={styles.commandIconWrapper}>
-                    <Monitor size={24} color={Colors.accent.primary} />
+                    <Monitor size={22} color={Colors.accent.primary} />
                   </View>
                   <View style={styles.commandCardContent}>
                     <Text style={styles.commandCardTitle}>{t('screen_control')}</Text>
@@ -1353,9 +1311,9 @@ export default function PlayerScreen() {
                   </View>
                   <View style={styles.commandCardArrow}>
                     {showScreenControl ? (
-                      <ChevronUp size={22} color={Colors.primary.textSecondary} />
+                      <ChevronUp size={20} color={Colors.primary.textSecondary} />
                     ) : (
-                      <ChevronDown size={22} color={Colors.primary.textSecondary} />
+                      <ChevronDown size={20} color={Colors.primary.textSecondary} />
                     )}
                   </View>
                 </View>
@@ -1376,7 +1334,6 @@ export default function PlayerScreen() {
                 )}
               </TouchableOpacity>
 
-              {/* Playback Speed Section */}
               <TouchableOpacity
                 style={styles.commandCard}
                 onPress={() => setShowSpeedControl(!showSpeedControl)}
@@ -1384,7 +1341,7 @@ export default function PlayerScreen() {
               >
                 <View style={styles.commandCardHeader}>
                   <View style={styles.commandIconWrapper}>
-                    <Gauge size={24} color={Colors.accent.primary} />
+                    <Gauge size={22} color={Colors.accent.primary} />
                   </View>
                   <View style={styles.commandCardContent}>
                     <Text style={styles.commandCardTitle}>{t('playback_speed')}</Text>
@@ -1392,9 +1349,9 @@ export default function PlayerScreen() {
                   </View>
                   <View style={styles.commandCardArrow}>
                     {showSpeedControl ? (
-                      <ChevronUp size={22} color={Colors.primary.textSecondary} />
+                      <ChevronUp size={20} color={Colors.primary.textSecondary} />
                     ) : (
-                      <ChevronDown size={22} color={Colors.primary.textSecondary} />
+                      <ChevronDown size={20} color={Colors.primary.textSecondary} />
                     )}
                   </View>
                 </View>
@@ -1421,7 +1378,6 @@ export default function PlayerScreen() {
           </ScrollView>
         )}
 
-        {/* Voice Control Header Section - Hide when content is loaded */}
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && !isContentLoaded && (
           <View style={styles.voiceControlHeader}>
             <View style={styles.voiceControlIconCircle}>
@@ -1432,7 +1388,6 @@ export default function PlayerScreen() {
           </View>
         )}
 
-        {/* PlayStation Voice Control Button - Floating Over Video */}
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
           <PlayStationController
             onCrossPress={startVoiceRecording}
@@ -1450,7 +1405,6 @@ export default function PlayerScreen() {
           />
         )}
 
-        {/* Status Bar - Only show when there's a status */}
         {voiceStatus && typeof voiceStatus === 'string' && videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
           <View style={styles.floatingStatusBar}>
             <View style={styles.statusDot} />
@@ -1458,9 +1412,6 @@ export default function PlayerScreen() {
           </View>
         )}
 
-
-
-        {/* Siri Setup Modal */}
         <Modal
           visible={showSiriSetup}
           animationType="slide"
@@ -1530,7 +1481,6 @@ export default function PlayerScreen() {
           </View>
         </Modal>
 
-        {/* URL Input Modal */}
         <Modal
           visible={showUrlModal}
           animationType="slide"
@@ -1604,7 +1554,6 @@ export default function PlayerScreen() {
           </View>
         </Modal>
 
-        {/* Custom Command Modal */}
         <Modal
           visible={showCustomCommandModal}
           animationType="slide"
@@ -1623,7 +1572,6 @@ export default function PlayerScreen() {
             </View>
 
             <ScrollView style={styles.modalContent}>
-              {/* Add New Command Form */}
               <View style={styles.addCommandSection}>
                 <Text style={styles.sectionTitle}>{t('custom_voice_commands')}</Text>
                 
@@ -1831,7 +1779,6 @@ export default function PlayerScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Saved Commands */}
               <View style={styles.savedCommandsSection}>
                 <Text style={styles.sectionTitle}>{t('saved_commands')}</Text>
                 {customCommands.length === 0 ? (
@@ -2019,10 +1966,10 @@ const createStyles = () => {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "#4ECDC4",
+    backgroundColor: Colors.accent.primary,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#4ECDC4",
+    shadowColor: Colors.accent.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -2147,12 +2094,12 @@ const createStyles = () => {
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
-    backgroundColor: "#4ECDC4",
+    backgroundColor: Colors.accent.primary,
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 16,
     marginBottom: 16,
-    shadowColor: "#4ECDC4",
+    shadowColor: Colors.accent.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -2289,10 +2236,9 @@ const createStyles = () => {
     marginBottom: 32,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700" as const,
+    ...DesignTokens.typography.title.medium,
     color: Colors.primary.text,
-    marginBottom: 16,
+    marginBottom: DesignTokens.spacing.md,
   },
   inputGroup: {
     marginBottom: 16,
@@ -2456,7 +2402,6 @@ const createStyles = () => {
     color: "white",
   },
   
-  // Modern Header Styles
   modernHeader: {
     marginBottom: 32,
     alignItems: "center",
@@ -2479,13 +2424,11 @@ const createStyles = () => {
     fontWeight: "500" as const,
   },
   
-  // Dual Voice Hub Styles
   dualVoiceHub: {
     marginBottom: getResponsiveSize(24, 28, 32),
     gap: getResponsiveSize(16, 20, 24),
   },
   
-  // Siri Card Styles
   siriCard: {
     backgroundColor: Colors.secondary.bg,
     borderRadius: getResponsiveSize(16, 20, 24),
@@ -2553,7 +2496,6 @@ const createStyles = () => {
     color: Colors.accent.primary,
   },
   
-  // App Voice Card Styles
   appVoiceCard: {
     backgroundColor: Colors.secondary.bg,
     borderRadius: getResponsiveSize(16, 20, 24),
@@ -2656,10 +2598,10 @@ const createStyles = () => {
     width: getResponsiveSize(56, 64, 72),
     height: getResponsiveSize(56, 64, 72),
     borderRadius: getResponsiveSize(28, 32, 36),
-    backgroundColor: "#4ECDC4",
+    backgroundColor: Colors.accent.primary,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#4ECDC4",
+    shadowColor: Colors.accent.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -2676,8 +2618,6 @@ const createStyles = () => {
     position: "relative",
   },
 
-  
-  // Quick Actions Styles
   quickActions: {
     flexDirection: "row",
     justifyContent: "center",
@@ -2707,7 +2647,6 @@ const createStyles = () => {
     color: "white",
   },
   
-  // Siri Setup Modal Styles
   siriSetupModal: {
     flex: 1,
     backgroundColor: Colors.primary.bg,
@@ -2820,7 +2759,6 @@ const createStyles = () => {
     color: "white",
   },
   
-  // New Styles for Redesigned Components
   headerIcon: {
     width: 48,
     height: 48,
@@ -2835,16 +2773,12 @@ const createStyles = () => {
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: Colors.secondary.bg,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
+    borderRadius: DesignTokens.borderRadius.xl,
+    padding: DesignTokens.spacing.lg,
+    marginBottom: DesignTokens.spacing.lg,
     borderWidth: 1,
     borderColor: Colors.card.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    ...DesignTokens.shadows.sm,
   },
   alwaysListenContent: {
     flexDirection: "row",
@@ -2852,22 +2786,21 @@ const createStyles = () => {
     flex: 1,
   },
   alwaysListenIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: Colors.card.bg,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 14,
+    marginRight: DesignTokens.spacing.md,
   },
   alwaysListenText: {
     flex: 1,
   },
   alwaysListenTitle: {
-    fontSize: 17,
+    ...DesignTokens.typography.body.large,
     fontWeight: "600" as const,
     color: Colors.primary.text,
-    marginBottom: 2,
   },
   alwaysListenSubtitle: {
     fontSize: 14,
@@ -2878,13 +2811,13 @@ const createStyles = () => {
     marginBottom: 32,
   },
   mainVoiceButton: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    backgroundColor: "#4ECDC4",
+    width: 94,
+    height: 94,
+    borderRadius: 47,
+    backgroundColor: Colors.accent.primary,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#4ECDC4",
+    shadowColor: Colors.accent.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 14,
@@ -2895,10 +2828,10 @@ const createStyles = () => {
     shadowColor: Colors.danger,
   },
   voiceButtonHint: {
-    fontSize: 18,
+    ...DesignTokens.typography.body.large,
     fontWeight: "600" as const,
     color: Colors.primary.text,
-    marginTop: 16,
+    marginTop: DesignTokens.spacing.md,
     textAlign: "center",
   },
   membershipCard: {
@@ -2929,7 +2862,7 @@ const createStyles = () => {
     color: Colors.primary.text,
   },
   trialBadge: {
-    backgroundColor: "#4ECDC4",
+    backgroundColor: Colors.accent.primary,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -3026,13 +2959,13 @@ const createStyles = () => {
     paddingBottom: 120,
   },
   card1Container: {
-    marginBottom: 32,
+    marginBottom: DesignTokens.spacing.xl,
   },
   card2Container: {
-    marginBottom: 32,
+    marginBottom: DesignTokens.spacing.xl,
   },
   card3Container: {
-    marginBottom: 32,
+    marginBottom: DesignTokens.spacing.xl,
   },
   videoSelectionOverlay: {
     justifyContent: 'flex-start',
@@ -3041,8 +2974,8 @@ const createStyles = () => {
   },
   videoSelectionCard: {
     backgroundColor: Colors.secondary.bg,
-    borderRadius: 24,
-    padding: 32,
+    borderRadius: DesignTokens.borderRadius.xxl,
+    padding: DesignTokens.spacing.xl,
     alignItems: "center",
     width: '100%',
     maxWidth: 400,
@@ -3051,48 +2984,41 @@ const createStyles = () => {
     borderStyle: "dashed",
   },
   videoSelectionIcon: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     backgroundColor: Colors.accent.primary + '15',
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: DesignTokens.spacing.lg,
   },
   videoSelectionTitle: {
-    fontSize: 24,
-    fontWeight: "600" as const,
+    ...DesignTokens.typography.title.large,
     color: Colors.primary.text,
-    marginBottom: 8,
     textAlign: "center",
-    lineHeight: 32,
+    marginBottom: DesignTokens.spacing.sm,
   },
   videoSelectionSubtitle: {
-    fontSize: 16,
+    ...DesignTokens.typography.body.medium,
     color: Colors.primary.textSecondary,
     textAlign: "center",
-    marginBottom: 24,
-    lineHeight: 24,
+    marginBottom: DesignTokens.spacing.lg,
   },
   selectVideoButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
-    backgroundColor: "#4ECDC4",
-    paddingVertical: 18,
-    paddingHorizontal: 28,
-    borderRadius: 16,
-    marginBottom: 12,
+    gap: DesignTokens.spacing.sm,
+    backgroundColor: Colors.accent.primary,
+    paddingVertical: DesignTokens.spacing.md,
+    paddingHorizontal: DesignTokens.spacing.lg,
+    borderRadius: DesignTokens.borderRadius.lg,
+    marginBottom: DesignTokens.spacing.md,
     width: "100%",
-    shadowColor: "#4ECDC4",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...DesignTokens.shadows.md,
   },
   selectVideoButtonText: {
-    fontSize: 17,
+    ...DesignTokens.typography.body.large,
     fontWeight: "600" as const,
     color: "white",
   },
@@ -3100,22 +3026,21 @@ const createStyles = () => {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
+    gap: DesignTokens.spacing.sm,
     backgroundColor: Colors.card.bg,
-    paddingVertical: 16,
-    paddingHorizontal: 28,
-    borderRadius: 16,
+    paddingVertical: DesignTokens.spacing.md,
+    paddingHorizontal: DesignTokens.spacing.lg,
+    borderRadius: DesignTokens.borderRadius.lg,
     width: "100%",
     borderWidth: 1,
     borderColor: Colors.card.border,
   },
   loadUrlButtonText: {
-    fontSize: 17,
+    ...DesignTokens.typography.body.large,
     fontWeight: "600" as const,
     color: Colors.accent.primary,
   },
   
-  // New Redesigned Styles
   heroSection: {
     alignItems: "center",
     marginBottom: 32,
@@ -3214,7 +3139,6 @@ const createStyles = () => {
     color: Colors.primary.text,
   },
   
-  // URL Modal Styles
   urlModalContainer: {
     flex: 1,
     backgroundColor: Colors.primary.bg,
@@ -3302,11 +3226,11 @@ const createStyles = () => {
   },
   urlModalLoadButton: {
     flex: 1,
-    backgroundColor: "#4ECDC4",
+    backgroundColor: Colors.accent.primary,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
-    shadowColor: "#4ECDC4",
+    shadowColor: Colors.accent.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -3323,34 +3247,29 @@ const createStyles = () => {
   },
   statsCard: {
     backgroundColor: Colors.secondary.bg,
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: DesignTokens.borderRadius.xxl,
+    padding: DesignTokens.spacing.lg,
     marginBottom: 0,
     borderWidth: 1,
     borderColor: Colors.card.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    ...DesignTokens.shadows.sm,
   },
   statsRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: DesignTokens.spacing.lg,
   },
   statItem: {
     flex: 1,
     alignItems: "center",
   },
   statValue: {
-    fontSize: 36,
-    fontWeight: "700" as const,
+    ...DesignTokens.typography.display.large,
     color: Colors.primary.text,
-    marginBottom: 6,
+    marginBottom: DesignTokens.spacing.xs,
   },
   statLabel: {
-    fontSize: 14,
+    ...DesignTokens.typography.body.small,
     color: Colors.primary.textSecondary,
     textAlign: "center",
   },
@@ -3360,33 +3279,33 @@ const createStyles = () => {
     backgroundColor: Colors.card.border,
   },
   progressBarContainer: {
-    marginBottom: 20,
+    marginBottom: DesignTokens.spacing.lg,
   },
   progressBarBg: {
-    height: 10,
+    height: 8,
     backgroundColor: Colors.card.border,
-    borderRadius: 5,
+    borderRadius: 4,
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
     backgroundColor: Colors.accent.primary,
-    borderRadius: 5,
+    borderRadius: 4,
   },
   upgradeButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
+    gap: DesignTokens.spacing.sm,
     backgroundColor: Colors.card.bg,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 14,
+    paddingVertical: DesignTokens.spacing.md,
+    paddingHorizontal: DesignTokens.spacing.lg,
+    borderRadius: DesignTokens.borderRadius.lg,
     borderWidth: 1,
     borderColor: Colors.accent.primary,
   },
   upgradeButtonText: {
-    fontSize: 16,
+    ...DesignTokens.typography.body.large,
     fontWeight: "600" as const,
     color: Colors.accent.primary,
   },
@@ -3394,97 +3313,93 @@ const createStyles = () => {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 24,
+    marginBottom: DesignTokens.spacing.lg,
   },
   addCommandButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: DesignTokens.spacing.xs,
     backgroundColor: Colors.accent.primary + '15',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 14,
+    paddingHorizontal: DesignTokens.spacing.md,
+    paddingVertical: DesignTokens.spacing.sm,
+    borderRadius: DesignTokens.borderRadius.lg,
   },
   addCommandText: {
-    fontSize: 16,
+    ...DesignTokens.typography.body.medium,
     fontWeight: "600" as const,
     color: Colors.accent.primary,
   },
   commandCard: {
     backgroundColor: Colors.secondary.bg,
-    borderRadius: 20,
-    marginBottom: 16,
+    borderRadius: DesignTokens.borderRadius.xl,
+    marginBottom: DesignTokens.spacing.md,
     borderWidth: 1,
     borderColor: Colors.card.border,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    ...DesignTokens.shadows.sm,
   },
   commandCardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 20,
+    padding: DesignTokens.spacing.lg,
   },
   commandIconWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Colors.accent.primary + '15',
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 14,
+    marginRight: DesignTokens.spacing.md,
   },
   commandCardContent: {
     flex: 1,
   },
   commandCardTitle: {
-    fontSize: 17,
+    ...DesignTokens.typography.body.large,
     fontWeight: "600" as const,
     color: Colors.primary.text,
-    marginBottom: 4,
+    marginBottom: DesignTokens.spacing.xs,
   },
   commandCardSubtitle: {
-    fontSize: 13,
+    ...DesignTokens.typography.body.small,
     color: Colors.primary.textSecondary,
   },
   commandCardArrow: {
-    marginLeft: 8,
+    marginLeft: DesignTokens.spacing.sm,
   },
   commandCardExpanded: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    paddingTop: 12,
+    paddingHorizontal: DesignTokens.spacing.lg,
+    paddingBottom: DesignTokens.spacing.lg,
+    paddingTop: DesignTokens.spacing.md,
     borderTopWidth: 1,
     borderTopColor: Colors.card.border,
   },
   commandRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    gap: 14,
+    paddingVertical: DesignTokens.spacing.md,
+    gap: DesignTokens.spacing.md,
   },
   commandDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: Colors.accent.primary,
   },
   commandText: {
     flex: 1,
-    fontSize: 15,
+    ...DesignTokens.typography.body.medium,
     color: Colors.primary.text,
     fontWeight: "500" as const,
   },
   commandBadge: {
-    fontSize: 12,
+    ...DesignTokens.typography.caption.large,
     color: Colors.primary.textSecondary,
     backgroundColor: Colors.card.bg,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
+    paddingHorizontal: DesignTokens.spacing.sm,
+    paddingVertical: DesignTokens.spacing.xs,
+    borderRadius: DesignTokens.borderRadius.sm,
     fontWeight: "500" as const,
   },
   headerBar: {
@@ -3563,27 +3478,27 @@ const createStyles = () => {
   },
   voiceControlHeaderNonVideo: {
     alignItems: 'center' as const,
-    marginBottom: 32,
+    marginBottom: DesignTokens.spacing.xl,
   },
   micIconCircleNonVideo: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.accent.primary + '15',
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
-    marginBottom: 12,
+    marginBottom: DesignTokens.spacing.md,
   },
   voiceControlHeaderTitleNonVideo: {
-    fontSize: 32,
-    fontWeight: '700' as const,
+    ...DesignTokens.typography.display.medium,
     color: Colors.primary.text,
-    marginBottom: 8,
     textAlign: 'center' as const,
-    lineHeight: 40,
+    marginBottom: DesignTokens.spacing.sm,
   },
   voiceControlHeaderSubtitleNonVideo: {
-    fontSize: 17,
-    fontWeight: '400' as const,
+    ...DesignTokens.typography.body.large,
     color: Colors.primary.textSecondary,
     textAlign: 'center' as const,
-    lineHeight: 24,
     marginBottom: 0,
   },
 

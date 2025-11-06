@@ -1132,38 +1132,48 @@ export default function PlayerScreen() {
             contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 8, paddingHorizontal: 24 }]}
             showsVerticalScrollIndicator={false}
           >
+            {/* Card 2: Voice Control Center */}
             <View style={styles.card2Container}>
-              <View style={{ alignItems: 'center', marginBottom: 24 }}>
-                <Animated.View style={[{ transform: [{ scale: pulseAnim }] }]}> 
-                  <TouchableOpacity
-                    testID="tap-to-speak-button"
-                    accessibilityLabel="Tap to Speak"
-                    style={[styles.mainVoiceButton, (isVoiceActive || isVoiceListening) && styles.mainVoiceButtonActive]}
-                    onPress={() => {
-                      if (isVoiceActive || isVoiceListening) {
-                        stopVoiceRecording();
-                      } else {
-                        startVoiceRecording();
-                      }
-                    }}
-                    activeOpacity={0.8}
-                  >
+              {/* Voice Button */}
+              <View style={styles.voiceControlCenter}>
+                <TouchableOpacity
+                  testID="tap-to-speak-button"
+                  accessibilityLabel="Tap to Speak"
+                  style={[styles.mainVoiceButton, (isVoiceActive || isVoiceListening) && styles.mainVoiceButtonActive]}
+                  onPress={() => {
+                    if (isVoiceActive || isVoiceListening) {
+                      stopVoiceRecording();
+                    } else {
+                      startVoiceRecording();
+                    }
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Animated.View style={[styles.voiceButtonInner, { transform: [{ scale: pulseAnim }] }]}>
                     <Mic size={48} color="#fff" />
-                  </TouchableOpacity>
-                </Animated.View>
+                  </Animated.View>
+                </TouchableOpacity>
                 <Text style={styles.voiceControlStatus}>
                   {isVoiceActive || isVoiceListening ? t('listening') : t('tap_to_speak')}
                 </Text>
               </View>
 
+              {/* Always Listen Card */}
               <View style={styles.alwaysListenCard}>
                 <View style={styles.alwaysListenContent}>
                   <Mic size={20} color={alwaysListening ? Colors.accent.primary : Colors.primary.textSecondary} />
                   <Text style={styles.alwaysListenTitle}>{t('always_listen')}</Text>
                 </View>
-                <Switch value={alwaysListening} onValueChange={toggleAlwaysListening} />
+                <Switch 
+                  value={alwaysListening} 
+                  onValueChange={toggleAlwaysListening}
+                  trackColor={{ false: Colors.card.border, true: Colors.accent.primary }}
+                  thumbColor="white"
+                  ios_backgroundColor={Colors.card.border}
+                />
               </View>
 
+              {/* Usage Stats Card */}
               <View style={styles.statsCard}>
                 <View style={styles.statsRow}>
                   <View style={styles.statItem}>
@@ -1176,12 +1186,24 @@ export default function PlayerScreen() {
                     <Text style={styles.statLabel}>{t('monthly_limit')}</Text>
                   </View>
                 </View>
+                <View style={styles.progressBarContainer}>
+                  <View style={styles.progressBarBg}>
+                    <View 
+                      style={[
+                        styles.progressBarFill,
+                        { width: `${Math.min(((voiceState.usageCount || 0) / 2000) * 100, 100)}%` }
+                      ]} 
+                    />
+                  </View>
+                </View>
                 <TouchableOpacity style={styles.upgradeButton}>
                   <Text style={styles.upgradeButtonText}>{t('upgrade_plan')}</Text>
+                  <ChevronUp size={16} color={Colors.accent.primary} style={{ transform: [{ rotate: '90deg' }] }} />
                 </TouchableOpacity>
               </View>
             </View>
 
+            {/* Card 3: Available Commands */}
             <View style={styles.card3Container}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>{t('available_commands')}</Text>
@@ -1198,6 +1220,7 @@ export default function PlayerScreen() {
               <TouchableOpacity
                 style={styles.commandCard}
                 onPress={() => setShowCommandList(!showCommandList)}
+                activeOpacity={0.7}
               >
                 <View style={styles.commandCardHeader}>
                   <View style={styles.commandIconWrapper}>
@@ -1208,17 +1231,189 @@ export default function PlayerScreen() {
                     <Text style={styles.commandCardSubtitle}>6 {t('commands')}</Text>
                   </View>
                   <View style={styles.commandCardArrow}>
-                    {showCommandList ? (<ChevronUp />) : (<ChevronDown />)}
+                    {showCommandList ? (
+                      <ChevronUp size={20} color={Colors.primary.textSecondary} />
+                    ) : (
+                      <ChevronDown size={20} color={Colors.primary.textSecondary} />
+                    )}
                   </View>
                 </View>
                 {showCommandList && (
                   <View style={styles.commandCardExpanded}>
-                    <Text style={styles.commandText}>{t('play')} · {t('pause')} · {t('stop')} · {t('next_video')} · {t('previous_video')} · {t('replay')}</Text>
+                    {[
+                      { action: t('play'), example: t('play_example') },
+                      { action: t('pause'), example: t('pause_example') },
+                      { action: t('stop'), example: t('stop_example') },
+                      { action: t('next_video'), example: t('next_example') },
+                      { action: t('previous_video'), example: t('previous_example') },
+                      { action: t('replay'), example: t('replay_example') },
+                    ].map((cmd, index) => (
+                      <View key={index} style={styles.commandRow}>
+                        <View style={styles.commandDot} />
+                        <Text style={styles.commandText}>{cmd.action}</Text>
+                      </View>
+                    ))}
                   </View>
                 )}
               </TouchableOpacity>
 
-              {/* Other command sections remain as in current file */}
+              {/* Progress Control Section */}
+              <TouchableOpacity
+                style={styles.commandCard}
+                onPress={() => setShowProgressControl(!showProgressControl)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.commandCardHeader}>
+                  <View style={styles.commandIconWrapper}>
+                    <SkipForward size={22} color={Colors.accent.primary} fill={Colors.accent.primary + '20'} />
+                  </View>
+                  <View style={styles.commandCardContent}>
+                    <Text style={styles.commandCardTitle}>{t('progress_control')}</Text>
+                    <Text style={styles.commandCardSubtitle}>6 {t('commands')}</Text>
+                  </View>
+                  <View style={styles.commandCardArrow}>
+                    {showProgressControl ? (
+                      <ChevronUp size={20} color={Colors.primary.textSecondary} />
+                    ) : (
+                      <ChevronDown size={20} color={Colors.primary.textSecondary} />
+                    )}
+                  </View>
+                </View>
+                {showProgressControl && (
+                  <View style={styles.commandCardExpanded}>
+                    {[
+                      { action: t('forward_10s'), example: t('forward_10_example') },
+                      { action: t('forward_20s'), example: t('forward_20_example') },
+                      { action: t('forward_30s'), example: t('forward_30_example') },
+                      { action: t('rewind_10s'), example: t('rewind_10_example') },
+                      { action: t('rewind_20s'), example: t('rewind_20_example') },
+                      { action: t('rewind_30s'), example: t('rewind_30_example') },
+                    ].map((cmd, index) => (
+                      <View key={index} style={styles.commandRow}>
+                        <View style={styles.commandDot} />
+                        <Text style={styles.commandText}>{cmd.action}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {/* Volume Control Section */}
+              <TouchableOpacity
+                style={styles.commandCard}
+                onPress={() => setShowVolumeControl(!showVolumeControl)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.commandCardHeader}>
+                  <View style={styles.commandIconWrapper}>
+                    <Volume2 size={22} color={Colors.accent.primary} fill={Colors.accent.primary + '20'} />
+                  </View>
+                  <View style={styles.commandCardContent}>
+                    <Text style={styles.commandCardTitle}>{t('volume_control')}</Text>
+                    <Text style={styles.commandCardSubtitle}>5 {t('commands')}</Text>
+                  </View>
+                  <View style={styles.commandCardArrow}>
+                    {showVolumeControl ? (
+                      <ChevronUp size={20} color={Colors.primary.textSecondary} />
+                    ) : (
+                      <ChevronDown size={20} color={Colors.primary.textSecondary} />
+                    )}
+                  </View>
+                </View>
+                {showVolumeControl && (
+                  <View style={styles.commandCardExpanded}>
+                    {[
+                      { action: t('max_volume'), example: t('max_volume_example') },
+                      { action: t('mute'), example: t('mute_example') },
+                      { action: t('unmute'), example: t('unmute_example') },
+                      { action: t('volume_up'), example: t('volume_up_example') },
+                      { action: t('volume_down'), example: t('volume_down_example') },
+                    ].map((cmd, index) => (
+                      <View key={index} style={styles.commandRow}>
+                        <View style={styles.commandDot} />
+                        <Text style={styles.commandText}>{cmd.action}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {/* Screen Control Section */}
+              <TouchableOpacity
+                style={styles.commandCard}
+                onPress={() => setShowScreenControl(!showScreenControl)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.commandCardHeader}>
+                  <View style={styles.commandIconWrapper}>
+                    <Monitor size={22} color={Colors.accent.primary} fill={Colors.accent.primary + '20'} />
+                  </View>
+                  <View style={styles.commandCardContent}>
+                    <Text style={styles.commandCardTitle}>{t('screen_control')}</Text>
+                    <Text style={styles.commandCardSubtitle}>2 {t('commands')}</Text>
+                  </View>
+                  <View style={styles.commandCardArrow}>
+                    {showScreenControl ? (
+                      <ChevronUp size={20} color={Colors.primary.textSecondary} />
+                    ) : (
+                      <ChevronDown size={20} color={Colors.primary.textSecondary} />
+                    )}
+                  </View>
+                </View>
+                {showScreenControl && (
+                  <View style={styles.commandCardExpanded}>
+                    {[
+                      { action: t('fullscreen'), example: t('fullscreen_example') },
+                      { action: t('exit_fullscreen'), example: t('exit_fullscreen_example') },
+                    ].map((cmd, index) => (
+                      <View key={index} style={styles.commandRow}>
+                        <View style={styles.commandDot} />
+                        <Text style={styles.commandText}>{cmd.action}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {/* Playback Speed Section */}
+              <TouchableOpacity
+                style={styles.commandCard}
+                onPress={() => setShowSpeedControl(!showSpeedControl)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.commandCardHeader}>
+                  <View style={styles.commandIconWrapper}>
+                    <Gauge size={22} color={Colors.accent.primary} fill={Colors.accent.primary + '20'} />
+                  </View>
+                  <View style={styles.commandCardContent}>
+                    <Text style={styles.commandCardTitle}>{t('playback_speed')}</Text>
+                    <Text style={styles.commandCardSubtitle}>5 {t('commands')}</Text>
+                  </View>
+                  <View style={styles.commandCardArrow}>
+                    {showSpeedControl ? (
+                      <ChevronUp size={20} color={Colors.primary.textSecondary} />
+                    ) : (
+                      <ChevronDown size={20} color={Colors.primary.textSecondary} />
+                    )}
+                  </View>
+                </View>
+                {showSpeedControl && (
+                  <View style={styles.commandCardExpanded}>
+                    {[
+                      { action: t('speed_0_5'), example: t('speed_0_5_example') },
+                      { action: t('normal_speed'), example: t('normal_speed_example') },
+                      { action: t('speed_1_25'), example: t('speed_1_25_example') },
+                      { action: t('speed_1_5'), example: t('speed_1_5_example') },
+                      { action: t('speed_2_0'), example: t('speed_2_0_example') },
+                    ].map((cmd, index) => (
+                      <View key={index} style={styles.commandRow}>
+                        <View style={styles.commandDot} />
+                        <Text style={styles.commandText}>{cmd.action}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </TouchableOpacity>
             </View>
           </ScrollView>
         )}
@@ -2389,9 +2584,10 @@ const createStyles = () => {
     marginBottom: 12,
   },
   voiceControlStatus: {
-    fontSize: getResponsiveSize(13, 14, 15),
+    fontSize: 14,
     fontWeight: "600" as const,
     color: Colors.primary.text,
+    marginTop: 16,
     textAlign: "center",
   },
   quickVoiceActions: {
@@ -2603,24 +2799,17 @@ const createStyles = () => {
   },
   alwaysListenCard: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: Colors.secondary.bg,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: Colors.card.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    alignItems: "center",
+    backgroundColor: Colors.card.bg,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
   },
   alwaysListenContent: {
     flexDirection: "row",
     alignItems: "center",
-    flex: 1,
+    gap: 12,
   },
   alwaysListenIcon: {
     width: 44,
@@ -2635,10 +2824,9 @@ const createStyles = () => {
     flex: 1,
   },
   alwaysListenTitle: {
-    fontSize: 18,
-    fontWeight: "600" as const,
+    fontSize: 16,
+    fontWeight: "500" as const,
     color: Colors.primary.text,
-    marginBottom: 2,
   },
   alwaysListenSubtitle: {
     fontSize: 14,
@@ -3084,161 +3272,145 @@ const createStyles = () => {
     color: "white",
   },
   statsCard: {
-    backgroundColor: Colors.secondary.bg,
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 0,
-    borderWidth: 1,
-    borderColor: Colors.card.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: Colors.card.bg,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
   },
   statsRow: {
     flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
+    justifyContent: "space-around",
+    marginBottom: 16,
   },
   statItem: {
-    flex: 1,
     alignItems: "center",
   },
   statValue: {
-    fontSize: 34,
+    fontSize: 24,
     fontWeight: "700" as const,
     color: Colors.primary.text,
-    marginBottom: 6,
   },
   statLabel: {
-    fontSize: 15,
+    fontSize: 12,
     color: Colors.primary.textSecondary,
-    textAlign: "center",
   },
   statDivider: {
     width: 1,
     height: 40,
     backgroundColor: Colors.card.border,
+    marginHorizontal: 16,
   },
   progressBarContainer: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   progressBarBg: {
-    height: 10,
+    height: 8,
     backgroundColor: Colors.card.border,
-    borderRadius: 5,
+    borderRadius: 4,
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
     backgroundColor: Colors.accent.primary,
-    borderRadius: 5,
+    borderRadius: 4,
   },
   upgradeButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
-    backgroundColor: Colors.card.bg,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 14,
+    gap: 8,
+    backgroundColor: Colors.primary.bg,
+    paddingVertical: 12,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.accent.primary,
   },
   upgradeButtonText: {
-    fontSize: 17,
-    fontWeight: "600" as const,
     color: Colors.accent.primary,
+    fontSize: 16,
+    fontWeight: "600" as const,
   },
   sectionHeader: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 24,
+    alignItems: "center",
+    marginBottom: 16,
+    marginTop: 24,
   },
   addCommandButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    backgroundColor: Colors.accent.primary + '15',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 14,
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: Colors.accent.primary + '10',
   },
   addCommandText: {
-    fontSize: 17,
-    fontWeight: "600" as const,
     color: Colors.accent.primary,
+    fontSize: 14,
+    fontWeight: "600" as const,
   },
   commandCard: {
-    backgroundColor: Colors.secondary.bg,
-    borderRadius: 20,
-    marginBottom: 16,
+    backgroundColor: Colors.card.bg,
+    borderRadius: 16,
+    marginBottom: 12,
+    overflow: "hidden",
     borderWidth: 1,
     borderColor: Colors.card.border,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
   },
   commandCardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 20,
+    padding: 16,
   },
   commandIconWrapper: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: Colors.accent.primary + '15',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 14,
+    marginRight: 12,
   },
   commandCardContent: {
     flex: 1,
   },
   commandCardTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "600" as const,
     color: Colors.primary.text,
-    marginBottom: 4,
   },
   commandCardSubtitle: {
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.primary.textSecondary,
+    marginTop: 2,
   },
   commandCardArrow: {
-    marginLeft: 8,
+    marginLeft: 12,
   },
   commandCardExpanded: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    paddingTop: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
     borderTopWidth: 1,
     borderTopColor: Colors.card.border,
+    marginTop: 8,
   },
   commandRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    gap: 14,
+    paddingVertical: 6,
   },
   commandDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: Colors.accent.primary,
+    marginRight: 12,
   },
   commandText: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.primary.text,
-    fontWeight: "500" as const,
   },
   commandBadge: {
     fontSize: 13,
@@ -3328,6 +3500,10 @@ const createStyles = () => {
     marginBottom: 40,
   },
   micIconCircleNonVideo: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.secondary.bg,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
     marginBottom: 16,

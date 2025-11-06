@@ -216,7 +216,7 @@ export default function UniversalVideoPlayer({
   }, [player, autoPlay, onPlaybackStart, onError, url, sourceInfo.type, sourceInfo.platform]);
 
   const getYouTubeEmbedUrl = (videoId: string): string => {
-    // 使用標準 YouTube embed，並優化參數以提高兼容性
+    // Enhanced YouTube embed with comprehensive parameters for maximum compatibility
     const params = new URLSearchParams({
       autoplay: autoPlay ? '1' : '0',
       playsinline: '1',
@@ -229,18 +229,28 @@ export default function UniversalVideoPlayer({
       showinfo: '0',
       cc_load_policy: '0',
       disablekb: '0',
+      origin: 'https://rork.app',
       widget_referrer: 'https://rork.app',
+      // Additional parameters to handle Error Code 4
+      html5: '1',
+      wmode: 'transparent',
     });
     return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
   };
 
   const getYouTubeWebPlayerUrl = (videoId: string): string => {
-    // 使用標準 YouTube 播放頁面作為備選
-    return `https://www.youtube.com/watch?v=${videoId}&autoplay=${autoPlay ? '1' : '0'}`;
+    // Standard YouTube watch page as fallback - more permissive
+    const params = new URLSearchParams({
+      v: videoId,
+      autoplay: autoPlay ? '1' : '0',
+      // Force HTML5 player
+      html5: '1',
+    });
+    return `https://www.youtube.com/watch?${params.toString()}`;
   };
 
   const getYouTubeNoEmbedUrl = (videoId: string): string => {
-    // 使用 YouTube nocookie 作為最後備選
+    // YouTube nocookie domain - privacy-focused alternative
     const params = new URLSearchParams({
       autoplay: autoPlay ? '1' : '0',
       playsinline: '1',
@@ -249,8 +259,15 @@ export default function UniversalVideoPlayer({
       controls: '1',
       fs: '1',
       enablejsapi: '0',
+      origin: 'https://rork.app',
+      html5: '1',
     });
     return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
+  };
+
+  const getYouTubeMobileUrl = (videoId: string): string => {
+    // Mobile-optimized YouTube URL (4th fallback)
+    return `https://m.youtube.com/watch?v=${videoId}&autoplay=${autoPlay ? '1' : '0'}`;
   };
 
   const getVimeoEmbedUrl = (videoId: string): string => {
@@ -259,14 +276,24 @@ export default function UniversalVideoPlayer({
 
   const handleLoadTimeout = () => {
     console.warn('[UniversalVideoPlayer] Load timeout exceeded');
-    const timeoutError = 'Video load timeout. The video is taking too long to load.';
+    console.log('[UniversalVideoPlayer] Timeout Details:', {
+      url,
+      sourceType: sourceInfo.type,
+      platform: sourceInfo.platform,
+      retryCount,
+      maxRetries,
+      loadDuration: Date.now() - loadStartTime,
+    });
+    
+    const timeoutError = `視頻載入超時\n\n載入時間超過 ${loadTimeout/1000} 秒。\n\n可能原因：\n• 網路連線速度較慢\n• 視頻伺服器回應緩慢\n• 視頻檔案過大\n\n建議：\n1. 檢查網路連線\n2. 稍後再試\n3. 嘗試使用其他網路環境`;
     
     if (retryCount < maxRetries) {
-      console.log(`[UniversalVideoPlayer] Retrying... (${retryCount + 1}/${maxRetries})`);
+      console.log(`[UniversalVideoPlayer] Auto-retry initiated (${retryCount + 1}/${maxRetries})`);
       setRetryCount(prev => prev + 1);
       setIsLoading(true);
       setPlaybackError(null);
     } else {
+      console.error('[UniversalVideoPlayer] Max retries reached, giving up');
       setPlaybackError(timeoutError);
       setIsLoading(false);
       onError?.(timeoutError);
@@ -296,19 +323,29 @@ export default function UniversalVideoPlayer({
 
     if (sourceInfo.type === 'youtube' && sourceInfo.videoId) {
       console.log('[UniversalVideoPlayer] Rendering YouTube with videoId:', sourceInfo.videoId, 'retry:', retryCount);
+      console.log('[UniversalVideoPlayer] YouTube Error Code 4 Detection System Active');
       
+      // Progressive fallback strategy for YouTube Error Code 4
       if (retryCount === 0) {
-        // 第一次嘗試：標準 embed
+        // Attempt 1: Standard embed with enhanced parameters
         embedUrl = getYouTubeEmbedUrl(sourceInfo.videoId);
+        console.log('[UniversalVideoPlayer] Using Standard YouTube Embed (Attempt 1/4)');
       } else if (retryCount === 1) {
-        // 第二次嘗試：完整播放頁面
+        // Attempt 2: Full watch page (more permissive)
         embedUrl = getYouTubeWebPlayerUrl(sourceInfo.videoId);
-      } else {
-        // 第三次嘗試：nocookie embed
+        console.log('[UniversalVideoPlayer] Using YouTube Watch Page (Attempt 2/4)');
+      } else if (retryCount === 2) {
+        // Attempt 3: Privacy-enhanced nocookie domain
         embedUrl = getYouTubeNoEmbedUrl(sourceInfo.videoId);
+        console.log('[UniversalVideoPlayer] Using YouTube NoCookie Domain (Attempt 3/4)');
+      } else {
+        // Attempt 4: Mobile-optimized URL
+        embedUrl = getYouTubeMobileUrl(sourceInfo.videoId);
+        console.log('[UniversalVideoPlayer] Using YouTube Mobile URL (Attempt 4/4)');
       }
       
       console.log('[UniversalVideoPlayer] YouTube embed URL:', embedUrl);
+      console.log('[UniversalVideoPlayer] Video availability check: Starting load...');
     } else if (sourceInfo.type === 'vimeo' && sourceInfo.videoId) {
       embedUrl = getVimeoEmbedUrl(sourceInfo.videoId);
     } else if (sourceInfo.type === 'adult') {
@@ -422,15 +459,23 @@ export default function UniversalVideoPlayer({
             
             if (retryCount < maxRetries) {
               console.log(`[UniversalVideoPlayer] Retrying YouTube with alternative method (${retryCount + 1}/${maxRetries})`);
+              console.log('[UniversalVideoPlayer] Next attempt will use different embed strategy');
               setTimeout(() => {
                 setRetryCount(prev => prev + 1);
                 setIsLoading(true);
                 setPlaybackError(null);
-              }, 1500);
+              }, 2000); // Increased delay for YouTube
               return;
             }
             
-            const error = `YouTube 視頻載入失敗\n\n可能原因：\n• 視頻被設為私人或已刪除\n• 視頻限制嵌入播放\n• 地區限制\n• 網路連線問題\n\n已嘗試 ${maxRetries} 種不同的載入方式。\n\n建議：\n1. 檢查視頻連結是否正確\n2. 在瀏覽器中測試是否能播放\n3. 稍後再試`;
+            console.error('[UniversalVideoPlayer] All YouTube retry attempts exhausted');
+            console.error('[UniversalVideoPlayer] Final Error Report:', {
+              videoId: sourceInfo.videoId,
+              totalAttempts: maxRetries + 1,
+              error: nativeEvent,
+            });
+            
+            const error = `YouTube 錯誤碼 4 - 播放失敗\n\n視頻無法載入 (已嘗試 ${maxRetries + 1} 種方式)\n\n最常見原因：\n• 視頻被設為「私人」或「不公開」\n• 視頻已被版權方刪除或下架\n• 視頻禁止在第三方應用嵌入\n• 地區限制（該視頻在您的國家/地區不可用）\n• 年齡限制（需要登入 YouTube 驗證年齡）\n\nVideo ID: ${sourceInfo.videoId}\nURL: https://youtu.be/${sourceInfo.videoId}\n\n診斷步驟：\n1. 在瀏覽器中測試: https://youtu.be/${sourceInfo.videoId}\n2. 檢查視頻是否存在且可公開訪問\n3. 確認視頻允許嵌入播放\n4. 嘗試使用 VPN 切換地區\n5. 稍後再試（可能是暫時性問題）\n\n如持續發生此問題，請聯繫技術支援並提供 Video ID。`;
             setPlaybackError(error);
             onError?.(error);
             return;
@@ -469,28 +514,45 @@ export default function UniversalVideoPlayer({
         onHttpError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
           console.error('[UniversalVideoPlayer] WebView HTTP error:', nativeEvent);
+          console.error('[UniversalVideoPlayer] HTTP Error Details:', {
+            statusCode: nativeEvent.statusCode,
+            url: nativeEvent.url,
+            description: nativeEvent.description,
+            sourceType: sourceInfo.type,
+            platform: sourceInfo.platform,
+            retryCount,
+          });
           clearLoadTimeout();
           
           if (nativeEvent.statusCode >= 400) {
             let errorMessage = '';
             let shouldRetry = false;
+            let isYouTubeError4Related = false;
             
             switch (nativeEvent.statusCode) {
               case 401:
                 errorMessage = '視頻需要身份驗證\n\n此視頻需要登入才能播放。請確認：\n• 您已在該網站登入\n• 視頻不是私人或受限內容\n\n建議在瀏覽器中開啟此連結以進行身份驗證。';
                 break;
               case 403:
-                errorMessage = `視頻訪問被拒絕\n\n無法播放此視頻，可能原因：\n• 視頻來源阻止嵌入播放\n• 需要特定的權限或訂閱\n• 地區限制\n• 防盜鏈保護\n\n來源: ${sourceInfo.platform || '未知'}\n\n建議：\n1. 嘗試在瀏覽器中直接開啟連結\n2. 確認視頻允許嵌入播放\n3. 檢查是否需要登入或訂閱\n4. 使用 VPN 嘗試不同地區`;
+                // HTTP 403 is commonly associated with YouTube Error Code 4
+                isYouTubeError4Related = sourceInfo.type === 'youtube';
+                if (isYouTubeError4Related) {
+                  errorMessage = `YouTube 錯誤碼 4 檢測\n\n此視頻無法播放，常見原因：\n• 視頻被設為「私人」或「不公開」\n• 視頻已被刪除或下架\n• 視頻禁止嵌入播放\n• 地區限制（您所在地區無法觀看）\n• 年齡限制內容\n• 版權限制\n\n來源: ${sourceInfo.platform}\nVideo ID: ${sourceInfo.videoId}\n當前嘗試: ${retryCount + 1}/${maxRetries + 1}\n\n建議解決方案：\n1. 在 YouTube 網站直接測試該連結\n2. 確認視頻設定允許嵌入\n3. 檢查視頻是否在您的地區可用\n4. 使用 VPN 嘗試不同地區\n5. ��繫視頻上傳者確認權限設定`;
+                  shouldRetry = retryCount < maxRetries;
+                } else {
+                  errorMessage = `視頻訪問被拒絕 (403 Forbidden)\n\n無法播放此視頻，可能原因：\n• 視頻來源阻止嵌入播放\n• 需要特定的權限或訂閱\n• 地區限制\n• 防盜鏈保護\n\n來源: ${sourceInfo.platform || '未知'}\n\n建議：\n1. 嘗試在瀏覽器中直接開啟連結\n2. 確認視頻允許嵌入播放\n3. 檢查是否需要登入或訂閱\n4. 使用 VPN 嘗試不同地區`;
+                  shouldRetry = retryCount < maxRetries;
+                }
                 break;
               case 404:
-                errorMessage = '視頻不存在\n\n找不到此視頻，可能原因：\n• 視頻已被刪除\n• 連結錯誤或已過期\n• 視頻ID不正確\n\n請檢查連結是否正確。';
+                errorMessage = '視頻不存在 (404 Not Found)\n\n找不到此視頻，可能原因：\n• 視頻已被刪除\n• 連結錯誤或已過期\n• 視頻ID不正確\n\n請檢查連結是否正確。';
                 break;
               case 429:
-                errorMessage = '請求過於頻繁\n\n暫時無法載入視頻。請稍候片刻後再試。';
+                errorMessage = '請求過於頻繁 (429 Too Many Requests)\n\n暫時無法載入視頻。伺服器偵測到過多請求。\n請稍候 30-60 秒後再試。';
                 shouldRetry = retryCount < maxRetries;
                 break;
               case 451:
-                errorMessage = '內容因法律原因無法訪問\n\n此視頻在您所在地區受到法律限制。';
+                errorMessage = '內容因法律原因無法訪問 (451 Unavailable For Legal Reasons)\n\n此視頻在您所在地區受到法律限制。';
                 break;
               default:
                 if (nativeEvent.statusCode >= 500) {

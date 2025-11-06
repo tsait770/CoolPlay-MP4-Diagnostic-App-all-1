@@ -233,19 +233,19 @@ export default function PlayerScreen() {
     }
   }, [showControls, isPlaying, fadeAnim]);
 
-  // Pulse animation for voice button (80% slower: 840ms * 1.8 = 1512ms -> ~1570ms)
+  // Pulse animation for voice button (70% slower: 840ms * 1.7 = 1428ms)
   useEffect(() => {
     if (isVoiceActive || isVoiceListening || alwaysListening) {
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
             toValue: 1.15,
-            duration: 1570,
+            duration: 1428,
             useNativeDriver: true,
           }),
           Animated.timing(pulseAnim, {
             toValue: 1,
-            duration: 1570,
+            duration: 1428,
             useNativeDriver: true,
           }),
         ])
@@ -1141,7 +1141,7 @@ export default function PlayerScreen() {
                 </Animated.View>
                 <Text style={styles.voiceButtonHint}>
                   {(isVoiceActive || isVoiceListening || alwaysListening) 
-                    ? '持續聆聽' 
+                    ? (t('stop_listening') !== 'stop_listening' ? t('stop_listening') : '停止聆聽') 
                     : (t('tap_to_speak') !== 'tap_to_speak' ? t('tap_to_speak') : 'Tap to Speak')}
                 </Text>
               </View>
@@ -2877,10 +2877,10 @@ const createStyles = () => {
     width: getResponsiveSize(94, 112, 130, 150),
     height: getResponsiveSize(94, 112, 130, 150),
     borderRadius: getResponsiveSize(47, 56, 65, 75),
-    backgroundColor: '#1e293b',
+    backgroundColor: '#69E7D8',
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: '#1e293b',
+    shadowColor: '#69E7D8',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 14,

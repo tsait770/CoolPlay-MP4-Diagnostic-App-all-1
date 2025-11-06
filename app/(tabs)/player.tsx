@@ -233,13 +233,13 @@ export default function PlayerScreen() {
     }
   }, [showControls, isPlaying, fadeAnim]);
 
-  // Pulse animation for voice button (70% slower: 840ms * 1.7 = 1428ms, amplitude reduced by 10%)
+  // Pulse animation for voice button (70% slower: 840ms * 1.7 = 1428ms, amplitude reduced by 15% total - 10% + 5%)
   useEffect(() => {
     if (isVoiceActive || isVoiceListening || alwaysListening) {
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
-            toValue: 1.135,
+            toValue: 1.085,
             duration: 1428,
             useNativeDriver: true,
           }),
@@ -2877,10 +2877,10 @@ const createStyles = () => {
     width: getResponsiveSize(94, 112, 130, 150),
     height: getResponsiveSize(94, 112, 130, 150),
     borderRadius: getResponsiveSize(47, 56, 65, 75),
-    backgroundColor: Colors.accent.primary,
+    backgroundColor: '#69E7D8',
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: Colors.accent.primary,
+    shadowColor: '#69E7D8',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 14,

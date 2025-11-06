@@ -1142,7 +1142,7 @@ export default function PlayerScreen() {
                 <Text style={styles.voiceButtonHint}>
                   {(isVoiceActive || isVoiceListening || alwaysListening) 
                     ? '持續聆聽'
-                    : (t('tap_to_speak') !== 'tap_to_speak' ? t('tap_to_speak') : 'Tap to Speak')}
+                    : '點擊說話'}
                 </Text>
               </View>
 

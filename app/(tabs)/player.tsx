@@ -1059,7 +1059,7 @@ export default function PlayerScreen() {
         ) : (
           <ScrollView 
             style={styles.scrollContainer}
-            contentContainerStyle={[styles.scrollContent, { paddingTop: Math.max(insets.top - 30, 8), paddingHorizontal: 24 }]}
+            contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 8, paddingHorizontal: 24 }]}
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.card1Container}>

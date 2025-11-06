@@ -43,7 +43,7 @@ const Colors = {
 
   // Accent colors for different contexts
   accent: {
-    primary: "#4FD1C5",     // Main accent (Teal/Cyan)
+    primary: "#007AFF",     // Main accent (Apple blue)
     secondary: "#5AC8FA",   // Secondary accent
     success: "#30D158",     // Success states
     warning: "#FF9F0A",     // Warning states

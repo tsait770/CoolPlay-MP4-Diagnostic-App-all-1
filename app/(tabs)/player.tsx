@@ -1105,12 +1105,12 @@ export default function PlayerScreen() {
                 </View>
                 <Text style={styles.videoSelectionTitle}>{t('select_video')}</Text>
                 <Text style={styles.videoSelectionSubtitle}>{t('select_video_subtitle')}</Text>
-                
+
                 <TouchableOpacity style={styles.selectVideoButton} onPress={pickVideo}>
                   <Upload size={getResponsiveSize(20, 22, 24)} color="white" />
                   <Text style={styles.selectVideoButtonText}>{t('select_video')}</Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity style={styles.loadUrlButton} onPress={() => setShowUrlModal(true)}>
                   <LinkIcon size={getResponsiveSize(20, 22, 24)} color={Colors.accent.primary} />
                   <Text style={styles.loadUrlButtonText}>{t('load_from_url')}</Text>

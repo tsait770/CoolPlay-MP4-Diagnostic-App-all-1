@@ -1153,7 +1153,12 @@ export default function PlayerScreen() {
                 </View>
                 <Switch
                   value={alwaysListening}
-                  onValueChange={toggleAlwaysListening}
+                  onValueChange={async (value) => {
+                    await toggleAlwaysListening();
+                    if (!value && (isVoiceActive || isVoiceListening)) {
+                      stopVoiceRecording();
+                    }
+                  }}
                   trackColor={{ false: Colors.card.border, true: Colors.accent.primary }}
                   thumbColor="white"
                   ios_backgroundColor={Colors.card.border}
@@ -1423,14 +1428,15 @@ export default function PlayerScreen() {
             onCrossPress={async () => {
               if (alwaysListening) {
                 await toggleAlwaysListening();
+                if (isVoiceActive || isVoiceListening) {
+                  stopVoiceRecording();
+                }
               } else {
                 await startVoiceRecording();
               }
             }}
             onCirclePress={async () => {
-              if (alwaysListening) {
-                await toggleAlwaysListening();
-              } else {
+              if (!alwaysListening && (isVoiceActive || isVoiceListening)) {
                 await stopVoiceRecording();
               }
             }}

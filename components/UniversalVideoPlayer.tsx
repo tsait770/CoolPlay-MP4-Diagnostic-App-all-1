@@ -472,7 +472,36 @@ export default function UniversalVideoPlayer({
           clearLoadTimeout();
           
           if (nativeEvent.statusCode >= 400) {
-            if (retryCount < maxRetries && nativeEvent.statusCode >= 500) {
+            let errorMessage = '';
+            let shouldRetry = false;
+            
+            switch (nativeEvent.statusCode) {
+              case 401:
+                errorMessage = '視頻需要身份驗證\n\n此視頻需要登入才能播放。請確認：\n• 您已在該網站登入\n• 視頻不是私人或受限內容\n\n建議在瀏覽器中開啟此連結以進行身份驗證。';
+                break;
+              case 403:
+                errorMessage = `視頻訪問被拒絕\n\n無法播放此視頻，可能原因：\n• 視頻來源阻止嵌入播放\n• 需要特定的權限或訂閱\n• 地區限制\n• 防盜鏈保護\n\n來源: ${sourceInfo.platform || '未知'}\n\n建議：\n1. 嘗試在瀏覽器中直接開啟連結\n2. 確認視頻允許嵌入播放\n3. 檢查是否需要登入或訂閱\n4. 使用 VPN 嘗試不同地區`;
+                break;
+              case 404:
+                errorMessage = '視頻不存在\n\n找不到此視頻，可能原因：\n• 視頻已被刪除\n• 連結錯誤或已過期\n• 視頻ID不正確\n\n請檢查連結是否正確。';
+                break;
+              case 429:
+                errorMessage = '請求過於頻繁\n\n暫時無法載入視頻。請稍候片刻後再試。';
+                shouldRetry = retryCount < maxRetries;
+                break;
+              case 451:
+                errorMessage = '內容因法律原因無法訪問\n\n此視頻在您所在地區受到法律限制。';
+                break;
+              default:
+                if (nativeEvent.statusCode >= 500) {
+                  errorMessage = `伺服器錯誤 (${nativeEvent.statusCode})\n\n視頻伺服器暫時無法回應。請稍後再試。`;
+                  shouldRetry = retryCount < maxRetries;
+                } else {
+                  errorMessage = `HTTP 錯誤 ${nativeEvent.statusCode}\n\n無法載入視頻。請檢查連結是否正確。`;
+                }
+            }
+            
+            if (shouldRetry) {
               console.log(`[UniversalVideoPlayer] Retrying after HTTP ${nativeEvent.statusCode} (${retryCount + 1}/${maxRetries})`);
               setTimeout(() => {
                 setRetryCount(prev => prev + 1);
@@ -480,9 +509,9 @@ export default function UniversalVideoPlayer({
                 setPlaybackError(null);
               }, 2000);
             } else {
-              const error = `HTTP Error ${nativeEvent.statusCode}: ${nativeEvent.url}`;
-              setPlaybackError(error);
-              onError?.(error);
+              console.error(`[UniversalVideoPlayer] HTTP ${nativeEvent.statusCode} error for ${nativeEvent.url}`);
+              setPlaybackError(errorMessage);
+              onError?.(errorMessage);
             }
           }
         }}

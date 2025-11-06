@@ -46,7 +46,7 @@ export default function UniversalVideoPlayer({
   style,
   onAgeVerificationRequired,
   loadTimeout = 30000,
-  maxRetries = 3,
+  maxRetries = 4,
 }: UniversalVideoPlayerProps) {
   const { tier } = useMembership();
   const [isLoading, setIsLoading] = useState(true);
@@ -216,7 +216,6 @@ export default function UniversalVideoPlayer({
   }, [player, autoPlay, onPlaybackStart, onError, url, sourceInfo.type, sourceInfo.platform]);
 
   const getYouTubeEmbedUrl = (videoId: string): string => {
-    // Enhanced YouTube embed with comprehensive parameters for maximum compatibility
     const params = new URLSearchParams({
       autoplay: autoPlay ? '1' : '0',
       playsinline: '1',
@@ -229,9 +228,7 @@ export default function UniversalVideoPlayer({
       showinfo: '0',
       cc_load_policy: '0',
       disablekb: '0',
-      origin: 'https://rork.app',
-      widget_referrer: 'https://rork.app',
-      // Additional parameters to handle Error Code 4
+      origin: window.location.origin || 'https://rork.app',
       html5: '1',
       wmode: 'transparent',
     });
@@ -239,18 +236,16 @@ export default function UniversalVideoPlayer({
   };
 
   const getYouTubeWebPlayerUrl = (videoId: string): string => {
-    // Standard YouTube watch page as fallback - more permissive
     const params = new URLSearchParams({
       v: videoId,
       autoplay: autoPlay ? '1' : '0',
-      // Force HTML5 player
       html5: '1',
+      app: 'desktop',
     });
     return `https://www.youtube.com/watch?${params.toString()}`;
   };
 
   const getYouTubeNoEmbedUrl = (videoId: string): string => {
-    // YouTube nocookie domain - privacy-focused alternative
     const params = new URLSearchParams({
       autoplay: autoPlay ? '1' : '0',
       playsinline: '1',
@@ -259,15 +254,18 @@ export default function UniversalVideoPlayer({
       controls: '1',
       fs: '1',
       enablejsapi: '0',
-      origin: 'https://rork.app',
+      origin: window.location.origin || 'https://rork.app',
       html5: '1',
     });
     return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
   };
 
   const getYouTubeMobileUrl = (videoId: string): string => {
-    // Mobile-optimized YouTube URL (4th fallback)
-    return `https://m.youtube.com/watch?v=${videoId}&autoplay=${autoPlay ? '1' : '0'}`;
+    return `https://m.youtube.com/watch?v=${videoId}&autoplay=${autoPlay ? '1' : '0'}&app=m`;
+  };
+
+  const getInvidiousUrl = (videoId: string): string => {
+    return `https://invidious.io.lol/embed/${videoId}?autoplay=${autoPlay ? '1' : '0'}`;
   };
 
   const getVimeoEmbedUrl = (videoId: string): string => {
@@ -325,23 +323,22 @@ export default function UniversalVideoPlayer({
       console.log('[UniversalVideoPlayer] Rendering YouTube with videoId:', sourceInfo.videoId, 'retry:', retryCount);
       console.log('[UniversalVideoPlayer] YouTube Error Code 4 Detection System Active');
       
-      // Progressive fallback strategy for YouTube Error Code 4
+      // Progressive fallback strategy for YouTube Error Code 4 (5 attempts)
       if (retryCount === 0) {
-        // Attempt 1: Standard embed with enhanced parameters
         embedUrl = getYouTubeEmbedUrl(sourceInfo.videoId);
-        console.log('[UniversalVideoPlayer] Using Standard YouTube Embed (Attempt 1/4)');
+        console.log('[UniversalVideoPlayer] Using Standard YouTube Embed (Attempt 1/5)');
       } else if (retryCount === 1) {
-        // Attempt 2: Full watch page (more permissive)
-        embedUrl = getYouTubeWebPlayerUrl(sourceInfo.videoId);
-        console.log('[UniversalVideoPlayer] Using YouTube Watch Page (Attempt 2/4)');
-      } else if (retryCount === 2) {
-        // Attempt 3: Privacy-enhanced nocookie domain
         embedUrl = getYouTubeNoEmbedUrl(sourceInfo.videoId);
-        console.log('[UniversalVideoPlayer] Using YouTube NoCookie Domain (Attempt 3/4)');
-      } else {
-        // Attempt 4: Mobile-optimized URL
+        console.log('[UniversalVideoPlayer] Using YouTube NoCookie Domain (Attempt 2/5)');
+      } else if (retryCount === 2) {
+        embedUrl = getYouTubeWebPlayerUrl(sourceInfo.videoId);
+        console.log('[UniversalVideoPlayer] Using YouTube Watch Page (Attempt 3/5)');
+      } else if (retryCount === 3) {
         embedUrl = getYouTubeMobileUrl(sourceInfo.videoId);
-        console.log('[UniversalVideoPlayer] Using YouTube Mobile URL (Attempt 4/4)');
+        console.log('[UniversalVideoPlayer] Using YouTube Mobile URL (Attempt 4/5)');
+      } else {
+        embedUrl = getInvidiousUrl(sourceInfo.videoId);
+        console.log('[UniversalVideoPlayer] Using Invidious Mirror (Attempt 5/5)');
       }
       
       console.log('[UniversalVideoPlayer] YouTube embed URL:', embedUrl);
@@ -373,14 +370,13 @@ export default function UniversalVideoPlayer({
         source={{ 
           uri: embedUrl,
           headers: sourceInfo.type === 'youtube' ? {
-            // YouTube WebView 需要的 headers
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8,zh-CN;q=0.7',
-            'Referer': 'https://www.youtube.com/',
-            'Sec-Fetch-Dest': 'iframe',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
+            'User-Agent': retryCount >= 3 
+              ? 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
+              : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': retryCount <= 1 ? 'https://www.youtube.com/' : 'https://www.google.com/',
+            'DNT': '1',
           } : sourceInfo.type === 'adult' ? {
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
@@ -460,11 +456,13 @@ export default function UniversalVideoPlayer({
             if (retryCount < maxRetries) {
               console.log(`[UniversalVideoPlayer] Retrying YouTube with alternative method (${retryCount + 1}/${maxRetries})`);
               console.log('[UniversalVideoPlayer] Next attempt will use different embed strategy');
+              const retryDelay = Math.min(2000 * (retryCount + 1), 6000);
+              console.log(`[UniversalVideoPlayer] Retry delay: ${retryDelay}ms`);
               setTimeout(() => {
                 setRetryCount(prev => prev + 1);
                 setIsLoading(true);
                 setPlaybackError(null);
-              }, 2000); // Increased delay for YouTube
+              }, retryDelay);
               return;
             }
             
@@ -475,7 +473,7 @@ export default function UniversalVideoPlayer({
               error: nativeEvent,
             });
             
-            const error = `YouTube 錯誤碼 4 - 播放失敗\n\n視頻無法載入 (已嘗試 ${maxRetries + 1} 種方式)\n\n最常見原因：\n• 視頻被設為「私人」或「不公開」\n• 視頻已被版權方刪除或下架\n• 視頻禁止在第三方應用嵌入\n• 地區限制（該視頻在您的國家/地區不可用）\n• 年齡限制（需要登入 YouTube 驗證年齡）\n\nVideo ID: ${sourceInfo.videoId}\nURL: https://youtu.be/${sourceInfo.videoId}\n\n診斷步驟：\n1. 在瀏覽器中測試: https://youtu.be/${sourceInfo.videoId}\n2. 檢查視頻是否存在且可公開訪問\n3. 確認視頻允許嵌入播放\n4. 嘗試使用 VPN 切換地區\n5. 稍後再試（可能是暫時性問題）\n\n如持續發生此問題，請聯繫技術支援並提供 Video ID。`;
+            const error = `YouTube 播放失敗 (Error Code 4)\n\n嘗試了 ${maxRetries + 1} 種播放方式，視頻無法載入\n\n🔍 可能原因：\n1. 視頻設定為私人/不公開\n2. 視頻已被刪除或下架\n3. 禁止嵌入到第三方應用\n4. 地區限制（您的地區不可觀看）\n5. 年齡限制內容（需要登入驗證）\n6. 版權限制\n\n📋 視頻資訊：\nVideo ID: ${sourceInfo.videoId}\nYouTube URL: https://youtu.be/${sourceInfo.videoId}\n\n🛠️ 診斷步驟：\n1. 在瀏覽器直接打開 YouTube 連結測試\n2. 確認視頻存在且可公開訪問\n3. 檢查視頻設定是否允許嵌入\n4. 使用 VPN 嘗試其他地區\n5. 等待幾分鐘後重試\n\n💡 建議：\n如果這是您自己的視頻，請前往 YouTube Studio 檢查嵌入設定\n如果問題持續，請聯繫技術支援並提供 Video ID`;
             setPlaybackError(error);
             onError?.(error);
             return;

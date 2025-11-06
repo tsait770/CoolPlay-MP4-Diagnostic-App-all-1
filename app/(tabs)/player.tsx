@@ -224,13 +224,13 @@ export default function PlayerScreen() {
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
-            toValue: 1.2,
-            duration: 500,
+            toValue: 1.15,
+            duration: 840,
             useNativeDriver: true,
           }),
           Animated.timing(pulseAnim, {
             toValue: 1,
-            duration: 500,
+            duration: 840,
             useNativeDriver: true,
           }),
         ])
@@ -1143,7 +1143,7 @@ export default function PlayerScreen() {
                     }}
                     activeOpacity={0.8}
                  >
-                    <Mic size={52} color="#fff" />
+                    <Mic size={44} color="#fff" />
                   </TouchableOpacity>
                 </Animated.View>
                 <Text style={styles.voiceButtonHint}>{t('tap_to_speak') !== 'tap_to_speak' ? t('tap_to_speak') : 'Tap to Speak'}</Text>
@@ -2878,17 +2878,17 @@ const createStyles = () => {
     marginBottom: 32,
   },
   mainVoiceButton: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     backgroundColor: "#4ECDC4",
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#4ECDC4",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    elevation: 10,
   },
   mainVoiceButtonActive: {
     backgroundColor: Colors.danger,

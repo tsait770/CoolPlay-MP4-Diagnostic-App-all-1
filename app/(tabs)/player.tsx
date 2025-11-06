@@ -1064,15 +1064,11 @@ export default function PlayerScreen() {
         ) : (
           <View style={styles.videoSelectionOverlay}>
             {/* Voice Control Header Section */}
-            {!isContentLoaded && (
-              <View style={styles.voiceControlHeaderNonVideo}>
-                <View style={styles.micIconCircleNonVideo}>
-                  <Mic testID="voice-header-mic" size={28} color={Colors.accent.primary} />
-                </View>
-                <Text style={styles.voiceControlHeaderTitleNonVideo}>{t('voice_control')}</Text>
-                <Text style={styles.voiceControlHeaderSubtitleNonVideo}>{t('voice_control_instruction')}</Text>
-              </View>
-            )}
+            <View style={styles.voiceControlHeaderNonVideo}>
+              <Mic testID="voice-header-mic" size={32} color={Colors.accent.primary} />
+              <Text style={styles.voiceControlHeaderTitleNonVideo}>{t('voice_control')}</Text>
+              <Text style={styles.voiceControlHeaderSubtitleNonVideo}>{t('voice_control_instruction')}</Text>
+            </View>
 
             <View style={styles.videoSelectionCard}>
               <View style={styles.videoSelectionIcon}>
@@ -1131,8 +1127,8 @@ export default function PlayerScreen() {
           </View>
         )}
 
-        {/* Always Listen Card - Hidden when video is playing */}
-        {false && (
+        {/* Always Listen Card - Show when no video */}
+        {!videoSource && (
         <View style={styles.alwaysListenCard}>
           <View style={styles.alwaysListenContent}>
             <View style={styles.alwaysListenIcon}>
@@ -1152,8 +1148,8 @@ export default function PlayerScreen() {
         </View>
         )}
 
-        {/* Quick Stats Card - Hidden when video is playing */}
-        {false && (
+        {/* Quick Stats Card - Show when no video */}
+        {!videoSource && (
         <View style={styles.statsCard}>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
@@ -1183,8 +1179,8 @@ export default function PlayerScreen() {
         </View>
         )}
 
-        {/* Commands Section Header - Hidden when video is playing */}
-        {false && (<>
+        {/* Commands Section Header - Show when no video */}
+        {!videoSource && (<>
         
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{t('available_commands')}</Text>
@@ -2785,11 +2781,17 @@ const createStyles = () => {
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: Colors.secondary.bg,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    padding: 20,
+    marginHorizontal: 24,
     marginBottom: 24,
     borderWidth: 1,
     borderColor: Colors.card.border,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
   alwaysListenContent: {
     flexDirection: "row",
@@ -2797,25 +2799,25 @@ const createStyles = () => {
     flex: 1,
   },
   alwaysListenIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Colors.card.bg,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 14,
   },
   alwaysListenText: {
     flex: 1,
   },
   alwaysListenTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600" as const,
     color: Colors.primary.text,
     marginBottom: 2,
   },
   alwaysListenSubtitle: {
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.primary.textSecondary,
   },
   voiceButtonSection: {
@@ -2977,8 +2979,8 @@ const createStyles = () => {
   },
   videoSelectionCard: {
     backgroundColor: Colors.secondary.bg,
-    borderRadius: 20,
-    padding: 28,
+    borderRadius: 24,
+    padding: 32,
     alignItems: "center",
     width: '100%',
     maxWidth: 400,
@@ -2987,39 +2989,39 @@ const createStyles = () => {
     borderStyle: "dashed",
   },
   videoSelectionIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     backgroundColor: Colors.accent.primary + '15',
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   videoSelectionTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "600" as const,
     color: Colors.primary.text,
-    marginBottom: 6,
+    marginBottom: 8,
     textAlign: "center",
-    lineHeight: 26,
+    lineHeight: 32,
   },
   videoSelectionSubtitle: {
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.primary.textSecondary,
     textAlign: "center",
-    marginBottom: 20,
-    lineHeight: 20,
+    marginBottom: 24,
+    lineHeight: 24,
   },
   selectVideoButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 10,
     backgroundColor: "#4ECDC4",
-    paddingVertical: 13,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    marginBottom: 10,
+    paddingVertical: 16,
+    paddingHorizontal: 28,
+    borderRadius: 14,
+    marginBottom: 12,
     width: "100%",
     shadowColor: "#4ECDC4",
     shadowOffset: { width: 0, height: 4 },
@@ -3028,7 +3030,7 @@ const createStyles = () => {
     elevation: 8,
   },
   selectVideoButtonText: {
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: "600" as const,
     color: "white",
   },
@@ -3036,17 +3038,17 @@ const createStyles = () => {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 10,
     backgroundColor: Colors.card.bg,
-    paddingVertical: 13,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 28,
+    borderRadius: 14,
     width: "100%",
     borderWidth: 1,
     borderColor: Colors.card.border,
   },
   loadUrlButtonText: {
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: "600" as const,
     color: Colors.accent.primary,
   },
@@ -3259,8 +3261,9 @@ const createStyles = () => {
   },
   statsCard: {
     backgroundColor: Colors.secondary.bg,
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 24,
+    padding: 24,
+    marginHorizontal: 24,
     marginBottom: 32,
     borderWidth: 1,
     borderColor: Colors.card.border,
@@ -3273,20 +3276,20 @@ const createStyles = () => {
   statsRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   statItem: {
     flex: 1,
     alignItems: "center",
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: "700" as const,
     color: Colors.primary.text,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   statLabel: {
-    fontSize: 13,
+    fontSize: 15,
     color: Colors.primary.textSecondary,
     textAlign: "center",
   },
@@ -3296,33 +3299,33 @@ const createStyles = () => {
     backgroundColor: Colors.card.border,
   },
   progressBarContainer: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   progressBarBg: {
-    height: 8,
+    height: 10,
     backgroundColor: Colors.card.border,
-    borderRadius: 4,
+    borderRadius: 5,
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
     backgroundColor: Colors.accent.primary,
-    borderRadius: 4,
+    borderRadius: 5,
   },
   upgradeButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 10,
     backgroundColor: Colors.card.bg,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: Colors.accent.primary,
   },
   upgradeButtonText: {
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: "600" as const,
     color: Colors.accent.primary,
   },
@@ -3330,27 +3333,28 @@ const createStyles = () => {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
-    paddingHorizontal: 4,
+    marginBottom: 20,
+    paddingHorizontal: 24,
   },
   addCommandButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
     backgroundColor: Colors.accent.primary + '15',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 14,
   },
   addCommandText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "600" as const,
     color: Colors.accent.primary,
   },
   commandCard: {
     backgroundColor: Colors.secondary.bg,
-    borderRadius: 16,
-    marginBottom: 12,
+    borderRadius: 20,
+    marginBottom: 16,
+    marginHorizontal: 24,
     borderWidth: 1,
     borderColor: Colors.card.border,
     overflow: "hidden",
@@ -3363,65 +3367,65 @@ const createStyles = () => {
   commandCardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    padding: 20,
   },
   commandIconWrapper: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: Colors.accent.primary + '15',
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 14,
   },
   commandCardContent: {
     flex: 1,
   },
   commandCardTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600" as const,
     color: Colors.primary.text,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   commandCardSubtitle: {
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.primary.textSecondary,
   },
   commandCardArrow: {
     marginLeft: 8,
   },
   commandCardExpanded: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    paddingTop: 8,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: Colors.card.border,
   },
   commandRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
-    gap: 12,
+    paddingVertical: 12,
+    gap: 14,
   },
   commandDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
     backgroundColor: Colors.accent.primary,
   },
   commandText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.primary.text,
     fontWeight: "500" as const,
   },
   commandBadge: {
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.primary.textSecondary,
     backgroundColor: Colors.card.bg,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
     fontWeight: "500" as const,
   },
   headerBar: {
@@ -3500,8 +3504,9 @@ const createStyles = () => {
   },
   voiceControlHeaderNonVideo: {
     alignItems: 'center' as const,
-    marginBottom: 40,
+    marginBottom: 32,
     paddingHorizontal: 24,
+    paddingTop: 20,
   },
   micIconCircleNonVideo: {
     justifyContent: 'center' as const,
@@ -3509,19 +3514,19 @@ const createStyles = () => {
     marginBottom: 16,
   },
   voiceControlHeaderTitleNonVideo: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700' as const,
     color: Colors.primary.text,
     marginBottom: 8,
     textAlign: 'center' as const,
-    lineHeight: 32,
+    lineHeight: 36,
   },
   voiceControlHeaderSubtitleNonVideo: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '400' as const,
     color: Colors.primary.textSecondary,
     textAlign: 'center' as const,
-    lineHeight: 22,
+    lineHeight: 24,
     marginBottom: 0,
   },
 

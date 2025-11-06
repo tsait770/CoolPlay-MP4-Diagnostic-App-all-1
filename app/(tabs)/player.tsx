@@ -1117,7 +1117,7 @@ export default function PlayerScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.loadUrlButton} onPress={() => setShowUrlModal(true)}>
-                  <LinkIcon size={getResponsiveSize(20, 22, 24)} color={Colors.accent.primary} />
+                  <LinkIcon size={getResponsiveSize(20, 22, 24)} color="white" />
                   <Text style={styles.loadUrlButtonText}>{t('load_from_url')}</Text>
                 </TouchableOpacity>
               </View>
@@ -3078,7 +3078,7 @@ const createStyles = () => {
     alignItems: "center",
     justifyContent: "center",
     gap: DesignTokens.spacing.sm,
-    backgroundColor: Colors.accent.primary,
+    backgroundColor: '#69E7D8',
     paddingVertical: DesignTokens.spacing.md,
     paddingHorizontal: DesignTokens.spacing.lg,
     borderRadius: DesignTokens.borderRadius.lg,
@@ -3096,7 +3096,7 @@ const createStyles = () => {
     alignItems: "center",
     justifyContent: "center",
     gap: DesignTokens.spacing.sm,
-    backgroundColor: Colors.card.bg,
+    backgroundColor: '#69E7D8',
     paddingVertical: DesignTokens.spacing.md,
     paddingHorizontal: DesignTokens.spacing.lg,
     borderRadius: DesignTokens.borderRadius.lg,
@@ -3107,7 +3107,7 @@ const createStyles = () => {
   loadUrlButtonText: {
     ...DesignTokens.typography.body.large,
     fontWeight: "600" as const,
-    color: Colors.accent.primary,
+    color: "white",
   },
   
   heroSection: {

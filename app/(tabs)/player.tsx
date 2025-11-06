@@ -1028,9 +1028,8 @@ export default function PlayerScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.content, { paddingTop: insets.top }]}>
-        {/* Video Player - Full Screen */}
-        {videoSource && videoSource.uri && videoSource.uri.trim() !== '' ? (
+      {/* Video Player - Full Screen */}
+      {videoSource && videoSource.uri && videoSource.uri.trim() !== '' ? (
           useUniversalPlayer ? (
             <View style={styles.videoContainer}>
               <UniversalVideoPlayer
@@ -1062,6 +1061,11 @@ export default function PlayerScreen() {
             </TouchableOpacity>
           )
         ) : (
+          <ScrollView 
+            style={styles.scrollContainer}
+            contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20 }]}
+            showsVerticalScrollIndicator={false}
+          >
           <View style={styles.videoSelectionOverlay}>
             {/* Voice Control Header Section */}
             <View style={styles.voiceControlHeaderNonVideo}>
@@ -1088,6 +1092,7 @@ export default function PlayerScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          </ScrollView>
         )}
 
         {/* Voice Control Header Section - Hide when content is loaded */}
@@ -1127,8 +1132,8 @@ export default function PlayerScreen() {
           </View>
         )}
 
-        {/* Always Listen Card - Show when no video */}
-        {!videoSource && (
+        {/* Hidden when video is loaded */}
+        {false && !videoSource && (
         <View style={styles.alwaysListenCard}>
           <View style={styles.alwaysListenContent}>
             <View style={styles.alwaysListenIcon}>
@@ -1148,8 +1153,8 @@ export default function PlayerScreen() {
         </View>
         )}
 
-        {/* Quick Stats Card - Show when no video */}
-        {!videoSource && (
+        {/* Hidden when video is loaded */}
+        {false && !videoSource && (
         <View style={styles.statsCard}>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
@@ -1179,8 +1184,8 @@ export default function PlayerScreen() {
         </View>
         )}
 
-        {/* Commands Section Header - Show when no video */}
-        {!videoSource && (<>
+        {/* Hidden when video is loaded */}
+        {false && !videoSource && (<>
         
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{t('available_commands')}</Text>
@@ -1403,7 +1408,7 @@ export default function PlayerScreen() {
         </TouchableOpacity>
         </>
         )}
-        
+
         {/* Siri Setup Modal */}
         <Modal
           visible={showSiriSetup}
@@ -1802,8 +1807,6 @@ export default function PlayerScreen() {
             </ScrollView>
           </View>
         </Modal>
-
-      </View>
     </View>
   );
 }
@@ -2783,7 +2786,7 @@ const createStyles = () => {
     backgroundColor: Colors.secondary.bg,
     borderRadius: 20,
     padding: 20,
-    marginHorizontal: 24,
+    marginHorizontal: 0,
     marginBottom: 24,
     borderWidth: 1,
     borderColor: Colors.card.border,
@@ -2965,17 +2968,18 @@ const createStyles = () => {
     fontWeight: "600" as const,
     color: Colors.primary.text,
   },
+  scrollContainer: {
+    flex: 1,
+    backgroundColor: Colors.primary.bg,
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
   videoSelectionOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
     justifyContent: 'flex-start',
     alignItems: 'center',
     backgroundColor: Colors.primary.bg,
     paddingHorizontal: 24,
-    paddingTop: 24,
   },
   videoSelectionCard: {
     backgroundColor: Colors.secondary.bg,
@@ -3263,7 +3267,7 @@ const createStyles = () => {
     backgroundColor: Colors.secondary.bg,
     borderRadius: 24,
     padding: 24,
-    marginHorizontal: 24,
+    marginHorizontal: 0,
     marginBottom: 32,
     borderWidth: 1,
     borderColor: Colors.card.border,
@@ -3334,7 +3338,7 @@ const createStyles = () => {
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 20,
-    paddingHorizontal: 24,
+    paddingHorizontal: 0,
   },
   addCommandButton: {
     flexDirection: "row",
@@ -3354,7 +3358,7 @@ const createStyles = () => {
     backgroundColor: Colors.secondary.bg,
     borderRadius: 20,
     marginBottom: 16,
-    marginHorizontal: 24,
+    marginHorizontal: 0,
     borderWidth: 1,
     borderColor: Colors.card.border,
     overflow: "hidden",
@@ -3506,7 +3510,6 @@ const createStyles = () => {
     alignItems: 'center' as const,
     marginBottom: 32,
     paddingHorizontal: 24,
-    paddingTop: 20,
   },
   micIconCircleNonVideo: {
     justifyContent: 'center' as const,

@@ -1131,13 +1131,8 @@ export default function PlayerScreen() {
                     accessibilityLabel="Tap to Speak"
                     style={[styles.mainVoiceButton, (isVoiceActive || isVoiceListening || alwaysListening) && styles.mainVoiceButtonActive]}
                     onPress={async () => {
-                      if (alwaysListening) {
-                        await toggleAlwaysListening();
-                      } else if (isVoiceActive || isVoiceListening) {
-                        stopVoiceRecording();
-                      } else {
-                        startVoiceRecording();
-                      }
+                      // Toggle Always Listen when pressing the microphone button
+                      await toggleAlwaysListening();
                     }}
                     activeOpacity={0.8}
                  >
@@ -1429,11 +1424,11 @@ export default function PlayerScreen() {
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
           <PlayStationController
             onCrossPress={async () => {
-              // Toggle Always Listen when X button is pressed
+              // Main button toggles Always Listen
               await toggleAlwaysListening();
             }}
             onCirclePress={async () => {
-              // Stop listening when Circle button is pressed
+              // Circle button stops listening
               if (isVoiceActive || isVoiceListening) {
                 await stopVoiceRecording();
               }

@@ -1140,9 +1140,9 @@ export default function PlayerScreen() {
                   </TouchableOpacity>
                 </Animated.View>
                 <Text style={styles.voiceButtonHint}>
-                  {(isVoiceActive || isVoiceListening || alwaysListening) 
-                    ? '持續聆聽'
-                    : '點擊說話'}
+                  {alwaysListening 
+                    ? t('continuous_listening')
+                    : t('tap_to_speak')}
                 </Text>
               </View>
 

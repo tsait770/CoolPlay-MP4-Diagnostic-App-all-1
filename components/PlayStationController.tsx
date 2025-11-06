@@ -15,6 +15,7 @@ interface PlayStationControllerProps {
   onSquarePress?: () => void;
   initialPosition?: { x: number; y: number };
   containerHeight?: number;
+  isVoiceActive?: boolean;
 }
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -26,6 +27,7 @@ export default function PlayStationController({
   onSquarePress,
   initialPosition,
   containerHeight = SCREEN_HEIGHT,
+  isVoiceActive = false,
 }: PlayStationControllerProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeButton, setActiveButton] = useState<string | null>(null);
@@ -93,11 +95,15 @@ export default function PlayStationController({
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => setIsExpanded(!isExpanded)}
-        style={[styles.mainButton, { width: size, height: size }]}
+        style={[
+          styles.mainButton,
+          { width: size, height: size },
+          isVoiceActive && styles.mainButtonActive,
+        ]}
       >
         <View style={styles.innerCircle}>
           {/* Center decorative element */}
-          <View style={styles.centerDot} />
+          <View style={[styles.centerDot, isVoiceActive && styles.centerDotActive]} />
         </View>
       </TouchableOpacity>
 
@@ -239,6 +245,14 @@ const styles = StyleSheet.create({
     height: 5.6,
     borderRadius: 2.8,
     backgroundColor: '#444',
+  },
+  mainButtonActive: {
+    backgroundColor: '#69E7D8',
+    shadowColor: '#69E7D8',
+    shadowOpacity: 0.4,
+  },
+  centerDotActive: {
+    backgroundColor: '#fff',
   },
   buttonContainer: {
     position: 'absolute',

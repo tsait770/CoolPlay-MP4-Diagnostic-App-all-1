@@ -1124,9 +1124,11 @@ export default function PlayerScreen() {
                   <TouchableOpacity
                     testID="tap-to-speak-button"
                     accessibilityLabel="Tap to Speak"
-                    style={[styles.mainVoiceButton, (isVoiceActive || isVoiceListening) && styles.mainVoiceButtonActive]}
-                    onPress={() => {
-                      if (isVoiceActive || isVoiceListening) {
+                    style={[styles.mainVoiceButton, (isVoiceActive || isVoiceListening || alwaysListening) && styles.mainVoiceButtonActive]}
+                    onPress={async () => {
+                      if (alwaysListening) {
+                        await toggleAlwaysListening();
+                      } else if (isVoiceActive || isVoiceListening) {
                         stopVoiceRecording();
                       } else {
                         startVoiceRecording();
@@ -1418,8 +1420,20 @@ export default function PlayerScreen() {
 
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
           <PlayStationController
-            onCrossPress={startVoiceRecording}
-            onCirclePress={stopVoiceRecording}
+            onCrossPress={async () => {
+              if (alwaysListening) {
+                await toggleAlwaysListening();
+              } else {
+                await startVoiceRecording();
+              }
+            }}
+            onCirclePress={async () => {
+              if (alwaysListening) {
+                await toggleAlwaysListening();
+              } else {
+                await stopVoiceRecording();
+              }
+            }}
             onTrianglePress={togglePlayPause}
             onSquarePress={() => {
               if (videoPlayer) {

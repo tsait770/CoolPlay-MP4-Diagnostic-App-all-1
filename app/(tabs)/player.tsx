@@ -71,15 +71,34 @@ export default function PlayerScreen() {
     toggleAlwaysListening = () => Promise.resolve()
   } = voiceControl || {};
   const insets = useSafeAreaInsets();
-  const { width: screenWidth } = Dimensions.get('window');
+  const [dimensions, setDimensions] = useState(Dimensions.get('window'));
+  const { width: screenWidth, height: screenHeight } = dimensions;
   const isTablet = screenWidth >= 768;
   const isDesktop = screenWidth >= 1024;
+  const isLargeDesktop = screenWidth >= 1440;
+  
+  // Listen to dimension changes
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setDimensions(window);
+    });
+    return () => subscription?.remove();
+  }, []);
   
   // Responsive sizing
-  const getResponsiveSize = (mobile: number, tablet: number, desktop: number) => {
+  const getResponsiveSize = (mobile: number, tablet: number, desktop: number, largeDesktop?: number) => {
+    if (isLargeDesktop && largeDesktop) return largeDesktop;
     if (isDesktop) return desktop;
     if (isTablet) return tablet;
     return mobile;
+  };
+  
+  // Get container max width for centering on large screens
+  const getMaxContainerWidth = () => {
+    if (isLargeDesktop) return 1400;
+    if (isDesktop) return 1200;
+    if (isTablet) return 900;
+    return screenWidth;
   };
   
   // Siri Integration State
@@ -1059,13 +1078,22 @@ export default function PlayerScreen() {
         ) : (
           <ScrollView 
             style={styles.scrollContainer}
-            contentContainerStyle={[styles.scrollContent, { paddingTop: Math.max(insets.top - 60, 20), paddingHorizontal: 24 }]}
+            contentContainerStyle={[
+              styles.scrollContent, 
+              { 
+                paddingTop: Math.max(insets.top - 60, 20), 
+                paddingHorizontal: getResponsiveSize(16, 32, 48, 64),
+                maxWidth: getMaxContainerWidth(),
+                alignSelf: 'center',
+                width: '100%'
+              }
+            ]}
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.card1Container}>
               <View style={styles.voiceControlHeaderNonVideo}>
                 <View style={styles.micIconCircleNonVideo}>
-                  <Mic testID="voice-header-mic" size={32} color={Colors.accent.primary} />
+                  <Mic testID="voice-header-mic" size={getResponsiveSize(32, 40, 48)} color={Colors.accent.primary} />
                 </View>
                 <Text style={styles.voiceControlHeaderTitleNonVideo}>{t('voice_control')}</Text>
                 <Text style={styles.voiceControlHeaderSubtitleNonVideo}>{t('voice_control_instruction')}</Text>
@@ -1073,18 +1101,18 @@ export default function PlayerScreen() {
 
               <View style={styles.videoSelectionCard}>
                 <View style={styles.videoSelectionIcon}>
-                  <Play size={48} color={Colors.accent.primary} />
+                  <Play size={getResponsiveSize(48, 56, 64)} color={Colors.accent.primary} />
                 </View>
                 <Text style={styles.videoSelectionTitle}>{t('select_video')}</Text>
                 <Text style={styles.videoSelectionSubtitle}>{t('select_video_subtitle')}</Text>
                 
                 <TouchableOpacity style={styles.selectVideoButton} onPress={pickVideo}>
-                  <Upload size={20} color="white" />
+                  <Upload size={getResponsiveSize(20, 22, 24)} color="white" />
                   <Text style={styles.selectVideoButtonText}>{t('select_video')}</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity style={styles.loadUrlButton} onPress={() => setShowUrlModal(true)}>
-                  <LinkIcon size={20} color={Colors.accent.primary} />
+                  <LinkIcon size={getResponsiveSize(20, 22, 24)} color={Colors.accent.primary} />
                   <Text style={styles.loadUrlButtonText}>{t('load_from_url')}</Text>
                 </TouchableOpacity>
               </View>
@@ -1106,7 +1134,7 @@ export default function PlayerScreen() {
                     }}
                     activeOpacity={0.8}
                  >
-                    <Mic size={40} color="#fff" />
+                    <Mic size={getResponsiveSize(40, 48, 56)} color="#fff" />
                   </TouchableOpacity>
                 </Animated.View>
                 <Text style={styles.voiceButtonHint}>{t('tap_to_speak') !== 'tap_to_speak' ? t('tap_to_speak') : 'Tap to Speak'}</Text>
@@ -1115,7 +1143,7 @@ export default function PlayerScreen() {
               <View style={styles.alwaysListenCard}>
                 <View style={styles.alwaysListenContent}>
                   <View style={styles.alwaysListenIcon}>
-                    <Mic size={20} color={alwaysListening ? Colors.accent.primary : Colors.primary.textSecondary} />
+                    <Mic size={getResponsiveSize(20, 22, 24)} color={alwaysListening ? Colors.accent.primary : Colors.primary.textSecondary} />
                   </View>
                   <View style={styles.alwaysListenText}>
                     <Text style={styles.alwaysListenTitle}>{t('always_listen')}</Text>
@@ -1154,7 +1182,7 @@ export default function PlayerScreen() {
                 </View>
                 <TouchableOpacity style={styles.upgradeButton}>
                   <Text style={styles.upgradeButtonText}>{t('upgrade_plan')}</Text>
-                  <ChevronUp size={16} color={Colors.accent.primary} style={{ transform: [{ rotate: '90deg' }] }} />
+                  <ChevronUp size={getResponsiveSize(16, 18, 20)} color={Colors.accent.primary} style={{ transform: [{ rotate: '90deg' }] }} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -1813,11 +1841,27 @@ const createStyles = () => {
   const { width: screenWidth } = Dimensions.get('window');
   const isTablet = screenWidth >= 768;
   const isDesktop = screenWidth >= 1024;
+  const isLargeDesktop = screenWidth >= 1440;
   
-  const getResponsiveSize = (mobile: number, tablet: number, desktop: number) => {
+  const getResponsiveSize = (mobile: number, tablet: number, desktop: number, largeDesktop?: number) => {
+    if (isLargeDesktop && largeDesktop) return largeDesktop;
     if (isDesktop) return desktop;
     if (isTablet) return tablet;
     return mobile;
+  };
+  
+  const getResponsiveFontSize = (base: number) => {
+    if (isLargeDesktop) return Math.round(base * 1.3);
+    if (isDesktop) return Math.round(base * 1.15);
+    if (isTablet) return Math.round(base * 1.05);
+    return base;
+  };
+  
+  const getResponsivePadding = (base: number) => {
+    if (isLargeDesktop) return base * 2;
+    if (isDesktop) return base * 1.5;
+    if (isTablet) return base * 1.25;
+    return base;
   };
   
   return StyleSheet.create({
@@ -2773,9 +2817,9 @@ const createStyles = () => {
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: Colors.secondary.bg,
-    borderRadius: DesignTokens.borderRadius.xl,
-    padding: DesignTokens.spacing.lg,
-    marginBottom: DesignTokens.spacing.lg,
+    borderRadius: getResponsiveSize(20, 22, 24),
+    padding: getResponsivePadding(DesignTokens.spacing.lg),
+    marginBottom: getResponsivePadding(DesignTokens.spacing.lg),
     borderWidth: 1,
     borderColor: Colors.card.border,
     ...DesignTokens.shadows.sm,
@@ -2786,20 +2830,21 @@ const createStyles = () => {
     flex: 1,
   },
   alwaysListenIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: getResponsiveSize(40, 48, 56),
+    height: getResponsiveSize(40, 48, 56),
+    borderRadius: getResponsiveSize(20, 24, 28),
     backgroundColor: Colors.card.bg,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: DesignTokens.spacing.md,
+    marginRight: getResponsivePadding(DesignTokens.spacing.md),
   },
   alwaysListenText: {
     flex: 1,
   },
   alwaysListenTitle: {
-    ...DesignTokens.typography.body.large,
+    fontSize: getResponsiveFontSize(17),
     fontWeight: "600" as const,
+    lineHeight: getResponsiveFontSize(24),
     color: Colors.primary.text,
   },
   alwaysListenSubtitle: {
@@ -2811,9 +2856,9 @@ const createStyles = () => {
     marginBottom: 32,
   },
   mainVoiceButton: {
-    width: 94,
-    height: 94,
-    borderRadius: 47,
+    width: getResponsiveSize(94, 112, 130, 150),
+    height: getResponsiveSize(94, 112, 130, 150),
+    borderRadius: getResponsiveSize(47, 56, 65, 75),
     backgroundColor: "#40C8E0",
     justifyContent: "center",
     alignItems: "center",
@@ -2828,10 +2873,11 @@ const createStyles = () => {
     shadowColor: Colors.danger,
   },
   voiceButtonHint: {
-    ...DesignTokens.typography.body.large,
+    fontSize: getResponsiveFontSize(17),
     fontWeight: "600" as const,
+    lineHeight: getResponsiveFontSize(24),
     color: Colors.primary.text,
-    marginTop: DesignTokens.spacing.md,
+    marginTop: getResponsivePadding(DesignTokens.spacing.md),
     textAlign: "center",
   },
   membershipCard: {
@@ -2974,35 +3020,40 @@ const createStyles = () => {
   },
   videoSelectionCard: {
     backgroundColor: Colors.secondary.bg,
-    borderRadius: DesignTokens.borderRadius.xxl,
-    padding: DesignTokens.spacing.xl,
+    borderRadius: getResponsiveSize(24, 28, 32),
+    padding: getResponsivePadding(DesignTokens.spacing.xl),
     alignItems: "center",
     width: '100%',
-    maxWidth: 400,
+    maxWidth: getResponsiveSize(400, 500, 600),
     borderWidth: 2,
     borderColor: Colors.card.border,
     borderStyle: "dashed",
   },
   videoSelectionIcon: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: getResponsiveSize(88, 104, 120),
+    height: getResponsiveSize(88, 104, 120),
+    borderRadius: getResponsiveSize(44, 52, 60),
     backgroundColor: Colors.accent.primary + '15',
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: DesignTokens.spacing.lg,
+    marginBottom: getResponsivePadding(DesignTokens.spacing.lg),
   },
   videoSelectionTitle: {
-    ...DesignTokens.typography.title.large,
+    fontSize: getResponsiveFontSize(22),
+    fontWeight: '600' as const,
+    lineHeight: getResponsiveFontSize(28),
     color: Colors.primary.text,
     textAlign: "center",
-    marginBottom: DesignTokens.spacing.sm,
+    marginBottom: getResponsivePadding(DesignTokens.spacing.sm),
   },
   videoSelectionSubtitle: {
-    ...DesignTokens.typography.body.medium,
+    fontSize: getResponsiveFontSize(15),
+    fontWeight: '400' as const,
+    lineHeight: getResponsiveFontSize(22),
     color: Colors.primary.textSecondary,
     textAlign: "center",
-    marginBottom: DesignTokens.spacing.lg,
+    marginBottom: getResponsivePadding(DesignTokens.spacing.lg),
+    paddingHorizontal: getResponsivePadding(8),
   },
   selectVideoButton: {
     flexDirection: "row",
@@ -3247,8 +3298,8 @@ const createStyles = () => {
   },
   statsCard: {
     backgroundColor: Colors.secondary.bg,
-    borderRadius: DesignTokens.borderRadius.xxl,
-    padding: DesignTokens.spacing.lg,
+    borderRadius: getResponsiveSize(24, 28, 32),
+    padding: getResponsivePadding(DesignTokens.spacing.lg),
     marginBottom: 0,
     borderWidth: 1,
     borderColor: Colors.card.border,
@@ -3264,12 +3315,16 @@ const createStyles = () => {
     alignItems: "center",
   },
   statValue: {
-    ...DesignTokens.typography.display.large,
+    fontSize: getResponsiveFontSize(34),
+    fontWeight: '700' as const,
+    lineHeight: getResponsiveFontSize(40),
     color: Colors.primary.text,
-    marginBottom: DesignTokens.spacing.xs,
+    marginBottom: getResponsivePadding(DesignTokens.spacing.xs),
   },
   statLabel: {
-    ...DesignTokens.typography.body.small,
+    fontSize: getResponsiveFontSize(13),
+    fontWeight: '400' as const,
+    lineHeight: getResponsiveFontSize(20),
     color: Colors.primary.textSecondary,
     textAlign: "center",
   },
@@ -3331,8 +3386,8 @@ const createStyles = () => {
   },
   commandCard: {
     backgroundColor: Colors.secondary.bg,
-    borderRadius: DesignTokens.borderRadius.xl,
-    marginBottom: DesignTokens.spacing.md,
+    borderRadius: getResponsiveSize(20, 22, 24),
+    marginBottom: getResponsivePadding(DesignTokens.spacing.md),
     borderWidth: 1,
     borderColor: Colors.card.border,
     overflow: "hidden",
@@ -3344,25 +3399,28 @@ const createStyles = () => {
     padding: DesignTokens.spacing.lg,
   },
   commandIconWrapper: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: getResponsiveSize(44, 52, 60),
+    height: getResponsiveSize(44, 52, 60),
+    borderRadius: getResponsiveSize(22, 26, 30),
     backgroundColor: Colors.accent.primary + '15',
     justifyContent: "center",
     alignItems: "center",
-    marginRight: DesignTokens.spacing.md,
+    marginRight: getResponsivePadding(DesignTokens.spacing.md),
   },
   commandCardContent: {
     flex: 1,
   },
   commandCardTitle: {
-    ...DesignTokens.typography.body.large,
+    fontSize: getResponsiveFontSize(17),
     fontWeight: "600" as const,
+    lineHeight: getResponsiveFontSize(24),
     color: Colors.primary.text,
-    marginBottom: DesignTokens.spacing.xs,
+    marginBottom: getResponsivePadding(DesignTokens.spacing.xs),
   },
   commandCardSubtitle: {
-    ...DesignTokens.typography.body.small,
+    fontSize: getResponsiveFontSize(13),
+    fontWeight: '400' as const,
+    lineHeight: getResponsiveFontSize(20),
     color: Colors.primary.textSecondary,
   },
   commandCardArrow: {
@@ -3481,25 +3539,30 @@ const createStyles = () => {
     marginBottom: DesignTokens.spacing.xl,
   },
   micIconCircleNonVideo: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: getResponsiveSize(64, 72, 80, 96),
+    height: getResponsiveSize(64, 72, 80, 96),
+    borderRadius: getResponsiveSize(32, 36, 40, 48),
     backgroundColor: Colors.accent.primary + '15',
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
-    marginBottom: DesignTokens.spacing.md,
+    marginBottom: getResponsivePadding(DesignTokens.spacing.md),
   },
   voiceControlHeaderTitleNonVideo: {
-    ...DesignTokens.typography.display.medium,
+    fontSize: getResponsiveFontSize(28),
+    fontWeight: '600' as const,
+    lineHeight: getResponsiveFontSize(34),
     color: Colors.primary.text,
     textAlign: 'center' as const,
-    marginBottom: DesignTokens.spacing.sm,
+    marginBottom: getResponsivePadding(DesignTokens.spacing.sm),
   },
   voiceControlHeaderSubtitleNonVideo: {
-    ...DesignTokens.typography.body.large,
+    fontSize: getResponsiveFontSize(17),
+    fontWeight: '400' as const,
+    lineHeight: getResponsiveFontSize(24),
     color: Colors.primary.textSecondary,
     textAlign: 'center' as const,
     marginBottom: 0,
+    paddingHorizontal: getResponsivePadding(16),
   },
 
   });

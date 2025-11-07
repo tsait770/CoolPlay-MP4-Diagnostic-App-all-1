@@ -122,7 +122,7 @@ export default function FavoritesScreen() {
                 </View>
                 <Text style={styles.walletsTitle}>Bitcoin Secure Key</Text>
                 <View style={styles.walletList}>
-              {wallets.map((wallet) => (
+                  {wallets.map((wallet) => (
                 <View key={wallet.id} style={styles.walletItem}>
                   <View style={styles.walletInfo}>
                     <Text style={styles.walletName}>{wallet.name}</Text>
@@ -152,42 +152,42 @@ export default function FavoritesScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
-              ))}
+                  ))}
                 </View>
                 <View style={styles.walletButtonRow}>
-              <TouchableOpacity
-                style={[styles.walletButton, styles.walletButtonAdd]}
-                onPress={handleAddWallet}
-                activeOpacity={0.95}
-              >
-                <Plus size={24} color="#999" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.walletButtonImportWrapper}
-                onPress={handleImportWallet}
-                activeOpacity={0.95}
-              >
-                <LinearGradient
-                  colors={['rgba(232, 28, 255, 0)', 'rgba(232, 28, 255, 0)', '#e81cff', '#40c9ff']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  locations={[0, 0.35, 0.7, 1]}
-                  style={styles.walletButtonImportGradient}
-                >
-                  <View style={styles.walletButtonImport}>
-                    <Text style={styles.walletButtonText}>Import</Text>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.walletButton, styles.walletButtonAdd]}
+                    onPress={handleAddWallet}
+                    activeOpacity={0.95}
+                  >
+                    <Plus size={24} color="#999" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.walletButtonImportWrapper}
+                    onPress={handleImportWallet}
+                    activeOpacity={0.95}
+                  >
+                    <LinearGradient
+                      colors={['rgba(232, 28, 255, 0)', 'rgba(232, 28, 255, 0)', '#e81cff', '#40c9ff']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      locations={[0, 0.35, 0.7, 1]}
+                      style={styles.walletButtonImportGradient}
+                    >
+                      <View style={styles.walletButtonImport}>
+                        <Text style={styles.walletButtonText}>Import</Text>
+                      </View>
+                    </LinearGradient>
+                  </TouchableOpacity>
                 </View>
                 <TextInput
-              style={styles.walletInput}
-              value={importKey}
-              onChangeText={setImportKey}
-              placeholder="Enter mnemonic, xprv or paste private key"
-              placeholderTextColor="#666"
-              multiline
-            />
+                  style={styles.walletInput}
+                  value={importKey}
+                  onChangeText={setImportKey}
+                  placeholder="Enter mnemonic, xprv or paste private key"
+                  placeholderTextColor="#666"
+                  multiline
+                />
               </View>
             </LinearGradient>
           </View>

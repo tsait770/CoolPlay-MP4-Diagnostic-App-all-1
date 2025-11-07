@@ -10,7 +10,7 @@ export default function SettingsLayout() {
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: Colors.secondary.bg,
+          backgroundColor: Colors.primary.bg,
         },
         headerTintColor: Colors.primary.text,
         headerTitleStyle: {
@@ -22,7 +22,7 @@ export default function SettingsLayout() {
         headerBackTitle: t("back"),
         headerBackVisible: true,
         contentStyle: {
-          backgroundColor: Colors.secondary.bg,
+          backgroundColor: Colors.primary.bg,
         },
       }}
     >

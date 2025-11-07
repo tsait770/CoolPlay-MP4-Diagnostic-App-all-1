@@ -93,7 +93,7 @@ export default function FavoritesScreen() {
     <TouchableOpacity key={bookmark.id} style={styles.bookmarkItem}>
       <View style={styles.bookmarkContent}>
         <Heart size={20} color={Colors.danger} fill={Colors.danger} />
-        <View style={styles.bookmarkInfo}>
+        <View style={[styles.bookmarkInfo, { marginLeft: 12 }]}>
           <Text style={styles.bookmarkTitle}>{bookmark.title}</Text>
           <Text style={styles.bookmarkUrl} numberOfLines={1}>{bookmark.url}</Text>
         </View>
@@ -225,7 +225,7 @@ export default function FavoritesScreen() {
           >
             <View style={styles.managementContent}>
               <Edit2 size={20} color={Colors.primary.accent} />
-              <View style={styles.managementTextContainer}>
+              <View style={[styles.managementTextContainer, { marginLeft: 12 }]}>
                 <Text style={styles.managementText}>{t('manage_categories')}</Text>
                 <Text style={styles.managementSubtext}>
                   {getTotalVisibleFolderCount()} {t('categories')}
@@ -334,17 +334,16 @@ const styles = StyleSheet.create({
   },
   walletActions: {
     flexDirection: 'row',
-    gap: 12,
   },
   walletActionButton: {
     width: 36,
     height: 36,
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 12,
   },
   walletButtonRow: {
     flexDirection: 'row',
-    gap: 12,
     marginBottom: 16,
   },
   walletButton: {
@@ -358,6 +357,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#313131',
     borderWidth: 1,
     borderColor: '#414141',
+    marginRight: 12,
   },
   walletButtonImportWrapper: {
     flex: 1,
@@ -404,7 +404,6 @@ const styles = StyleSheet.create({
   bookmarkContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
     flex: 1,
   },
   bookmarkInfo: {
@@ -434,7 +433,6 @@ const styles = StyleSheet.create({
   managementContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
     flex: 1,
   },
   managementTextContainer: {

@@ -215,34 +215,30 @@ export default function UniversalVideoPlayer({
     };
   }, [player, autoPlay, onPlaybackStart, onError, url, sourceInfo.type, sourceInfo.platform]);
 
-  const getYouTubeEmbedUrl = (videoId: string): string => {
-    const params = new URLSearchParams({
+  const getYouTubeEmbedUrl = (videoId: string, attempt: number = 0): string => {
+    const baseParams = {
       autoplay: autoPlay ? '1' : '0',
       playsinline: '1',
       rel: '0',
       modestbranding: '1',
       fs: '1',
-      iv_load_policy: '3',
-      enablejsapi: '1',
       controls: '1',
-      showinfo: '0',
+      enablejsapi: '1',
+      html5: '1',
+      iv_load_policy: '3',
       cc_load_policy: '0',
       disablekb: '0',
-      origin: window.location.origin || 'https://rork.app',
-      html5: '1',
       wmode: 'transparent',
-    });
+    };
+    
+    const origin = typeof window !== 'undefined' && window.location ? window.location.origin : 'https://rork.app';
+    const params = new URLSearchParams({ ...baseParams, origin });
+    
     return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
   };
 
   const getYouTubeWebPlayerUrl = (videoId: string): string => {
-    const params = new URLSearchParams({
-      v: videoId,
-      autoplay: autoPlay ? '1' : '0',
-      html5: '1',
-      app: 'desktop',
-    });
-    return `https://www.youtube.com/watch?${params.toString()}`;
+    return `https://www.youtube.com/watch?v=${videoId}&autoplay=${autoPlay ? '1' : '0'}&html5=1`;
   };
 
   const getYouTubeNoEmbedUrl = (videoId: string): string => {
@@ -253,19 +249,21 @@ export default function UniversalVideoPlayer({
       modestbranding: '1',
       controls: '1',
       fs: '1',
-      enablejsapi: '0',
-      origin: window.location.origin || 'https://rork.app',
       html5: '1',
     });
     return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
   };
 
   const getYouTubeMobileUrl = (videoId: string): string => {
-    return `https://m.youtube.com/watch?v=${videoId}&autoplay=${autoPlay ? '1' : '0'}&app=m`;
+    return `https://m.youtube.com/watch?v=${videoId}&autoplay=${autoPlay ? '1' : '0'}`;
   };
 
   const getInvidiousUrl = (videoId: string): string => {
-    return `https://invidious.io.lol/embed/${videoId}?autoplay=${autoPlay ? '1' : '0'}`;
+    return `https://yewtu.be/embed/${videoId}?autoplay=${autoPlay ? '1' : '0'}`;
+  };
+
+  const getYouTubeDirectUrl = (videoId: string): string => {
+    return `https://www.youtube.com/embed/${videoId}?enablejsapi=0&autoplay=${autoPlay ? '1' : '0'}&controls=1&fs=1&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3`;
   };
 
   const getVimeoEmbedUrl = (videoId: string): string => {
@@ -320,31 +318,53 @@ export default function UniversalVideoPlayer({
     let injectedJavaScript = '';
 
     if (sourceInfo.type === 'youtube' && sourceInfo.videoId) {
-      console.log('[UniversalVideoPlayer] Rendering YouTube with videoId:', sourceInfo.videoId, 'retry:', retryCount);
-      console.log('[UniversalVideoPlayer] YouTube Error Code 4 Detection System Active');
+      console.log('[UniversalVideoPlayer] === YouTube Playback System ===' );
+      console.log('[UniversalVideoPlayer] Video ID:', sourceInfo.videoId);
+      console.log('[UniversalVideoPlayer] Retry attempt:', retryCount + 1, '/', maxRetries + 1);
+      console.log('[UniversalVideoPlayer] Error Code 4 Detection: ACTIVE');
       
-      // Progressive fallback strategy for YouTube Error Code 4 (5 attempts)
-      if (retryCount === 0) {
-        embedUrl = getYouTubeEmbedUrl(sourceInfo.videoId);
-        console.log('[UniversalVideoPlayer] Using Standard YouTube Embed (Attempt 1/5)');
-      } else if (retryCount === 1) {
-        embedUrl = getYouTubeNoEmbedUrl(sourceInfo.videoId);
-        console.log('[UniversalVideoPlayer] Using YouTube NoCookie Domain (Attempt 2/5)');
-      } else if (retryCount === 2) {
-        embedUrl = getYouTubeWebPlayerUrl(sourceInfo.videoId);
-        console.log('[UniversalVideoPlayer] Using YouTube Watch Page (Attempt 3/5)');
-      } else if (retryCount === 3) {
-        embedUrl = getYouTubeMobileUrl(sourceInfo.videoId);
-        console.log('[UniversalVideoPlayer] Using YouTube Mobile URL (Attempt 4/5)');
-      } else {
-        embedUrl = getInvidiousUrl(sourceInfo.videoId);
-        console.log('[UniversalVideoPlayer] Using Invidious Mirror (Attempt 5/5)');
-      }
+      const strategies = [
+        { url: getYouTubeEmbedUrl(sourceInfo.videoId, 0), name: 'Standard YouTube Embed' },
+        { url: getYouTubeNoEmbedUrl(sourceInfo.videoId), name: 'YouTube NoCookie Domain' },
+        { url: getYouTubeDirectUrl(sourceInfo.videoId), name: 'YouTube Direct Embed' },
+        { url: getYouTubeMobileUrl(sourceInfo.videoId), name: 'YouTube Mobile URL' },
+        { url: getInvidiousUrl(sourceInfo.videoId), name: 'Alternative Frontend (Invidious)' },
+      ];
       
-      console.log('[UniversalVideoPlayer] YouTube embed URL:', embedUrl);
-      console.log('[UniversalVideoPlayer] Video availability check: Starting load...');
+      const strategy = strategies[Math.min(retryCount, strategies.length - 1)];
+      embedUrl = strategy.url;
+      
+      console.log('[UniversalVideoPlayer] Strategy:', strategy.name);
+      console.log('[UniversalVideoPlayer] Embed URL:', embedUrl);
+      console.log('[UniversalVideoPlayer] Starting load sequence...');
+      
+      injectedJavaScript = `
+        (function() {
+          console.log('[YouTube Player] Iframe loaded successfully');
+          console.log('[YouTube Player] Video ID: ${sourceInfo.videoId}');
+          console.log('[YouTube Player] URL: ${embedUrl}');
+          
+          window.addEventListener('error', function(e) {
+            console.error('[YouTube Player] Error detected:', e.message);
+          });
+          
+          var checkVideo = setInterval(function() {
+            var iframe = document.querySelector('iframe');
+            var video = document.querySelector('video');
+            if (iframe || video) {
+              console.log('[YouTube Player] Player element detected');
+              clearInterval(checkVideo);
+            }
+          }, 500);
+          
+          setTimeout(function() {
+            clearInterval(checkVideo);
+          }, 10000);
+        })();
+      `;
     } else if (sourceInfo.type === 'vimeo' && sourceInfo.videoId) {
       embedUrl = getVimeoEmbedUrl(sourceInfo.videoId);
+      console.log('[UniversalVideoPlayer] Vimeo embed URL:', embedUrl);
     } else if (sourceInfo.type === 'adult') {
       injectedJavaScript = `
         (function() {
@@ -362,7 +382,7 @@ export default function UniversalVideoPlayer({
       `;
     }
 
-    console.log('[UniversalVideoPlayer] Rendering WebView for:', embedUrl, 'retry:', retryCount);
+    console.log('[UniversalVideoPlayer] WebView rendering for:', sourceInfo.platform || 'Unknown');
 
     return (
       <WebView
@@ -371,21 +391,25 @@ export default function UniversalVideoPlayer({
           uri: embedUrl,
           headers: sourceInfo.type === 'youtube' ? {
             'User-Agent': retryCount >= 3 
-              ? 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
-              : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Referer': retryCount <= 1 ? 'https://www.youtube.com/' : 'https://www.google.com/',
+              ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+              : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Referer': 'https://www.youtube.com/',
             'DNT': '1',
+            'Sec-Fetch-Dest': 'iframe',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'cross-site',
           } : sourceInfo.type === 'adult' ? {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
             'Accept-Encoding': 'gzip, deflate, br',
             'DNT': '1',
             'Upgrade-Insecure-Requests': '1',
           } : {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
           }
@@ -403,31 +427,41 @@ export default function UniversalVideoPlayer({
         cacheEnabled={sourceInfo.type !== 'adult'}
         incognito={sourceInfo.type === 'adult'}
         // YouTube 特定配置
-        allowsProtectedMedia
-        allowFileAccess
+        allowsProtectedMedia={true}
+        allowFileAccess={true}
+        allowFileAccessFromFileURLs={true}
+        allowUniversalAccessFromFileURLs={true}
         scalesPageToFit={false}
         bounces={true}
-        scrollEnabled={true}
+        scrollEnabled={sourceInfo.type !== 'youtube'}
         automaticallyAdjustContentInsets={false}
         contentInset={{ top: 0, left: 0, bottom: 0, right: 0 }}
         webviewDebuggingEnabled={__DEV__}
         injectedJavaScript={injectedJavaScript || `
           (function() {
-            document.body.style.margin = '0';
-            document.body.style.padding = '0';
-            document.body.style.overflow = 'auto';
-            document.documentElement.style.overflow = 'auto';
-            
-            var style = document.createElement('style');
-            style.innerHTML = '* { -webkit-overflow-scrolling: touch !important; }';
-            document.head.appendChild(style);
+            try {
+              document.body.style.margin = '0';
+              document.body.style.padding = '0';
+              document.body.style.overflow = 'hidden';
+              document.documentElement.style.overflow = 'hidden';
+              
+              var style = document.createElement('style');
+              style.innerHTML = '* { -webkit-overflow-scrolling: touch !important; } body { overscroll-behavior: contain; }';
+              if (document.head) {
+                document.head.appendChild(style);
+              }
+              
+              console.log('[WebView] Page styles injected successfully');
+            } catch(e) {
+              console.error('[WebView] Failed to inject styles:', e);
+            }
           })();
         `}
         startInLoadingState
         renderLoading={() => (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={Colors.primary.accent} />
-            <Text style={styles.loadingText}>Loading {sourceInfo.platform || 'video'}...</Text>
+            <Text style={styles.loadingText}>{`Loading ${sourceInfo.platform || 'video'}...`}</Text>
           </View>
         )}
         onLoadStart={() => {

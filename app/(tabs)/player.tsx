@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   StyleSheet,
   Text,
@@ -141,13 +140,6 @@ export default function PlayerScreen() {
   const [commandName, setCommandName] = useState("");
   const [showUrlModal, setShowUrlModal] = useState(false);
   const [isContentLoaded, setIsContentLoaded] = useState(false);
-  const [floatingBallSettings, setFloatingBallSettings] = useState({
-    isEnabled: true,
-    opacity: 0.9,
-    tripleTapToggle: true,
-  });
-  const [volumeStep, setVolumeStep] = useState(0);
-  const [speedIndex, setSpeedIndex] = useState(1);
 
   const [commandAction, setCommandAction] = useState("");
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -199,21 +191,6 @@ export default function PlayerScreen() {
       console.error('Error setting video speed:', error);
     }
   }, [videoPlayer]);
-
-  // Load floating ball settings
-  useEffect(() => {
-    const loadFloatingBallSettings = async () => {
-      try {
-        const stored = await AsyncStorage.getItem('@floating_ball_settings');
-        if (stored) {
-          setFloatingBallSettings(JSON.parse(stored));
-        }
-      } catch (error) {
-        console.error('Failed to load floating ball settings:', error);
-      }
-    };
-    loadFloatingBallSettings();
-  }, []);
 
   // Initialize permissions and Siri integration
   useEffect(() => {
@@ -1035,57 +1012,6 @@ export default function PlayerScreen() {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  // Floating Ball control handlers
-  const handleVolumePress = useCallback(async () => {
-    if (!videoPlayer) return;
-    try {
-      let newVolume = volume;
-      if (volumeStep === 0) {
-        newVolume = volume * 0.5;
-      } else {
-        newVolume = Math.max(0, volume - 0.1);
-      }
-      setVideoVolume(newVolume);
-      setVolumeStep((prev) => prev + 1);
-    } catch (error) {
-      console.error('Error adjusting volume:', error);
-    }
-  }, [videoPlayer, volume, volumeStep, setVideoVolume]);
-
-  const handleVolumeLongPress = useCallback(async () => {
-    if (!videoPlayer) return;
-    try {
-      videoPlayer.muted = true;
-      setIsMuted(true);
-      setVolumeStep(0);
-    } catch (error) {
-      console.error('Error muting video:', error);
-    }
-  }, [videoPlayer]);
-
-  const handleSpeedPress = useCallback(async () => {
-    if (!videoPlayer) return;
-    const speeds = [0.5, 1.0, 1.25, 1.5, 2.0];
-    const nextIndex = (speedIndex + 1) % speeds.length;
-    const newSpeed = speeds[nextIndex];
-    try {
-      setVideoSpeed(newSpeed);
-      setSpeedIndex(nextIndex);
-    } catch (error) {
-      console.error('Error changing speed:', error);
-    }
-  }, [videoPlayer, speedIndex, setVideoSpeed]);
-
-  const handleSpeedLongPress = useCallback(async () => {
-    if (!videoPlayer) return;
-    try {
-      setVideoSpeed(2.0);
-      setSpeedIndex(4);
-    } catch (error) {
-      console.error('Error setting speed to 2x:', error);
-    }
-  }, [videoPlayer, setVideoSpeed]);
-
   const handleBackPress = () => {
     Animated.sequence([
       Animated.timing(backButtonScale, {
@@ -1499,27 +1425,29 @@ export default function PlayerScreen() {
           </View>
         )}
 
-        {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && floatingBallSettings.isEnabled && (
+        {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
           <PlayStationController
-            onPlayPausePress={togglePlayPause}
-            onVoicePress={async () => {
-              if (isVoiceActive || isVoiceListening || alwaysListening) {
+            onCrossPress={async () => {
+              // Main button toggles Always Listen
+              await toggleAlwaysListening();
+            }}
+            onCirclePress={async () => {
+              // Circle button stops listening
+              if (isVoiceActive || isVoiceListening) {
                 await stopVoiceRecording();
-              } else {
-                await startVoiceRecording();
               }
             }}
-            onVolumePress={handleVolumePress}
-            onVolumeLongPress={handleVolumeLongPress}
-            onSpeedPress={handleSpeedPress}
-            onSpeedLongPress={handleSpeedLongPress}
+            onTrianglePress={togglePlayPause}
+            onSquarePress={() => {
+              if (videoPlayer) {
+                videoPlayer.currentTime = 0;
+                if (typeof videoPlayer.play === 'function') {
+                  videoPlayer.play();
+                }
+              }
+            }}
             containerHeight={Dimensions.get('window').height}
             isVoiceActive={alwaysListening || isVoiceListening}
-            isPlaying={isPlaying}
-            currentVolume={volume}
-            currentSpeed={playbackRate}
-            isVisible={floatingBallSettings.isEnabled}
-            opacity={floatingBallSettings.opacity}
           />
         )}
 

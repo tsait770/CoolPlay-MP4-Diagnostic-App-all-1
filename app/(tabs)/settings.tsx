@@ -27,7 +27,6 @@ import {
   Settings as SettingsIcon,
   Code,
   TestTube,
-  Circle,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import Colors from "@/constants/colors";
@@ -165,7 +164,6 @@ export default function SettingsScreen() {
         { icon: Mic, label: t("voice_settings"), route: "/settings/voice/index" },
         { icon: Mic, label: t("custom_commands"), route: "/settings/voice/commands" },
         { icon: Mic, label: t("siri_voice_assistant"), route: "/settings/voice/assistant" },
-        { icon: Circle, label: t("floating_ball_control"), route: "/settings/floating-ball/index" },
       ],
     },
     {

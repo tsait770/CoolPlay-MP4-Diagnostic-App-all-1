@@ -58,8 +58,9 @@ export default function PlayStationController({
   const pulseAnim = useRef(new Animated.Value(1)).current;
   
   // Default position: bottom right corner, above toolbar
-  const defaultX = SCREEN_WIDTH - 110;
-  const defaultY = containerHeight - 140;
+  // Ensure visible positioning
+  const defaultX = SCREEN_WIDTH - 120;
+  const defaultY = containerHeight - 160;
   
   const pan = useRef(
     new Animated.ValueXY({

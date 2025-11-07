@@ -56,9 +56,9 @@ export default function TabLayout() {
       ),
     },
     favorites: {
-      title: t("favorites"),
+      title: t("bitcoin_wallet"),
       tabBarIcon: ({ color }: { color: string }) => (
-        <Ionicons name="star-outline" size={24} color={color} />
+        <Ionicons name="logo-bitcoin" size={24} color={color} />
       ),
     },
     player: {

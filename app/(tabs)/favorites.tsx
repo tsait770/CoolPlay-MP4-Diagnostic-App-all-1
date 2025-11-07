@@ -16,14 +16,19 @@ import {
 import { useTranslation } from '@/hooks/useTranslation';
 import { useBookmarks } from '@/providers/BookmarkProvider';
 import { useCategories } from '@/providers/CategoryProvider';
+import { useBitcoinWallet } from '@/providers/BitcoinWalletProvider';
 import CategoryManagement from '@/components/CategoryManagement';
-import { Folder, ChevronRight, Trash2, FolderPlus, Edit2, Heart, BookOpen } from 'lucide-react-native';
+import BitcoinWalletCard from '@/components/BitcoinWalletCard';
+import CreateWalletModal from '@/components/CreateWalletModal';
+import ImportWalletModal from '@/components/ImportWalletModal';
+import { Folder, ChevronRight, Trash2, FolderPlus, Edit2, Heart, BookOpen, Plus, Upload } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 
 export default function FavoritesScreen() {
   const { t } = useTranslation();
   const { bookmarks, addFolder, deleteFolder, editFolder, deleteAllFolders, getFoldersByCategory, getBookmarksByFolder } = useBookmarks();
   const { categories, getVisibleCategories, getTotalVisibleFolderCount } = useCategories();
+  const { wallets, loading: walletsLoading } = useBitcoinWallet();
   const [showAddFolderModal, setShowAddFolderModal] = useState(false);
   const [showEditFolderModal, setShowEditFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -32,6 +37,8 @@ export default function FavoritesScreen() {
   const [addFolderCategory, setAddFolderCategory] = useState<string | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [showCategoryManagement, setShowCategoryManagement] = useState(false);
+  const [showCreateWallet, setShowCreateWallet] = useState(false);
+  const [showImportWallet, setShowImportWallet] = useState(false);
   
   const { width: screenWidth } = useWindowDimensions();
   const isTablet = screenWidth >= 768;
@@ -181,6 +188,54 @@ export default function FavoritesScreen() {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.bitcoinSection}>
+          <View style={styles.bitcoinHeader}>
+            <View style={styles.bitcoinTitleRow}>
+              <Text style={styles.bitcoinTitle}>{t('bitcoin_wallets')}</Text>
+              <View style={styles.bitcoinBadge}>
+                <Text style={styles.bitcoinBadgeText}>₿</Text>
+              </View>
+            </View>
+            <Text style={styles.bitcoinSubtitle}>{t('secure_key_management')}</Text>
+          </View>
+
+          {walletsLoading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>{t('loading')}</Text>
+            </View>
+          ) : wallets.length > 0 ? (
+            <View style={styles.walletsContainer}>
+              {wallets.map((wallet) => (
+                <BitcoinWalletCard key={wallet.id} wallet={wallet} />
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyWalletsContainer}>
+              <Text style={styles.emptyWalletsText}>{t('no_wallets_yet')}</Text>
+              <Text style={styles.emptyWalletsSubtext}>{t('create_or_import_wallet')}</Text>
+            </View>
+          )}
+
+          <View style={styles.bitcoinActions}>
+            <TouchableOpacity
+              style={styles.bitcoinActionButton}
+              onPress={() => setShowCreateWallet(true)}
+              activeOpacity={0.7}
+            >
+              <Plus size={20} color="#212121" />
+              <Text style={styles.bitcoinActionText}>{t('create_wallet')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.bitcoinActionButton, styles.bitcoinActionButtonSecondary]}
+              onPress={() => setShowImportWallet(true)}
+              activeOpacity={0.7}
+            >
+              <Upload size={20} color="#fff" />
+              <Text style={[styles.bitcoinActionText, styles.bitcoinActionTextSecondary]}>{t('import_wallet')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <View style={styles.section}>
           <View style={styles.sectionHeaderContainer}>
             <Text style={styles.sectionTitle}>{t('bookmark_folders')}</Text>
@@ -396,6 +451,16 @@ export default function FavoritesScreen() {
         visible={showCategoryManagement}
         onClose={() => setShowCategoryManagement(false)}
       />
+
+      <CreateWalletModal
+        visible={showCreateWallet}
+        onClose={() => setShowCreateWallet(false)}
+      />
+
+      <ImportWalletModal
+        visible={showImportWallet}
+        onClose={() => setShowImportWallet(false)}
+      />
     </View>
   );
 }
@@ -404,6 +469,104 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.primary.bg,
+  },
+  bitcoinSection: {
+    padding: 20,
+    paddingBottom: 10,
+    backgroundColor: '#0a0a0a',
+  },
+  bitcoinHeader: {
+    marginBottom: 20,
+  },
+  bitcoinTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  bitcoinTitle: {
+    fontSize: 28,
+    fontWeight: '700' as const,
+    color: '#fff',
+    marginRight: 12,
+  },
+  bitcoinBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F57C4D',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bitcoinBadgeText: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#fff',
+  },
+  bitcoinSubtitle: {
+    fontSize: 14,
+    color: '#999',
+  },
+  walletsContainer: {
+    marginBottom: 16,
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  loadingText: {
+    color: '#999',
+    fontSize: 14,
+  },
+  emptyWalletsContainer: {
+    padding: 40,
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: '#323232',
+    borderStyle: 'dashed',
+  },
+  emptyWalletsText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#999',
+    marginBottom: 8,
+  },
+  emptyWalletsSubtext: {
+    fontSize: 13,
+    color: '#666',
+    textAlign: 'center' as const,
+  },
+  bitcoinActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  bitcoinActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  bitcoinActionButtonSecondary: {
+    backgroundColor: '#323232',
+    borderWidth: 1,
+    borderColor: '#414141',
+  },
+  bitcoinActionText: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#212121',
+  },
+  bitcoinActionTextSecondary: {
+    color: '#fff',
   },
   section: {
     padding: 20,

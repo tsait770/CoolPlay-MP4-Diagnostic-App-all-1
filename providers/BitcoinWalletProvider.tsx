@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import CryptoJS from 'crypto-js';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './AuthProvider';
@@ -60,6 +61,24 @@ const BIOMETRIC_PREF = 'bitcoin_wallet_biometric';
 const AUTO_LOCK_PREF = 'bitcoin_wallet_auto_lock';
 const CLIPBOARD_PREF = 'bitcoin_wallet_clipboard';
 
+const secureStorage = {
+  getItem: async (key: string): Promise<string | null> => {
+    if (Platform.OS === 'web') {
+      return await AsyncStorage.getItem(key);
+    }
+    return await SecureStore.getItemAsync(key);
+  },
+  setItem: async (key: string, value: string): Promise<void> => {
+    if (Platform.OS === 'web') {
+      await AsyncStorage.setItem(key, value);
+    } else {
+      await SecureStore.setItemAsync(key, value, {
+        keychainAccessible: SecureStore.WHEN_UNLOCKED,
+      });
+    }
+  },
+};
+
 export function BitcoinWalletProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [wallets, setWallets] = useState<BitcoinWallet[]>([]);
@@ -70,12 +89,10 @@ export function BitcoinWalletProvider({ children }: { children: React.ReactNode 
 
   const getOrCreateDeviceKey = useCallback(async (): Promise<string> => {
     try {
-      let key = await SecureStore.getItemAsync(DEVICE_KEY);
+      let key = await secureStorage.getItem(DEVICE_KEY);
       if (!key) {
         key = CryptoJS.lib.WordArray.random(32).toString();
-        await SecureStore.setItemAsync(DEVICE_KEY, key, {
-          keychainAccessible: SecureStore.WHEN_UNLOCKED,
-        });
+        await secureStorage.setItem(DEVICE_KEY, key);
       }
       return key;
     } catch (error) {
@@ -130,6 +147,7 @@ export function BitcoinWalletProvider({ children }: { children: React.ReactNode 
   }, [getOrCreateDeviceKey]);
 
   const authenticateUser = useCallback(async (): Promise<boolean> => {
+    if (Platform.OS === 'web') return true;
     if (!biometricEnabled) return true;
 
     try {
@@ -340,28 +358,32 @@ export function BitcoinWalletProvider({ children }: { children: React.ReactNode 
 
   const setBiometricEnabled = useCallback(async (enabled: boolean) => {
     setBiometricEnabledState(enabled);
-    await SecureStore.setItemAsync(BIOMETRIC_PREF, enabled.toString());
+    await secureStorage.setItem(BIOMETRIC_PREF, enabled.toString());
   }, []);
 
   const setAutoLockTimeout = useCallback(async (timeout: number) => {
     setAutoLockTimeoutState(timeout);
-    await SecureStore.setItemAsync(AUTO_LOCK_PREF, timeout.toString());
+    await secureStorage.setItem(AUTO_LOCK_PREF, timeout.toString());
   }, []);
 
   const setClipboardClearTime = useCallback(async (time: number) => {
     setClipboardClearTimeState(time);
-    await SecureStore.setItemAsync(CLIPBOARD_PREF, time.toString());
+    await secureStorage.setItem(CLIPBOARD_PREF, time.toString());
   }, []);
 
   useEffect(() => {
     const loadPreferences = async () => {
-      const bio = await SecureStore.getItemAsync(BIOMETRIC_PREF);
-      const lock = await SecureStore.getItemAsync(AUTO_LOCK_PREF);
-      const clip = await SecureStore.getItemAsync(CLIPBOARD_PREF);
+      try {
+        const bio = await secureStorage.getItem(BIOMETRIC_PREF);
+        const lock = await secureStorage.getItem(AUTO_LOCK_PREF);
+        const clip = await secureStorage.getItem(CLIPBOARD_PREF);
 
-      if (bio !== null) setBiometricEnabledState(bio === 'true');
-      if (lock !== null) setAutoLockTimeoutState(parseInt(lock));
-      if (clip !== null) setClipboardClearTimeState(parseInt(clip));
+        if (bio !== null) setBiometricEnabledState(bio === 'true');
+        if (lock !== null) setAutoLockTimeoutState(parseInt(lock));
+        if (clip !== null) setClipboardClearTimeState(parseInt(clip));
+      } catch (error) {
+        console.error('[BitcoinWallet] Error loading preferences:', error);
+      }
     };
 
     loadPreferences();

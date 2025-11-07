@@ -10,6 +10,7 @@ import {
   Platform,
   FlatList,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useBookmarks } from '@/providers/BookmarkProvider';
 import { useCategories } from '@/providers/CategoryProvider';
@@ -103,7 +104,15 @@ export default function FavoritesScreen() {
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.walletSection}>
-          <View style={styles.walletCard}>
+          <View style={styles.walletCardOuter}>
+            <LinearGradient
+              colors={['rgba(232, 28, 255, 0)', 'rgba(232, 28, 255, 0)', '#e81cff', '#40c9ff']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              locations={[0, 0.35, 0.7, 1]}
+              style={styles.walletCardGradient}
+            >
+              <View style={styles.walletCard}>
             <View style={styles.bitcoinIconContainer}>
               <View style={styles.bitcoinIcon}>
                 <Text style={styles.bitcoinSymbol}>₿</Text>
@@ -150,16 +159,26 @@ export default function FavoritesScreen() {
               <TouchableOpacity
                 style={[styles.walletButton, styles.walletButtonAdd]}
                 onPress={handleAddWallet}
-                activeOpacity={0.7}
+                activeOpacity={0.95}
               >
                 <Plus size={24} color="#999" />
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.walletButton, styles.walletButtonImport]}
+                style={styles.walletButtonImportWrapper}
                 onPress={handleImportWallet}
-                activeOpacity={0.7}
+                activeOpacity={0.95}
               >
-                <Text style={styles.walletButtonText}>Import</Text>
+                <LinearGradient
+                  colors={['rgba(232, 28, 255, 0)', 'rgba(232, 28, 255, 0)', '#e81cff', '#40c9ff']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  locations={[0, 0.35, 0.7, 1]}
+                  style={styles.walletButtonImportGradient}
+                >
+                  <View style={styles.walletButtonImport}>
+                    <Text style={styles.walletButtonText}>Import</Text>
+                  </View>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
             
@@ -171,6 +190,8 @@ export default function FavoritesScreen() {
               placeholderTextColor="#666"
               multiline
             />
+              </View>
+            </LinearGradient>
           </View>
         </View>
 
@@ -247,17 +268,17 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 10,
   },
-  walletCard: {
-    backgroundColor: '#1a1a1a',
+  walletCardOuter: {
     borderRadius: 24,
-    padding: 20,
-    borderWidth: 2,
-    borderColor: '#6366f1',
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+  },
+  walletCardGradient: {
+    borderRadius: 24,
+    padding: 2,
+  },
+  walletCard: {
+    backgroundColor: '#212121',
+    borderRadius: 22,
+    padding: 24,
   },
   bitcoinIconContainer: {
     alignItems: 'center',
@@ -291,12 +312,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#252525',
+    backgroundColor: '#1a1a1a',
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#414141',
   },
   walletInfo: {
     flex: 1,
@@ -335,29 +356,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   walletButtonAdd: {
-    backgroundColor: '#252525',
+    backgroundColor: '#313131',
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#414141',
+  },
+  walletButtonImportWrapper: {
+    flex: 1,
+    borderRadius: 12,
+  },
+  walletButtonImportGradient: {
+    borderRadius: 12,
+    padding: 2,
   },
   walletButtonImport: {
-    backgroundColor: '#6366f1',
-    borderWidth: 2,
-    borderColor: '#818cf8',
+    backgroundColor: '#212121',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   walletButtonText: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: '#fff',
+    color: '#717171',
   },
   walletInput: {
-    backgroundColor: '#252525',
+    backgroundColor: 'transparent',
     borderRadius: 12,
     padding: 14,
     fontSize: 13,
     color: '#fff',
     borderWidth: 1,
-    borderColor: '#333',
-    minHeight: 50,
+    borderColor: '#414141',
+    minHeight: 96,
+    textAlignVertical: 'top',
   },
   bookmarkItem: {
     flexDirection: 'row',

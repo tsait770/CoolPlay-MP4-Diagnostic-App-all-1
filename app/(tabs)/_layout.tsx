@@ -168,7 +168,6 @@ export default function TabLayout() {
           },
         } as any}
       />
-
     </Tabs>
   );
 }

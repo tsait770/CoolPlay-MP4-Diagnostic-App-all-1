@@ -1,4 +1,4 @@
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter, useNavigation } from "expo-router";
 import React from "react";
 import { TouchableOpacity } from "react-native";
 import { ChevronLeft } from "lucide-react-native";
@@ -8,6 +8,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 export default function SettingsLayout() {
   const { t } = useTranslation();
   const router = useRouter();
+  const navigation = useNavigation();
 
   return (
     <Stack
@@ -37,7 +38,13 @@ export default function SettingsLayout() {
           headerBackVisible: true,
           headerLeft: () => (
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={() => {
+                if (navigation.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace("/(tabs)/home");
+                }
+              }}
               style={{ marginLeft: -8, padding: 8 }}
             >
               <ChevronLeft size={24} color={Colors.primary.text} />

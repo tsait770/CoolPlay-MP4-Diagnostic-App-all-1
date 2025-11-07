@@ -109,6 +109,8 @@ export default function PlayerScreen() {
   const defaultVideoUri = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
   const [videoPlayerSource, setVideoPlayerSource] = useState(defaultVideoUri);
   
+  // Only initialize VideoPlayer for native-supported formats
+  // UniversalVideoPlayer will handle YouTube/Vimeo/WebView sources
   const videoPlayer = useVideoPlayer(videoPlayerSource, (player) => {
     player.loop = false;
   });
@@ -1050,37 +1052,27 @@ export default function PlayerScreen() {
   return (
     <View style={styles.container}>
       {videoSource && videoSource.uri && videoSource.uri.trim() !== '' ? (
-          useUniversalPlayer ? (
-            <View style={styles.videoContainer}>
-              <UniversalVideoPlayer
-                url={videoSource.uri}
-                onError={(error) => {
-                  console.error('[PlayerScreen] UniversalVideoPlayer error:', error);
-                  setVoiceStatus(t('video_load_error'));
-                  setTimeout(() => setVoiceStatus(''), 3000);
-                }}
-                onPlaybackStart={() => {
-                  console.log('[PlayerScreen] Video playback started');
-                }}
-                autoPlay={false}
-                style={styles.video}
-              />
-            </View>
-          ) : (
-            <TouchableOpacity
-              activeOpacity={1}
-              onPress={() => setShowControls(!showControls)}
-              style={styles.videoContainer}
-            >
-              <VideoView
-                style={styles.video}
-                player={videoPlayer}
-                allowsFullscreen
-                allowsPictureInPicture
-              />
-            </TouchableOpacity>
-          )
-        ) : (
+        <View style={styles.videoContainer}>
+          <UniversalVideoPlayer
+            url={videoSource.uri}
+            onError={(error) => {
+              console.error('[PlayerScreen] UniversalVideoPlayer error:', error);
+              setVoiceStatus(t('video_load_error'));
+              setTimeout(() => setVoiceStatus(''), 3000);
+            }}
+            onPlaybackStart={() => {
+              console.log('[PlayerScreen] Video playback started');
+              setIsPlaying(true);
+            }}
+            onPlaybackEnd={() => {
+              console.log('[PlayerScreen] Video playback ended');
+              setIsPlaying(false);
+            }}
+            autoPlay={false}
+            style={styles.video}
+          />
+        </View>
+      ) : (
           <ScrollView 
             style={styles.scrollContainer}
             contentContainerStyle={[

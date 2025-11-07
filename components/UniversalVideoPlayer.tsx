@@ -445,7 +445,14 @@ export default function UniversalVideoPlayer({
         }}
         onError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
-          console.error('[UniversalVideoPlayer] WebView error:', nativeEvent);
+          console.error('[UniversalVideoPlayer] WebView error:', {
+            code: nativeEvent.code,
+            description: nativeEvent.description,
+            domain: nativeEvent.domain,
+            url: nativeEvent.url,
+            loading: nativeEvent.loading,
+            title: nativeEvent.title,
+          });
           clearLoadTimeout();
           
           if (sourceInfo.type === 'youtube') {
@@ -513,7 +520,15 @@ export default function UniversalVideoPlayer({
         }}
         onHttpError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
-          console.error('[UniversalVideoPlayer] WebView HTTP error:', nativeEvent);
+          console.error('[UniversalVideoPlayer] WebView HTTP error:', {
+            statusCode: nativeEvent.statusCode,
+            url: nativeEvent.url,
+            description: nativeEvent.description,
+            loading: nativeEvent.loading,
+            title: nativeEvent.title,
+            canGoBack: nativeEvent.canGoBack,
+            canGoForward: nativeEvent.canGoForward,
+          });
           console.error('[UniversalVideoPlayer] HTTP Error Details:', {
             statusCode: nativeEvent.statusCode,
             url: nativeEvent.url,
@@ -521,6 +536,7 @@ export default function UniversalVideoPlayer({
             sourceType: sourceInfo.type,
             platform: sourceInfo.platform,
             retryCount,
+            embedUrl: sourceInfo.type === 'youtube' ? (retryCount === 0 ? 'Standard Embed' : retryCount === 1 ? 'NoCookie' : retryCount === 2 ? 'Watch Page' : retryCount === 3 ? 'Mobile' : 'Invidious') : 'N/A',
           });
           clearLoadTimeout();
           

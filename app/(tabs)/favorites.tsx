@@ -115,15 +115,13 @@ export default function FavoritesScreen() {
               style={styles.walletCardGradient}
             >
               <View style={styles.walletCard}>
-            <View style={styles.bitcoinIconContainer}>
-              <View style={styles.bitcoinIcon}>
-                <Text style={styles.bitcoinSymbol}>₿</Text>
-              </View>
-            </View>
-            
-            <Text style={styles.walletsTitle}>Bitcoin Secure Key</Text>
-            
-            <View style={styles.walletList}>
+                <View style={styles.bitcoinIconContainer}>
+                  <View style={styles.bitcoinIcon}>
+                    <Text style={styles.bitcoinSymbol}>₿</Text>
+                  </View>
+                </View>
+                <Text style={styles.walletsTitle}>Bitcoin Secure Key</Text>
+                <View style={styles.walletList}>
               {wallets.map((wallet) => (
                 <View key={wallet.id} style={styles.walletItem}>
                   <View style={styles.walletInfo}>
@@ -155,9 +153,8 @@ export default function FavoritesScreen() {
                   </View>
                 </View>
               ))}
-            </View>
-            
-            <View style={styles.walletButtonRow}>
+                </View>
+                <View style={styles.walletButtonRow}>
               <TouchableOpacity
                 style={[styles.walletButton, styles.walletButtonAdd]}
                 onPress={handleAddWallet}
@@ -182,9 +179,8 @@ export default function FavoritesScreen() {
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
-            </View>
-            
-            <TextInput
+                </View>
+                <TextInput
               style={styles.walletInput}
               value={importKey}
               onChangeText={setImportKey}

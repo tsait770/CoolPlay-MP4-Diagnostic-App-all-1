@@ -206,12 +206,13 @@ export default function SettingsScreen() {
                   <View style={styles.settingRight}>
                     {item.value ? (
                       <Text style={styles.settingValue}>{item.value}</Text>
-                    ) : (
+                    ) : null}
+                    {!item.value ? (
                       <ChevronRight
                         size={20}
                         color={Colors.primary.textSecondary}
                       />
-                    )}
+                    ) : null}
                   </View>
                 </AnimatedSettingItem>
               );

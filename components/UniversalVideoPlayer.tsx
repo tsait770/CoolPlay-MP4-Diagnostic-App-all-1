@@ -90,6 +90,7 @@ export default function UniversalVideoPlayer({
     platform: sourceInfo.platform,
     requiresWebView: sourceInfo.requiresWebView,
     requiresAgeVerification: sourceInfo.requiresAgeVerification,
+    canPlay: playbackEligibility.canPlay,
   });
 
   useEffect(() => {
@@ -751,6 +752,20 @@ export default function UniversalVideoPlayer({
     shouldUseNativePlayer: shouldUseNativePlayerRender,
     sourceType: sourceInfo.type,
   });
+
+  // Validate URL after hooks
+  if (!url || url.trim() === '') {
+    console.warn('[UniversalVideoPlayer] No URL provided');
+    return (
+      <View style={[styles.container, style]}>
+        <View style={styles.errorContainer}>
+          <AlertCircle size={48} color={Colors.primary.textSecondary} />
+          <Text style={styles.errorTitle}>No Video Selected</Text>
+          <Text style={styles.errorMessage}>Please select a video to play</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, style]}>

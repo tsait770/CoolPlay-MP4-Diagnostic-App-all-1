@@ -1053,24 +1053,30 @@ export default function PlayerScreen() {
     <View style={styles.container}>
       {videoSource && videoSource.uri && videoSource.uri.trim() !== '' ? (
         <View style={styles.videoContainer}>
-          <UniversalVideoPlayer
-            url={videoSource.uri}
-            onError={(error) => {
-              console.error('[PlayerScreen] UniversalVideoPlayer error:', error);
-              setVoiceStatus(t('video_load_error'));
-              setTimeout(() => setVoiceStatus(''), 3000);
-            }}
-            onPlaybackStart={() => {
-              console.log('[PlayerScreen] Video playback started');
-              setIsPlaying(true);
-            }}
-            onPlaybackEnd={() => {
-              console.log('[PlayerScreen] Video playback ended');
-              setIsPlaying(false);
-            }}
-            autoPlay={false}
-            style={styles.video}
-          />
+          <View style={[styles.videoWrapper, {
+            maxWidth: getMaxContainerWidth(),
+            alignSelf: 'center',
+            width: '100%',
+          }]}>
+            <UniversalVideoPlayer
+              url={videoSource.uri}
+              onError={(error) => {
+                console.error('[PlayerScreen] UniversalVideoPlayer error:', error);
+                setVoiceStatus(t('video_load_error'));
+                setTimeout(() => setVoiceStatus(''), 3000);
+              }}
+              onPlaybackStart={() => {
+                console.log('[PlayerScreen] Video playback started');
+                setIsPlaying(true);
+              }}
+              onPlaybackEnd={() => {
+                console.log('[PlayerScreen] Video playback ended');
+                setIsPlaying(false);
+              }}
+              autoPlay={false}
+              style={styles.video}
+            />
+          </View>
         </View>
       ) : (
           <ScrollView 
@@ -1912,12 +1918,13 @@ const createStyles = () => {
     justifyContent: 'center',
     alignItems: 'center',
   },
+  videoWrapper: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   video: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
     width: "100%",
     height: "100%",
   },

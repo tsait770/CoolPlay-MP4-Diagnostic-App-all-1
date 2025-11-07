@@ -1013,7 +1013,10 @@ const getStyles = (screenWidth: number) => StyleSheet.create({
   socialGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: Platform.select({ 
+      web: 'center',
+      default: 'space-between'
+    }),
     marginBottom: 32,
     gap: Platform.select({ 
       web: screenWidth >= 1024 ? 16 : screenWidth >= 768 ? 14 : 12,

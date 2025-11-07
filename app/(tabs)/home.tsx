@@ -1019,7 +1019,7 @@ const styles = StyleSheet.create({
   statsContainer: {
     flexDirection: responsiveValue('row', 'row', 'row'),
     flexWrap: screenType !== 'mobile' ? 'wrap' as const : undefined,
-    justifyContent: "space-between",
+    justifyContent: screenType !== 'mobile' ? 'center' : "space-between",
     paddingHorizontal: getResponsivePadding(20),
     marginTop: 20,
     width: screenType !== 'mobile' ? maxWidth : undefined,

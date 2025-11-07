@@ -1909,6 +1909,8 @@ const createStyles = () => {
     height: "100%",
     backgroundColor: "#000",
     zIndex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   video: {
     position: 'absolute',

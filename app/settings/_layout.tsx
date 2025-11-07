@@ -29,7 +29,9 @@ export default function SettingsLayout() {
       <Stack.Screen
         name="index"
         options={{
-          headerShown: false,
+          title: t("settings"),
+          headerShown: true,
+          headerBackVisible: true,
         }}
       />
       <Stack.Screen

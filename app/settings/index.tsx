@@ -7,7 +7,6 @@ import {
   Pressable,
   Animated,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   User,
   CreditCard,
@@ -93,7 +92,6 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { userData } = useReferral();
-  const insets = useSafeAreaInsets();
 
   type SettingItem = {
     icon: any;
@@ -184,7 +182,7 @@ export default function SettingsScreen() {
   ];
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {settingsSections.map((section, sectionIndex) => (
           <View key={sectionIndex} style={styles.section}>

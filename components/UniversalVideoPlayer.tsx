@@ -223,12 +223,11 @@ export default function UniversalVideoPlayer({
       modestbranding: '1',
       fs: '1',
       iv_load_policy: '3',
-      enablejsapi: '1',
+      enablejsapi: '0',
       controls: '1',
       showinfo: '0',
       cc_load_policy: '0',
       disablekb: '0',
-      origin: window.location.origin || 'https://rork.app',
       html5: '1',
       wmode: 'transparent',
     });
@@ -254,7 +253,6 @@ export default function UniversalVideoPlayer({
       controls: '1',
       fs: '1',
       enablejsapi: '0',
-      origin: window.location.origin || 'https://rork.app',
       html5: '1',
     });
     return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
@@ -373,10 +371,12 @@ export default function UniversalVideoPlayer({
             'User-Agent': retryCount >= 3 
               ? 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
               : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Referer': retryCount <= 1 ? 'https://www.youtube.com/' : 'https://www.google.com/',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
             'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
           } : sourceInfo.type === 'adult' ? {
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
@@ -407,10 +407,12 @@ export default function UniversalVideoPlayer({
         allowFileAccess
         scalesPageToFit={false}
         bounces={true}
-        scrollEnabled={true}
+        scrollEnabled={sourceInfo.type !== 'youtube'}
         automaticallyAdjustContentInsets={false}
         contentInset={{ top: 0, left: 0, bottom: 0, right: 0 }}
         webviewDebuggingEnabled={__DEV__}
+        setSupportMultipleWindows={false}
+        nestedScrollEnabled={sourceInfo.type !== 'youtube'}
         injectedJavaScript={injectedJavaScript || `
           (function() {
             document.body.style.margin = '0';

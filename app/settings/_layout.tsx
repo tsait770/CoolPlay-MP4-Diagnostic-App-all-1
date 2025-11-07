@@ -1,10 +1,13 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import React from "react";
+import { TouchableOpacity } from "react-native";
+import { ChevronLeft } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { useTranslation } from "@/hooks/useTranslation";
 
 export default function SettingsLayout() {
   const { t } = useTranslation();
+  const router = useRouter();
 
   return (
     <Stack
@@ -32,6 +35,14 @@ export default function SettingsLayout() {
           title: t("settings"),
           headerShown: true,
           headerBackVisible: true,
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={{ marginLeft: -8, padding: 8 }}
+            >
+              <ChevronLeft size={24} color={Colors.primary.text} />
+            </TouchableOpacity>
+          ),
         }}
       />
       <Stack.Screen

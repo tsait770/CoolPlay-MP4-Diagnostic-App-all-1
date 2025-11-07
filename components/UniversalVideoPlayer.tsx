@@ -74,7 +74,9 @@ export default function UniversalVideoPlayer({
 
   // Only initialize native player if we're actually using it
   // For WebView-required URLs, use a dummy URL for the native player to avoid errors
-  const safeUrl = shouldUseNativePlayer && url && url.trim() !== '' ? url : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+  // IMPORTANT: Always provide a valid URL - never empty string
+  const validUrl = url && url.trim() !== '' ? url : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+  const safeUrl = shouldUseNativePlayer ? validUrl : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
   
   const player = useVideoPlayer(safeUrl, (player) => {
     player.loop = false;
@@ -100,10 +102,13 @@ export default function UniversalVideoPlayer({
       platform: sourceInfo.platform,
       membershipTier: tier,
       canPlay: playbackEligibility.canPlay,
+      shouldUseNativePlayer,
+      shouldUseWebView: sourceInfo.requiresWebView,
     });
 
     if (!playbackEligibility.canPlay) {
       const error = playbackEligibility.reason || 'Cannot play this video';
+      console.error('[UniversalVideoPlayer] Playback not allowed:', error);
       setPlaybackError(error);
       if (onError) onError(error);
     }
@@ -112,7 +117,7 @@ export default function UniversalVideoPlayer({
       console.log('[UniversalVideoPlayer] Age verification required');
       if (onAgeVerificationRequired) onAgeVerificationRequired();
     }
-  }, [url, sourceInfo.type, sourceInfo.platform, sourceInfo.requiresAgeVerification, tier, playbackEligibility.canPlay, playbackEligibility.reason, onError, onAgeVerificationRequired]);
+  }, [url, sourceInfo.type, sourceInfo.platform, sourceInfo.requiresAgeVerification, tier, playbackEligibility.canPlay, playbackEligibility.reason, shouldUseNativePlayer, onError, onAgeVerificationRequired]);
 
   useEffect(() => {
     if (showControls) {
@@ -190,10 +195,13 @@ export default function UniversalVideoPlayer({
           error: status.error,
           errorMessage: errorMsg,
           url,
+          validUrl,
+          safeUrl,
           sourceType: sourceInfo.type,
           platform: sourceInfo.platform,
           shouldUseNativePlayer,
           shouldUseWebView: sourceInfo.requiresWebView,
+          playerStatus: player.status,
         });
         
         // If this is a URL that should use WebView, provide helpful error
@@ -202,6 +210,11 @@ export default function UniversalVideoPlayer({
           console.log('[UniversalVideoPlayer] Switching to WebView for:', sourceInfo.platform);
           // Don't set error, let WebView handle it
           return;
+        }
+        
+        // Check if it's a common MP4 loading error
+        if (errorMsg.includes('source.uri') || errorMsg.includes('empty') || errorMsg.includes('invalid')) {
+          errorMsg = `無法載入視頻\n\n錯誤詳情:\n${errorMsg}\n\nURL: ${url}\n\n可能原因：\n• 視頻檔案不存在或已被移除\n• 網路連線問題\n• URL格式不正確\n• 伺服器不允許存取\n\n建議解決方案：\n1. 確認視頻URL是否正確\n2. 檢查網路連線\n3. 嘗試在瀏覽器中開啟URL測試\n4. 如果是本地檔案,請確認檔案路徑正確`;
         }
         
         const fullErrorMsg = `Playback error: ${errorMsg}`;
@@ -616,6 +629,19 @@ export default function UniversalVideoPlayer({
 
   const renderNativePlayer = () => {
     console.log('[UniversalVideoPlayer] Rendering native player for:', url);
+    console.log('[UniversalVideoPlayer] Player object:', player);
+    console.log('[UniversalVideoPlayer] Source info:', sourceInfo);
+
+    if (!player) {
+      console.error('[UniversalVideoPlayer] Player not initialized');
+      return (
+        <View style={styles.errorContainer}>
+          <AlertCircle size={48} color={Colors.semantic.danger} />
+          <Text style={styles.errorTitle}>Player Initialization Failed</Text>
+          <Text style={styles.errorMessage}>Unable to initialize video player</Text>
+        </View>
+      );
+    }
 
     return (
       <TouchableOpacity

@@ -31,16 +31,17 @@ export default function FavoritesScreen() {
   const [showCategoryManagement, setShowCategoryManagement] = useState(false);
   const [wallets, setWallets] = useState<Wallet[]>([
     { id: '1', name: 'Wallet 1', key: 's***...**k' },
-    { id: '2', name: 'Wallet 1', key: 's***...**k' },
-    { id: '3', name: 'Wallet 1', key: 's***...**k' },
-    { id: '4', name: 'Wallet 1', key: 's***...**k' },
+    { id: '2', name: 'Wallet 2', key: 's***...**k' },
+    { id: '3', name: 'Wallet 3', key: 's***...**k' },
+    { id: '4', name: 'Wallet 4', key: 's***...**k' },
   ]);
   const [importKey, setImportKey] = useState('');
 
   const handleAddWallet = useCallback(() => {
+    const newWalletNumber = wallets.length + 1;
     const newWallet: Wallet = {
       id: Date.now().toString(),
-      name: 'Wallet 1',
+      name: `Wallet ${newWalletNumber}`,
       key: 's***...**k',
     };
     setWallets([...wallets, newWallet]);
@@ -52,9 +53,10 @@ export default function FavoritesScreen() {
       Alert.alert('Error', 'Please enter mnemonic, xprv or private key');
       return;
     }
+    const newWalletNumber = wallets.length + 1;
     const newWallet: Wallet = {
       id: Date.now().toString(),
-      name: 'Wallet 1',
+      name: `Wallet ${newWalletNumber}`,
       key: importKey.substring(0, 4) + '...' + importKey.substring(importKey.length - 2),
     };
     setWallets([...wallets, newWallet]);
@@ -119,7 +121,7 @@ export default function FavoritesScreen() {
               </View>
             </View>
             
-            <Text style={styles.walletsTitle}>Wallets</Text>
+            <Text style={styles.walletsTitle}>Bitcoin Secure Key</Text>
             
             <View style={styles.walletList}>
               {wallets.map((wallet) => (
@@ -304,6 +306,7 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#fff',
     marginBottom: 16,
+    textAlign: 'center' as const,
   },
   walletList: {
     marginBottom: 16,

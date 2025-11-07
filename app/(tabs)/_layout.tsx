@@ -56,7 +56,7 @@ export default function TabLayout() {
       ),
     },
     favorites: {
-      title: t("favorites"),
+      title: "Bitcoin",
       tabBarIcon: ({ color }: { color: string }) => (
         <Ionicons name="logo-bitcoin" size={24} color={color} />
       ),

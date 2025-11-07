@@ -24,7 +24,6 @@ import { SoundProvider } from "@/providers/SoundProvider";
 import { MembershipProvider } from "@/providers/MembershipProvider";
 import { RatingProvider } from "@/providers/RatingProvider";
 import { PayPalProvider } from "@/providers/PayPalProvider";
-import { BitcoinWalletProvider } from "@/providers/BitcoinWalletProvider";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -363,23 +362,21 @@ export default function RootLayout() {
                       <PayPalProvider>
                         <MembershipProvider>
                           <RatingProvider>
-                            <BitcoinWalletProvider>
-                              <CategoryProvider>
-                                <BookmarkProvider>
-                                  <ReferralProvider>
-                                    <SoundProvider>
-                                      <VoiceControlProvider>
-                                        <SiriIntegrationProvider>
-                                          <GestureHandlerRootView style={styles.container}>
-                                            <RootLayoutNav />
-                                          </GestureHandlerRootView>
-                                        </SiriIntegrationProvider>
-                                      </VoiceControlProvider>
-                                    </SoundProvider>
-                                  </ReferralProvider>
-                                </BookmarkProvider>
-                              </CategoryProvider>
-                            </BitcoinWalletProvider>
+                            <CategoryProvider>
+                              <BookmarkProvider>
+                                <ReferralProvider>
+                                  <SoundProvider>
+                                    <VoiceControlProvider>
+                                      <SiriIntegrationProvider>
+                                        <GestureHandlerRootView style={styles.container}>
+                                          <RootLayoutNav />
+                                        </GestureHandlerRootView>
+                                      </SiriIntegrationProvider>
+                                    </VoiceControlProvider>
+                                  </SoundProvider>
+                                </ReferralProvider>
+                              </BookmarkProvider>
+                            </CategoryProvider>
                           </RatingProvider>
                         </MembershipProvider>
                       </PayPalProvider>

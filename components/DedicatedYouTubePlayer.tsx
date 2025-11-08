@@ -4,7 +4,7 @@
  * 使用全新的架构，与其他播放器完全独立
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -49,17 +49,7 @@ export default function DedicatedYouTubePlayer({
   console.log('[DedicatedYouTubePlayer] Rendering with URL:', url);
   console.log('[DedicatedYouTubePlayer] Retry count:', retryCount);
 
-  useEffect(() => {
-    initializePlayer();
-
-    return () => {
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
-      }
-    };
-  }, [url, retryCount]);
-
-  const initializePlayer = () => {
+  const initializePlayer = useCallback(() => {
     console.log('[DedicatedYouTubePlayer] Initializing player...');
 
     if (!youTubePlayerModule.isValidYouTubeUrl(url)) {
@@ -97,7 +87,17 @@ export default function DedicatedYouTubePlayer({
     setVideoId(result.videoId);
     setError(null);
     setIsLoading(true);
-  };
+  }, [url, autoPlay, retryCount, onError]);
+
+  useEffect(() => {
+    initializePlayer();
+
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+    };
+  }, [initializePlayer]);
 
   const handleLoadStart = () => {
     console.log('[DedicatedYouTubePlayer] Load started');
@@ -188,7 +188,11 @@ export default function DedicatedYouTubePlayer({
           console.warn('[DedicatedYouTubePlayer] Player load timeout');
           break;
         case 'error':
-          console.error('[DedicatedYouTubePlayer] Player error:', data.message);
+          if (data.message !== 'Script error.') {
+            console.error('[DedicatedYouTubePlayer] Player error:', data.message);
+          } else {
+            console.log('[DedicatedYouTubePlayer] Cross-origin error (expected, ignored)');
+          }
           break;
       }
     } catch (error) {

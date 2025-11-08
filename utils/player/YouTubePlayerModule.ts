@@ -228,56 +228,44 @@ export class YouTubePlayerModule {
   public generateInjectedJavaScript(): string {
     return `
       (function() {
-        console.log('[YouTube Player] Iframe loaded successfully');
-        
-        window.addEventListener('error', function(e) {
-          console.error('[YouTube Player] Error detected:', e.message);
-          window.ReactNativeWebView?.postMessage(JSON.stringify({
-            type: 'error',
-            message: e.message
-          }));
-        });
-        
-        var retryCount = 0;
-        var maxRetries = 20;
-        
-        var checkPlayer = setInterval(function() {
-          retryCount++;
+        try {
+          console.log('[YouTube Player] Iframe loaded');
           
-          var iframe = document.querySelector('iframe');
-          var video = document.querySelector('video');
+          window.addEventListener('error', function(e) {
+            if (e.message === 'Script error.') {
+              console.log('[YouTube Player] Cross-origin script error (expected, ignored)');
+              return;
+            }
+            console.error('[YouTube Player] Error:', e.message);
+          }, true);
           
-          if (iframe || video) {
-            console.log('[YouTube Player] Player element detected');
-            window.ReactNativeWebView?.postMessage(JSON.stringify({
-              type: 'playerReady',
-              hasIframe: !!iframe,
-              hasVideo: !!video
-            }));
-            clearInterval(checkPlayer);
-            return;
+          setTimeout(function() {
+            try {
+              if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                  type: 'playerReady'
+                }));
+              }
+            } catch (err) {
+              console.log('[YouTube Player] Message post skipped');
+            }
+          }, 2000);
+          
+          if (document.body) {
+            document.body.style.margin = '0';
+            document.body.style.padding = '0';
+            document.body.style.overflow = 'hidden';
           }
           
-          if (retryCount >= maxRetries) {
-            console.warn('[YouTube Player] Player element not detected after', maxRetries, 'attempts');
-            window.ReactNativeWebView?.postMessage(JSON.stringify({
-              type: 'playerTimeout'
-            }));
-            clearInterval(checkPlayer);
+          if (document.documentElement) {
+            document.documentElement.style.overflow = 'hidden';
           }
-        }, 500);
-        
-        document.body.style.margin = '0';
-        document.body.style.padding = '0';
-        document.body.style.overflow = 'hidden';
-        document.documentElement.style.overflow = 'hidden';
-        
-        var style = document.createElement('style');
-        style.innerHTML = '* { -webkit-overflow-scrolling: touch !important; } body { overscroll-behavior: contain; }';
-        if (document.head) {
-          document.head.appendChild(style);
+          
+        } catch (error) {
+          console.log('[YouTube Player] Initialization error (ignored):', error.message);
         }
       })();
+      true;
     `;
   }
 

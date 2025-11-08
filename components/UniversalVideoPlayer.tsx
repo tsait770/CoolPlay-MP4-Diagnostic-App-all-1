@@ -23,11 +23,9 @@ import { detectVideoSource, canPlayVideo } from '@/utils/videoSourceDetector';
 import { getSocialMediaConfig } from '@/utils/socialMediaPlayer';
 import { useMembership } from '@/providers/MembershipProvider';
 import SocialMediaPlayer from '@/components/SocialMediaPlayer';
-import DedicatedYouTubePlayer from '@/components/DedicatedYouTubePlayer';
+import YouTubePlayerManager from '@/components/youtube/YouTubePlayerManager';
 import DedicatedMP4Player from '@/components/DedicatedMP4Player';
-import { playerRouter } from '@/utils/player/PlayerRouter';
-import { getYouTubeAlternatives } from '@/utils/videoUrlConverter';
-import { logDiagnostic, getYouTubeErrorMessage } from '@/utils/videoDiagnostics';
+import { logDiagnostic } from '@/utils/videoDiagnostics';
 import { validateMP4Url, detectCodecFromUrl, getDiagnosticInfo } from '@/utils/mp4PlayerHelper';
 import Colors from '@/constants/colors';
 

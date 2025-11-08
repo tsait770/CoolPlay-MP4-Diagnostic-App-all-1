@@ -54,9 +54,18 @@ export interface FormatCapabilities {
   };
 }
 
+export interface CodecTestResult {
+  codec: string;
+  supported: boolean;
+  hardwareAccelerated: boolean;
+  testMethod: 'native' | 'runtime' | 'fallback';
+  testDuration: number;
+}
+
 export class CodecDetector {
   private static instance: CodecDetector | null = null;
   private capabilities: FormatCapabilities | null = null;
+  private runtimeTestResults: Map<string, CodecTestResult> = new Map();
   
   private constructor() {}
   
@@ -79,13 +88,14 @@ export class CodecDetector {
     this.capabilities = {
       platform,
       containers: this.detectContainerSupport(platform),
-      videoCodecs: this.detectVideoCodecSupport(platform),
-      audioCodecs: this.detectAudioCodecSupport(platform),
+      videoCodecs: await this.detectVideoCodecSupportWithRuntime(platform),
+      audioCodecs: await this.detectAudioCodecSupportWithRuntime(platform),
       streamingProtocols: this.detectStreamingProtocolSupport(platform),
       features: this.detectFeatureSupport(platform),
     };
     
     console.log('[CodecDetector] Capabilities detected:', this.capabilities);
+    console.log('[CodecDetector] Runtime test results:', Array.from(this.runtimeTestResults.entries()));
     
     return this.capabilities;
   }
@@ -150,6 +160,42 @@ export class CodecDetector {
     }
   }
   
+  private async detectVideoCodecSupportWithRuntime(platform: 'ios' | 'android' | 'web') {
+    const baseSupport = this.detectVideoCodecSupport(platform);
+    
+    if (Platform.OS === 'web') {
+      const av1Support = await this.testVideoCodecSupport('av1');
+      if (av1Support.supported) {
+        baseSupport.av1 = {
+          codec: 'AV1',
+          isSupported: true,
+          isHardwareAccelerated: av1Support.hardwareAccelerated,
+          maxResolution: '4K',
+        };
+      }
+      
+      const vp9Support = await this.testVideoCodecSupport('vp9');
+      if (vp9Support.supported) {
+        baseSupport.vp9.isHardwareAccelerated = vp9Support.hardwareAccelerated;
+      }
+    } else if (Platform.OS === 'android') {
+      const av1Support = await this.testVideoCodecSupport('av1');
+      if (av1Support.supported) {
+        baseSupport.av1 = {
+          codec: 'AV1',
+          isSupported: true,
+          isHardwareAccelerated: av1Support.hardwareAccelerated,
+          maxResolution: '1080p',
+        };
+      }
+      
+      const hevcSupport = await this.testVideoCodecSupport('hevc');
+      baseSupport.h265.isHardwareAccelerated = hevcSupport.hardwareAccelerated;
+    }
+    
+    return baseSupport;
+  }
+  
   private detectVideoCodecSupport(platform: 'ios' | 'android' | 'web') {
     switch (platform) {
       case 'ios':
@@ -188,6 +234,30 @@ export class CodecDetector {
           av1: { codec: 'AV1', isSupported: false, isHardwareAccelerated: false },
         };
     }
+  }
+  
+  private async detectAudioCodecSupportWithRuntime(platform: 'ios' | 'android' | 'web') {
+    const baseSupport = this.detectAudioCodecSupport(platform);
+    
+    const ac3Support = await this.testAudioCodecSupport('ac3');
+    if (ac3Support.supported) {
+      baseSupport.ac3 = {
+        codec: 'AC3',
+        isSupported: true,
+        isHardwareAccelerated: ac3Support.hardwareAccelerated,
+      };
+    }
+    
+    const eac3Support = await this.testAudioCodecSupport('eac3');
+    if (eac3Support.supported) {
+      baseSupport.eac3 = {
+        codec: 'E-AC3',
+        isSupported: true,
+        isHardwareAccelerated: eac3Support.hardwareAccelerated,
+      };
+    }
+    
+    return baseSupport;
   }
   
   private detectAudioCodecSupport(platform: 'ios' | 'android' | 'web') {
@@ -328,8 +398,165 @@ export class CodecDetector {
     return this.capabilities;
   }
   
+  async testVideoCodecSupport(codec: string): Promise<CodecTestResult> {
+    const startTime = Date.now();
+    const codecKey = `video_${codec}`;
+    
+    if (this.runtimeTestResults.has(codecKey)) {
+      return this.runtimeTestResults.get(codecKey)!;
+    }
+    
+    console.log(`[CodecDetector] Testing video codec: ${codec}`);
+    
+    let result: CodecTestResult = {
+      codec,
+      supported: false,
+      hardwareAccelerated: false,
+      testMethod: 'runtime',
+      testDuration: 0,
+    };
+    
+    try {
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        const video = document.createElement('video');
+        let mimeType = '';
+        
+        switch (codec.toLowerCase()) {
+          case 'av1':
+            mimeType = 'video/mp4; codecs="av01.0.05M.08"';
+            break;
+          case 'vp9':
+            mimeType = 'video/webm; codecs="vp9"';
+            break;
+          case 'hevc':
+          case 'h265':
+            mimeType = 'video/mp4; codecs="hvc1"';
+            break;
+          case 'h264':
+            mimeType = 'video/mp4; codecs="avc1.42E01E"';
+            break;
+          default:
+            mimeType = `video/mp4; codecs="${codec}"`;
+        }
+        
+        const canPlay = video.canPlayType(mimeType);
+        result.supported = canPlay === 'probably' || canPlay === 'maybe';
+        result.hardwareAccelerated = canPlay === 'probably';
+        
+        console.log(`[CodecDetector] ${codec} test result:`, canPlay);
+      } else if (Platform.OS === 'android') {
+        result.supported = codec.toLowerCase() === 'vp9' || codec.toLowerCase() === 'vp8';
+        result.hardwareAccelerated = false;
+      }
+    } catch (error) {
+      console.warn(`[CodecDetector] Error testing ${codec}:`, error);
+    }
+    
+    result.testDuration = Date.now() - startTime;
+    this.runtimeTestResults.set(codecKey, result);
+    
+    return result;
+  }
+  
+  async testAudioCodecSupport(codec: string): Promise<CodecTestResult> {
+    const startTime = Date.now();
+    const codecKey = `audio_${codec}`;
+    
+    if (this.runtimeTestResults.has(codecKey)) {
+      return this.runtimeTestResults.get(codecKey)!;
+    }
+    
+    console.log(`[CodecDetector] Testing audio codec: ${codec}`);
+    
+    let result: CodecTestResult = {
+      codec,
+      supported: false,
+      hardwareAccelerated: false,
+      testMethod: 'runtime',
+      testDuration: 0,
+    };
+    
+    try {
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        const audio = document.createElement('audio');
+        let mimeType = '';
+        
+        switch (codec.toLowerCase()) {
+          case 'ac3':
+            mimeType = 'audio/mp4; codecs="ac-3"';
+            break;
+          case 'eac3':
+          case 'e-ac-3':
+            mimeType = 'audio/mp4; codecs="ec-3"';
+            break;
+          case 'opus':
+            mimeType = 'audio/webm; codecs="opus"';
+            break;
+          case 'aac':
+            mimeType = 'audio/mp4; codecs="mp4a.40.2"';
+            break;
+          default:
+            mimeType = `audio/mp4; codecs="${codec}"`;
+        }
+        
+        const canPlay = audio.canPlayType(mimeType);
+        result.supported = canPlay === 'probably' || canPlay === 'maybe';
+        result.hardwareAccelerated = canPlay === 'probably';
+        
+        console.log(`[CodecDetector] ${codec} test result:`, canPlay);
+      }
+    } catch (error) {
+      console.warn(`[CodecDetector] Error testing ${codec}:`, error);
+    }
+    
+    result.testDuration = Date.now() - startTime;
+    this.runtimeTestResults.set(codecKey, result);
+    
+    return result;
+  }
+  
+  needsFallback(codec: string): boolean {
+    if (!this.capabilities) {
+      return true;
+    }
+    
+    const codecLower = codec.toLowerCase();
+    
+    if (codecLower.includes('av1')) {
+      return !this.capabilities.videoCodecs.av1.isSupported;
+    }
+    if (codecLower.includes('vp9')) {
+      return !this.capabilities.videoCodecs.vp9.isSupported;
+    }
+    if (codecLower.includes('ac3') || codecLower.includes('ac-3')) {
+      return !this.capabilities.audioCodecs.ac3.isSupported;
+    }
+    if (codecLower.includes('eac3') || codecLower.includes('e-ac-3') || codecLower.includes('ec-3')) {
+      return !this.capabilities.audioCodecs.eac3.isSupported;
+    }
+    
+    return false;
+  }
+  
+  getSuggestedFallbackCodec(codec: string): string | null {
+    const codecLower = codec.toLowerCase();
+    
+    if (codecLower.includes('av1') || codecLower.includes('vp9')) {
+      return 'h264';
+    }
+    if (codecLower.includes('ac3') || codecLower.includes('eac3')) {
+      return 'aac';
+    }
+    if (codecLower.includes('h265') || codecLower.includes('hevc')) {
+      return 'h264';
+    }
+    
+    return null;
+  }
+  
   reset(): void {
     this.capabilities = null;
-    console.log('[CodecDetector] Capabilities reset');
+    this.runtimeTestResults.clear();
+    console.log('[CodecDetector] Capabilities and test results reset');
   }
 }

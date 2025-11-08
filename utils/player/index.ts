@@ -2,6 +2,9 @@ export * from './PlayerAdapter';
 export * from './AdapterFactory';
 export * from './RedundancyPipeline';
 export * from './ErrorReporting';
+export * from './CodecDetector';
+export * from './RangeRequestHandler';
+export * from './CodecSwitcher';
 
 export * from './adapters/NativePlayerAdapter';
 export * from './adapters/WebViewPlayerAdapter';

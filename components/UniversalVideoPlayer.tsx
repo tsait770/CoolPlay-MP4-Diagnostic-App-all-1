@@ -23,6 +23,8 @@ import { detectVideoSource, canPlayVideo } from '@/utils/videoSourceDetector';
 import { getSocialMediaConfig } from '@/utils/socialMediaPlayer';
 import { useMembership } from '@/providers/MembershipProvider';
 import SocialMediaPlayer from '@/components/SocialMediaPlayer';
+import { getYouTubeAlternatives } from '@/utils/videoUrlConverter';
+import { logDiagnostic, getYouTubeErrorMessage } from '@/utils/videoDiagnostics';
 import Colors from '@/constants/colors';
 
 export interface UniversalVideoPlayerProps {
@@ -94,6 +96,10 @@ export default function UniversalVideoPlayer({
     requiresAgeVerification: sourceInfo.requiresAgeVerification,
     canPlay: playbackEligibility.canPlay,
   });
+
+  useEffect(() => {
+    logDiagnostic(url);
+  }, [url]);
 
   useEffect(() => {
     console.log('[UniversalVideoPlayer] Initialized with:', {
@@ -229,57 +235,14 @@ export default function UniversalVideoPlayer({
     };
   }, [player, autoPlay, onPlaybackStart, onError, url, sourceInfo.type, sourceInfo.platform]);
 
-  const getYouTubeEmbedUrl = (videoId: string, attempt: number = 0): string => {
-    const baseParams = {
-      autoplay: autoPlay ? '1' : '0',
-      playsinline: '1',
-      rel: '0',
-      modestbranding: '1',
-      fs: '1',
-      controls: '1',
-      enablejsapi: '1',
-      html5: '1',
-      iv_load_policy: '3',
-      cc_load_policy: '0',
-      disablekb: '0',
-      wmode: 'transparent',
-      widget_referrer: 'https://rork.app',
-    };
-    
-    const origin = typeof window !== 'undefined' && window.location ? window.location.origin : 'https://rork.app';
-    const params = new URLSearchParams({ ...baseParams, origin });
-    
-    return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+  const getYouTubeEmbedUrlForPlayer = (videoId: string, attempt: number = 0): string => {
+    const alternatives = getYouTubeAlternatives(`https://www.youtube.com/watch?v=${videoId}`, autoPlay);
+    const selectedUrl = alternatives[Math.min(attempt, alternatives.length - 1)];
+    console.log(`[UniversalVideoPlayer] YouTube embed attempt ${attempt + 1}:`, selectedUrl);
+    return selectedUrl;
   };
 
-  const getYouTubeWebPlayerUrl = (videoId: string): string => {
-    return `https://www.youtube.com/watch?v=${videoId}&autoplay=${autoPlay ? '1' : '0'}&html5=1`;
-  };
 
-  const getYouTubeNoEmbedUrl = (videoId: string): string => {
-    const params = new URLSearchParams({
-      autoplay: autoPlay ? '1' : '0',
-      playsinline: '1',
-      rel: '0',
-      modestbranding: '1',
-      controls: '1',
-      fs: '1',
-      html5: '1',
-    });
-    return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
-  };
-
-  const getYouTubeMobileUrl = (videoId: string): string => {
-    return `https://m.youtube.com/watch?v=${videoId}&autoplay=${autoPlay ? '1' : '0'}`;
-  };
-
-  const getInvidiousUrl = (videoId: string): string => {
-    return `https://yewtu.be/embed/${videoId}?autoplay=${autoPlay ? '1' : '0'}`;
-  };
-
-  const getYouTubeDirectUrl = (videoId: string): string => {
-    return `https://www.youtube.com/embed/${videoId}?enablejsapi=0&autoplay=${autoPlay ? '1' : '0'}&controls=1&fs=1&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3`;
-  };
 
   const getVimeoEmbedUrl = (videoId: string): string => {
     return `https://player.vimeo.com/video/${videoId}?autoplay=${autoPlay ? 1 : 0}`;
@@ -336,20 +299,10 @@ export default function UniversalVideoPlayer({
       console.log('[UniversalVideoPlayer] === YouTube Playback System ===' );
       console.log('[UniversalVideoPlayer] Video ID:', sourceInfo.videoId);
       console.log('[UniversalVideoPlayer] Retry attempt:', retryCount + 1, '/', maxRetries + 1);
-      console.log('[UniversalVideoPlayer] Error Code 4 Detection: ACTIVE');
+      console.log('[UniversalVideoPlayer] Error Code 15/4 Detection: ACTIVE');
       
-      const strategies = [
-        { url: getYouTubeEmbedUrl(sourceInfo.videoId, 0), name: 'Standard YouTube Embed' },
-        { url: getYouTubeNoEmbedUrl(sourceInfo.videoId), name: 'YouTube NoCookie Domain' },
-        { url: getYouTubeDirectUrl(sourceInfo.videoId), name: 'YouTube Direct Embed' },
-        { url: getYouTubeMobileUrl(sourceInfo.videoId), name: 'YouTube Mobile URL' },
-        { url: getInvidiousUrl(sourceInfo.videoId), name: 'Alternative Frontend (Invidious)' },
-      ];
+      embedUrl = getYouTubeEmbedUrlForPlayer(sourceInfo.videoId, retryCount);
       
-      const strategy = strategies[Math.min(retryCount, strategies.length - 1)];
-      embedUrl = strategy.url;
-      
-      console.log('[UniversalVideoPlayer] Strategy:', strategy.name);
       console.log('[UniversalVideoPlayer] Embed URL:', embedUrl);
       console.log('[UniversalVideoPlayer] Starting load sequence...');
       
@@ -525,7 +478,8 @@ export default function UniversalVideoPlayer({
               error: nativeEvent,
             });
             
-            const error = `YouTube 播放失敗 (Error Code 4)\n\n嘗試了 ${maxRetries + 1} 種播放方式，視頻無法載入\n\n🔍 可能原因：\n1. 視頻設定為私人/不公開\n2. 視頻已被刪除或下架\n3. 禁止嵌入到第三方應用\n4. 地區限制（您的地區不可觀看）\n5. 年齡限制內容（需要登入驗證）\n6. 版權限制\n\n📋 視頻資訊：\nVideo ID: ${sourceInfo.videoId}\nYouTube URL: https://youtu.be/${sourceInfo.videoId}\n\n🛠️ 診斷步驟：\n1. 在瀏覽器直接打開 YouTube 連結測試\n2. 確認視頻存在且可公開訪問\n3. 檢查視頻設定是否允許嵌入\n4. 使用 VPN 嘗試其他地區\n5. 等待幾分鐘後重試\n\n💡 建議：\n如果這是您自己的視頻，請前往 YouTube Studio 檢查嵌入設定\n如果問題持續，請聯繫技術支援並提供 Video ID`;
+            const errorCodeMessage = getYouTubeErrorMessage(15, sourceInfo.videoId || undefined);
+            const error = `YouTube 播放失敗\n\n${errorCodeMessage}\n\n嘗試次數: ${maxRetries + 1}\n\n⚠️ 如果這是您自己的視頻：\n• 前往 YouTube Studio\n• 進入「視頻詳情」\n• 找到「更多選項」\n• 確認「允許嵌入」已勾選\n\n📞 技術支援：\n提供 Video ID: ${sourceInfo.videoId}`;
             setPlaybackError(error);
             onError?.(error);
             return;

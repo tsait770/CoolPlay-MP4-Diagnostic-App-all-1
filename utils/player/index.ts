@@ -5,6 +5,7 @@ export * from './ErrorReporting';
 export * from './CodecDetector';
 export * from './RangeRequestHandler';
 export * from './CodecSwitcher';
+export { PlayerRouter, playerRouter, type PlayerRouteResult } from './PlayerRouter';
 
 export * from './adapters/NativePlayerAdapter';
 export * from './adapters/WebViewPlayerAdapter';

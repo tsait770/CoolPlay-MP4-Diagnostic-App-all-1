@@ -9,7 +9,6 @@ export { PlayerRouter, playerRouter, type PlayerRouteResult } from './PlayerRout
 
 export * from './adapters/NativePlayerAdapter';
 export * from './adapters/WebViewPlayerAdapter';
-export * from './adapters/YouTubePlayerAdapter';
 export * from './adapters/CloudDrivePlayerAdapter';
 export * from './adapters/SocialMediaPlayerAdapter';
 export * from './adapters/TwitchPlayerAdapter';

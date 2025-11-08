@@ -3,7 +3,6 @@ import { detectVideoSource, VideoSourceInfo } from '@/utils/videoSourceDetector'
 import { PlayerAdapter, PlayerType } from './PlayerAdapter';
 import { NativePlayerAdapter } from './adapters/NativePlayerAdapter';
 import { WebViewPlayerAdapter } from './adapters/WebViewPlayerAdapter';
-import { YouTubePlayerAdapter } from './adapters/YouTubePlayerAdapter';
 import { CloudDrivePlayerAdapter } from './adapters/CloudDrivePlayerAdapter';
 import { SocialMediaPlayerAdapter } from './adapters/SocialMediaPlayerAdapter';
 import { TwitchPlayerAdapter } from './adapters/TwitchPlayerAdapter';
@@ -43,7 +42,7 @@ export class PlayerAdapterFactory {
     
     switch (sourceInfo.type) {
       case 'youtube':
-        chain.push('youtube', 'webview');
+        chain.push('webview');
         break;
         
       case 'gdrive':
@@ -134,9 +133,6 @@ export class PlayerAdapterFactory {
       case 'hls':
       case 'dash':
         return new NativePlayerAdapter();
-        
-      case 'youtube':
-        return new YouTubePlayerAdapter();
         
       case 'cloud':
         return new CloudDrivePlayerAdapter(sourceInfo.platform);

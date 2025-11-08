@@ -7,8 +7,6 @@
 import { detectVideoSource, VideoSourceInfo } from '@/utils/videoSourceDetector';
 
 export type PlayerType = 
-  | 'youtube'         // 使用 DedicatedYouTubePlayer
-  | 'mp4'             // 使用 DedicatedMP4Player
   | 'adult'           // 使用原有的 WebView 成人内容播放器
   | 'socialMedia'     // 使用 SocialMediaPlayer
   | 'native'          // 使用原生 VideoView
@@ -65,18 +63,6 @@ export class PlayerRouter {
     const sourceInfo = detectVideoSource(url);
     console.log('[PlayerRouter] Source info:', sourceInfo);
 
-    if (sourceInfo.type === 'youtube') {
-      console.log('[PlayerRouter] Routing to DedicatedYouTubePlayer');
-      return {
-        playerType: 'youtube',
-        sourceInfo,
-        shouldUseNewPlayer: true,
-        originalUrl: url,
-        processedUrl: url,
-        reason: 'YouTube video detected - using dedicated YouTube player',
-      };
-    }
-
     if (sourceInfo.type === 'adult') {
       console.log('[PlayerRouter] Routing to existing adult content player');
       return {
@@ -87,22 +73,6 @@ export class PlayerRouter {
         processedUrl: url,
         reason: 'Adult content detected - using existing WebView player to preserve functionality',
       };
-    }
-
-    if (sourceInfo.type === 'direct' && sourceInfo.streamType) {
-      const ext = sourceInfo.streamType.toLowerCase();
-      
-      if (ext === 'mp4' || ext === 'webm' || ext === 'ogg' || ext === 'ogv' || ext === 'm4v' || ext === 'mov') {
-        console.log('[PlayerRouter] Routing to DedicatedMP4Player');
-        return {
-          playerType: 'mp4',
-          sourceInfo,
-          shouldUseNewPlayer: true,
-          originalUrl: url,
-          processedUrl: url,
-          reason: `Direct video file (${ext.toUpperCase()}) detected - using dedicated MP4 player`,
-        };
-      }
     }
 
     if (

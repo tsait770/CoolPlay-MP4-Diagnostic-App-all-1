@@ -1,4 +1,4 @@
-export type PlayerType = 'native' | 'webview' | 'hls' | 'dash' | 'youtube' | 'cloud' | 'ffmpeg' | 'rtmp' | 'social';
+export type PlayerType = 'native' | 'webview' | 'hls' | 'dash' | 'cloud' | 'ffmpeg' | 'rtmp' | 'social';
 
 export interface PlayerCapabilities {
   supportsHLS: boolean;

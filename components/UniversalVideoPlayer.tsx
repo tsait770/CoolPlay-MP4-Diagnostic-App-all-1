@@ -25,6 +25,7 @@ import { useMembership } from '@/providers/MembershipProvider';
 import SocialMediaPlayer from '@/components/SocialMediaPlayer';
 import { getYouTubeAlternatives } from '@/utils/videoUrlConverter';
 import { logDiagnostic, getYouTubeErrorMessage } from '@/utils/videoDiagnostics';
+import { validateMP4Url, detectCodecFromUrl, getDiagnosticInfo } from '@/utils/mp4PlayerHelper';
 import Colors from '@/constants/colors';
 
 export interface UniversalVideoPlayerProps {
@@ -59,6 +60,8 @@ export default function UniversalVideoPlayer({
   const [showControls, setShowControls] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   const [loadStartTime, setLoadStartTime] = useState<number>(0);
+  const [isValidatingUrl, setIsValidatingUrl] = useState(false);
+  const [validatedUrl, setValidatedUrl] = useState<string | null>(null);
   const webViewRef = useRef<WebView>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -77,8 +80,10 @@ export default function UniversalVideoPlayer({
   // Only initialize native player if we're actually using it
   // For WebView-required URLs, use a dummy URL for the native player to avoid errors
   // IMPORTANT: Always provide a valid URL - never empty string
-  const validUrl = url && url.trim() !== '' ? url : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-  const safeUrl = shouldUseNativePlayer ? validUrl : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+  const validUrl = (validatedUrl && validatedUrl.trim() !== '') || (url && url.trim() !== '') 
+    ? (validatedUrl || url) 
+    : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+  const safeUrl = shouldUseNativePlayer && validatedUrl ? validatedUrl : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
   
   const player = useVideoPlayer(safeUrl, (player) => {
     player.loop = false;
@@ -100,6 +105,51 @@ export default function UniversalVideoPlayer({
   useEffect(() => {
     logDiagnostic(url);
   }, [url]);
+
+  useEffect(() => {
+    if (shouldUseNativePlayer && url && url.trim() !== '') {
+      console.log('[UniversalVideoPlayer] Starting MP4 validation for:', url);
+      setIsValidatingUrl(true);
+      
+      const codecInfo = detectCodecFromUrl(url);
+      if (!codecInfo.supported) {
+        console.error('[UniversalVideoPlayer] Unsupported codec detected');
+        setPlaybackError(codecInfo.errorMessage || 'Unsupported video codec');
+        setIsValidatingUrl(false);
+        return;
+      }
+      
+      validateMP4Url(url)
+        .then((result) => {
+          console.log('[UniversalVideoPlayer] MP4 validation result:', result);
+          
+          if (!result.isValid) {
+            console.error('[UniversalVideoPlayer] MP4 validation failed:', result.error);
+            setPlaybackError(result.error || 'Invalid video URL');
+            setIsValidatingUrl(false);
+            return;
+          }
+          
+          if (!result.supportsRange) {
+            console.warn('[UniversalVideoPlayer] Server does not support Range requests');
+            console.warn('[UniversalVideoPlayer] Seeking may not work properly');
+          }
+          
+          const urlToUse = result.redirectUrl || url;
+          console.log('[UniversalVideoPlayer] Using validated URL:', urlToUse);
+          setValidatedUrl(urlToUse);
+          setIsValidatingUrl(false);
+        })
+        .catch((error) => {
+          console.error('[UniversalVideoPlayer] MP4 validation error:', error);
+          console.log('[UniversalVideoPlayer] Proceeding with original URL despite validation error');
+          setValidatedUrl(url);
+          setIsValidatingUrl(false);
+        });
+    } else {
+      setValidatedUrl(url);
+    }
+  }, [url, shouldUseNativePlayer]);
 
   useEffect(() => {
     console.log('[UniversalVideoPlayer] Initialized with:', {
@@ -218,9 +268,14 @@ export default function UniversalVideoPlayer({
           return;
         }
         
-        // Check if it's a common MP4 loading error
         if (errorMsg.includes('source.uri') || errorMsg.includes('empty') || errorMsg.includes('invalid')) {
-          errorMsg = `無法載入視頻\n\n錯誤詳情:\n${errorMsg}\n\nURL: ${url}\n\n可能原因：\n• 視頻檔案不存在或已被移除\n• 網路連線問題\n• URL格式不正確\n• 伺服器不允許存取\n\n建議解決方案：\n1. 確認視頻URL是否正確\n2. 檢查網路連線\n3. 嘗試在瀏覽器中開啟URL測試\n4. 如果是本地檔案,請確認檔案路徑正確`;
+          const diagnosticInfo = getDiagnosticInfo(url, errorMsg);
+          errorMsg = diagnosticInfo;
+        } else {
+          const codecInfo = detectCodecFromUrl(url);
+          if (!codecInfo.supported && codecInfo.errorMessage) {
+            errorMsg = `${errorMsg}\n\n${codecInfo.errorMessage}`;
+          }
         }
         
         const fullErrorMsg = `Playback error: ${errorMsg}`;
@@ -360,19 +415,19 @@ export default function UniversalVideoPlayer({
           headers: sourceInfo.type === 'youtube' ? {
             'User-Agent': retryCount >= 3 
               ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
-              : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+              : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Accept-Encoding': 'gzip, deflate, br',
             'Referer': 'https://www.youtube.com/',
-            'Origin': 'https://www.youtube.com',
             'DNT': '1',
             'Sec-Fetch-Dest': 'iframe',
             'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Ch-Ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+            'Sec-Fetch-Site': 'cross-site',
+            'Sec-Ch-Ua': '"Chromium";v="131", "Not_A Brand";v="24", "Google Chrome";v="131"',
             'Sec-Ch-Ua-Mobile': retryCount >= 3 ? '?1' : '?0',
             'Sec-Ch-Ua-Platform': retryCount >= 3 ? '"iOS"' : '"Windows"',
+            'Upgrade-Insecure-Requests': '1',
           } : sourceInfo.type === 'adult' ? {
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
@@ -388,13 +443,13 @@ export default function UniversalVideoPlayer({
         }}
         style={styles.webView}
         originWhitelist={['*']}
-        allowsFullscreenVideo
-        allowsInlineMediaPlayback
+        allowsFullscreenVideo={true}
+        allowsInlineMediaPlayback={true}
         mediaPlaybackRequiresUserAction={false}
-        javaScriptEnabled
-        domStorageEnabled
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
         sharedCookiesEnabled={sourceInfo.type !== 'adult'}
-        thirdPartyCookiesEnabled={sourceInfo.type !== 'adult'}
+        thirdPartyCookiesEnabled={true}
         mixedContentMode="always"
         cacheEnabled={sourceInfo.type !== 'adult'}
         incognito={sourceInfo.type === 'adult'}
@@ -403,7 +458,7 @@ export default function UniversalVideoPlayer({
         allowFileAccessFromFileURLs={true}
         allowUniversalAccessFromFileURLs={true}
         scalesPageToFit={false}
-        bounces={true}
+        bounces={sourceInfo.type !== 'youtube'}
         scrollEnabled={sourceInfo.type !== 'youtube'}
         automaticallyAdjustContentInsets={false}
         contentInset={{ top: 0, left: 0, bottom: 0, right: 0 }}
@@ -670,10 +725,12 @@ export default function UniversalVideoPlayer({
           </View>
         )}
 
-        {isLoading && (
+        {(isLoading || isValidatingUrl) && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color={Colors.primary.accent} />
-            <Text style={styles.loadingText}>Loading video...</Text>
+            <Text style={styles.loadingText}>
+              {isValidatingUrl ? 'Validating video...' : 'Loading video...'}
+            </Text>
           </View>
         )}
       </TouchableOpacity>

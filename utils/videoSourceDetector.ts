@@ -186,6 +186,13 @@ const ADULT_PLATFORMS = [
   { pattern: /povz\.com/i, platform: 'POVZ' },
   { pattern: /povzone\.com/i, platform: 'POVZone' },
   { pattern: /povzoo\.com/i, platform: 'POVZoo' },
+  { pattern: /airav\.io/i, platform: 'Airav' },
+  { pattern: /javhd\.com/i, platform: 'JavHD' },
+  { pattern: /javmix\.tv/i, platform: 'JavMix' },
+  { pattern: /missav\.com/i, platform: 'MissAV' },
+  { pattern: /supjav\.com/i, platform: 'SupJav' },
+  { pattern: /jable\.tv/i, platform: 'Jable' },
+  { pattern: /avgle\.com/i, platform: 'Avgle' },
 ];
 
 const UNSUPPORTED_PLATFORMS = [

@@ -176,27 +176,13 @@ export default function DedicatedYouTubePlayer({
   const handleMessage = (event: WebViewMessageEvent) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      console.log('[DedicatedYouTubePlayer] Message from WebView:', data);
-
-      switch (data.type) {
-        case 'playerReady':
-          console.log('[DedicatedYouTubePlayer] Player is ready');
-          setIsLoading(false);
-          onPlaybackStart?.();
-          break;
-        case 'playerTimeout':
-          console.warn('[DedicatedYouTubePlayer] Player load timeout');
-          break;
-        case 'error':
-          if (data.message !== 'Script error.') {
-            console.error('[DedicatedYouTubePlayer] Player error:', data.message);
-          } else {
-            console.log('[DedicatedYouTubePlayer] Cross-origin error (expected, ignored)');
-          }
-          break;
+      
+      if (data.type === 'playerReady') {
+        console.log('[DedicatedYouTubePlayer] Player is ready');
+        setIsLoading(false);
+        onPlaybackStart?.();
       }
-    } catch (error) {
-      console.warn('[DedicatedYouTubePlayer] Failed to parse WebView message:', error);
+    } catch {
     }
   };
 

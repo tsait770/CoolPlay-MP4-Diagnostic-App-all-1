@@ -228,42 +228,55 @@ export class YouTubePlayerModule {
   public generateInjectedJavaScript(): string {
     return `
       (function() {
-        try {
-          console.log('[YouTube Player] Iframe loaded');
-          
-          window.addEventListener('error', function(e) {
-            if (e.message === 'Script error.') {
-              console.log('[YouTube Player] Cross-origin script error (expected, ignored)');
-              return;
+        var logPrefix = '[YouTube Player]';
+        
+        window.addEventListener('error', function(e) {
+          return true;
+        }, true);
+        
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+          return true;
+        };
+        
+        window.addEventListener('unhandledrejection', function(event) {
+          return true;
+        });
+        
+        setTimeout(function() {
+          try {
+            if (document.body) {
+              document.body.style.margin = '0';
+              document.body.style.padding = '0';
+              document.body.style.overflow = 'hidden';
+              document.body.style.backgroundColor = '#000';
             }
-            console.error('[YouTube Player] Error:', e.message);
-          }, true);
-          
-          setTimeout(function() {
-            try {
-              if (window.ReactNativeWebView) {
-                window.ReactNativeWebView.postMessage(JSON.stringify({
-                  type: 'playerReady'
-                }));
+            
+            if (document.documentElement) {
+              document.documentElement.style.overflow = 'hidden';
+              document.documentElement.style.backgroundColor = '#000';
+            }
+            
+            var iframes = document.querySelectorAll('iframe');
+            if (iframes.length > 0) {
+              for (var i = 0; i < iframes.length; i++) {
+                iframes[i].style.width = '100%';
+                iframes[i].style.height = '100%';
+                iframes[i].style.border = 'none';
+                iframes[i].style.position = 'absolute';
+                iframes[i].style.top = '0';
+                iframes[i].style.left = '0';
               }
-            } catch (err) {
-              console.log('[YouTube Player] Message post skipped');
             }
-          }, 2000);
-          
-          if (document.body) {
-            document.body.style.margin = '0';
-            document.body.style.padding = '0';
-            document.body.style.overflow = 'hidden';
-          }
-          
-          if (document.documentElement) {
-            document.documentElement.style.overflow = 'hidden';
-          }
-          
-        } catch (error) {
-          console.log('[YouTube Player] Initialization error (ignored):', error.message);
-        }
+            
+            if (window.ReactNativeWebView) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'playerReady',
+                timestamp: Date.now()
+              }));
+            }
+          } catch (e) {}
+        }, 1000);
+        
       })();
       true;
     `;

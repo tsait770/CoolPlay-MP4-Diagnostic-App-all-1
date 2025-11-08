@@ -95,6 +95,19 @@ export class PlayerErrorReporter {
     try {
       console.log('[PlayerErrorReporter] Sending report to backend:', report.id);
       
+      const { trpcClient } = require('@/lib/trpc');
+      
+      const result = await trpcClient.player.reportError.mutate({
+        error: report.error,
+        deviceInfo: report.deviceInfo,
+        playbackInfo: report.playbackInfo,
+      });
+      
+      if (result.success) {
+        console.log('[PlayerErrorReporter] Report sent successfully:', result.reportId);
+      } else {
+        console.warn('[PlayerErrorReporter] Backend reported failure:', result.message);
+      }
     } catch (error) {
       console.warn('[PlayerErrorReporter] Failed to send report to backend:', error);
     }

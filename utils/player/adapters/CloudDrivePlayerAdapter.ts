@@ -96,13 +96,36 @@ export class CloudDrivePlayerAdapter extends BasePlayerAdapter {
       return url;
     }
     
-    console.warn('[CloudDrivePlayerAdapter] OneDrive URL extraction not fully implemented');
+    const shareIdMatch = url.match(/1drv\.ms\/([\w-]+)|onedrive\.live\.com\/\?([\w=&-]+)/i);
+    if (shareIdMatch) {
+      if (url.includes('download')) {
+        return url.replace('view', 'download');
+      }
+      return url + '&download=1';
+    }
+    
+    const embedMatch = url.match(/onedrive\.live\.com\/embed\?([^"'\s]+)/i);
+    if (embedMatch) {
+      return url;
+    }
+    
+    console.log('[CloudDrivePlayerAdapter] OneDrive URL will be loaded as-is:', url);
     return url;
   }
   
   private extractMegaUrl(url: string): string | null {
-    console.warn('[CloudDrivePlayerAdapter] Mega URL extraction not implemented');
-    return null;
+    const fileMatch = url.match(/mega\.nz\/(file|#!)\/([\w-]+)/i);
+    if (!fileMatch) {
+      console.warn('[CloudDrivePlayerAdapter] Invalid Mega URL format');
+      return null;
+    }
+    
+    const fileId = fileMatch[2];
+    console.log('[CloudDrivePlayerAdapter] Mega file ID:', fileId);
+    console.warn('[CloudDrivePlayerAdapter] Mega requires decryption key, direct playback not supported');
+    console.log('[CloudDrivePlayerAdapter] Mega will be loaded in WebView for user to download/view manually');
+    
+    return url;
   }
   
   getPlaybackUrl(): string | null {

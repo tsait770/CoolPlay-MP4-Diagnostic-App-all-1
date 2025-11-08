@@ -6,6 +6,12 @@ import { WebViewPlayerAdapter } from './adapters/WebViewPlayerAdapter';
 import { YouTubePlayerAdapter } from './adapters/YouTubePlayerAdapter';
 import { CloudDrivePlayerAdapter } from './adapters/CloudDrivePlayerAdapter';
 import { SocialMediaPlayerAdapter } from './adapters/SocialMediaPlayerAdapter';
+import { TwitchPlayerAdapter } from './adapters/TwitchPlayerAdapter';
+import { FacebookPlayerAdapter } from './adapters/FacebookPlayerAdapter';
+import { DailymotionPlayerAdapter } from './adapters/DailymotionPlayerAdapter';
+import { AdultPlatformAdapter, ADULT_PLATFORM_CONFIGS } from './adapters/AdultPlatformAdapter';
+import { LiveStreamAdapter } from './adapters/LiveStreamAdapter';
+import { FFmpegPlayerAdapter } from './adapters/FFmpegPlayerAdapter';
 
 export interface AdapterSelectionResult {
   adapter: PlayerAdapter;
@@ -91,9 +97,21 @@ export class PlayerAdapterFactory {
         break;
         
       case 'adult':
+        chain.push('webview');
+        break;
+        
       case 'twitch':
+        chain.push('webview');
+        break;
+        
       case 'facebook':
+        chain.push('webview');
+        break;
+        
       case 'dailymotion':
+        chain.push('webview');
+        break;
+        
       case 'vimeo':
         chain.push('webview');
         break;
@@ -127,17 +145,39 @@ export class PlayerAdapterFactory {
         return new SocialMediaPlayerAdapter(sourceInfo.platform);
         
       case 'webview':
+        if (sourceInfo.type === 'twitch') {
+          return new TwitchPlayerAdapter();
+        } else if (sourceInfo.type === 'facebook') {
+          return new FacebookPlayerAdapter();
+        } else if (sourceInfo.type === 'dailymotion') {
+          return new DailymotionPlayerAdapter();
+        } else if (sourceInfo.type === 'adult') {
+          const platformName = this.detectAdultPlatform(sourceInfo.platform);
+          return new AdultPlatformAdapter(platformName);
+        }
         return new WebViewPlayerAdapter();
         
       case 'ffmpeg':
-        throw new Error('FFmpeg adapter not yet implemented');
+        return new FFmpegPlayerAdapter();
         
       case 'rtmp':
-        throw new Error('RTMP adapter not yet implemented');
+        return new LiveStreamAdapter('rtmp');
         
       default:
         throw new Error(`Unknown adapter type: ${type}`);
     }
+  }
+  
+  private static detectAdultPlatform(platformName: string): string {
+    const normalizedName = platformName.toLowerCase().replace(/\s+/g, '');
+    
+    for (const key of Object.keys(ADULT_PLATFORM_CONFIGS)) {
+      if (normalizedName.includes(key)) {
+        return key;
+      }
+    }
+    
+    return 'generic';
   }
   
   static async createFallbackAdapter(

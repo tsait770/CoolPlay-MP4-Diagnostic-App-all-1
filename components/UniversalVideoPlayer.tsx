@@ -23,10 +23,11 @@ import { detectVideoSource, canPlayVideo } from '@/utils/videoSourceDetector';
 import { getSocialMediaConfig } from '@/utils/socialMediaPlayer';
 import { useMembership } from '@/providers/MembershipProvider';
 import SocialMediaPlayer from '@/components/SocialMediaPlayer';
-import YouTubePlayerManager from '@/components/youtube/YouTubePlayerManager';
+
 import DedicatedMP4Player from '@/components/DedicatedMP4Player';
 import { logDiagnostic } from '@/utils/videoDiagnostics';
 import { validateMP4Url, detectCodecFromUrl, getDiagnosticInfo } from '@/utils/mp4PlayerHelper';
+import { playerRouter } from '@/utils/player/PlayerRouter';
 import Colors from '@/constants/colors';
 
 export interface UniversalVideoPlayerProps {
@@ -86,6 +87,10 @@ export default function UniversalVideoPlayer({
     : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
   const safeUrl = shouldUseNativePlayer && validatedUrl ? validatedUrl : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
   
+  // Route early to determine player type
+  const routeResult = playerRouter.route(url);
+  
+  // Only initialize native player if needed
   const player = useVideoPlayer(safeUrl, (player) => {
     player.loop = false;
     player.muted = isMuted;
@@ -93,8 +98,6 @@ export default function UniversalVideoPlayer({
       player.play();
     }
   });
-  
-  const routeResult = playerRouter.route(url);
   
   console.log('[UniversalVideoPlayer] Player routing:', {
     url,
@@ -300,17 +303,12 @@ export default function UniversalVideoPlayer({
     };
   }, [player, autoPlay, onPlaybackStart, onError, url, sourceInfo.type, sourceInfo.platform]);
 
-  const getYouTubeEmbedUrlForPlayer = (videoId: string, attempt: number = 0): string => {
-    const alternatives = getYouTubeAlternatives(`https://www.youtube.com/watch?v=${videoId}`, autoPlay);
-    const selectedUrl = alternatives[Math.min(attempt, alternatives.length - 1)];
-    console.log(`[UniversalVideoPlayer] YouTube embed attempt ${attempt + 1}:`, selectedUrl);
-    return selectedUrl;
-  };
-
-
-
   const getVimeoEmbedUrl = (videoId: string): string => {
     return `https://player.vimeo.com/video/${videoId}?autoplay=${autoPlay ? 1 : 0}`;
+  };
+
+  const getYouTubeEmbedUrl = (videoId: string): string => {
+    return `https://www.youtube.com/embed/${videoId}?autoplay=${autoPlay ? 1 : 0}&playsinline=1&enablejsapi=1`;
   };
 
   const handleLoadTimeout = () => {
@@ -361,40 +359,7 @@ export default function UniversalVideoPlayer({
     let injectedJavaScript = '';
 
     if (sourceInfo.type === 'youtube' && sourceInfo.videoId) {
-      console.log('[UniversalVideoPlayer] === YouTube Playback System ===' );
-      console.log('[UniversalVideoPlayer] Video ID:', sourceInfo.videoId);
-      console.log('[UniversalVideoPlayer] Retry attempt:', retryCount + 1, '/', maxRetries + 1);
-      console.log('[UniversalVideoPlayer] Error Code 15/4 Detection: ACTIVE');
-      
-      embedUrl = getYouTubeEmbedUrlForPlayer(sourceInfo.videoId, retryCount);
-      
-      console.log('[UniversalVideoPlayer] Embed URL:', embedUrl);
-      console.log('[UniversalVideoPlayer] Starting load sequence...');
-      
-      injectedJavaScript = `
-        (function() {
-          console.log('[YouTube Player] Iframe loaded successfully');
-          console.log('[YouTube Player] Video ID: ${sourceInfo.videoId}');
-          console.log('[YouTube Player] URL: ${embedUrl}');
-          
-          window.addEventListener('error', function(e) {
-            console.error('[YouTube Player] Error detected:', e.message);
-          });
-          
-          var checkVideo = setInterval(function() {
-            var iframe = document.querySelector('iframe');
-            var video = document.querySelector('video');
-            if (iframe || video) {
-              console.log('[YouTube Player] Player element detected');
-              clearInterval(checkVideo);
-            }
-          }, 500);
-          
-          setTimeout(function() {
-            clearInterval(checkVideo);
-          }, 10000);
-        })();
-      `;
+      embedUrl = getYouTubeEmbedUrl(sourceInfo.videoId);
     } else if (sourceInfo.type === 'vimeo' && sourceInfo.videoId) {
       embedUrl = getVimeoEmbedUrl(sourceInfo.videoId);
       console.log('[UniversalVideoPlayer] Vimeo embed URL:', embedUrl);
@@ -560,8 +525,7 @@ export default function UniversalVideoPlayer({
               error: nativeEvent,
             });
             
-            const errorCodeMessage = getYouTubeErrorMessage(15, sourceInfo.videoId || undefined);
-            const error = `YouTube 播放失敗\n\n${errorCodeMessage}\n\n嘗試次數: ${maxRetries + 1}\n\n⚠️ 如果這是您自己的視頻：\n• 前往 YouTube Studio\n• 進入「視頻詳情」\n• 找到「更多選項」\n• 確認「允許嵌入」已勾選\n\n📞 技術支援：\n提供 Video ID: ${sourceInfo.videoId}`;
+            const error = `YouTube 播放失敗\n\n嘗試次數: ${maxRetries + 1}\n\nVideo ID: ${sourceInfo.videoId}\n\n⚠️ 可能原因：\n• 視頻被設為私人\n• 視頻禁止嵌入\n• 地區限制\n• 網路問題`;
             setPlaybackError(error);
             onError?.(error);
             return;
@@ -835,22 +799,8 @@ export default function UniversalVideoPlayer({
     );
   }
 
-  if (routeResult.playerType === 'youtube' && routeResult.shouldUseNewPlayer) {
-    console.log('[UniversalVideoPlayer] Using DedicatedYouTubePlayer');
-    return (
-      <View style={[styles.container, style]}>
-        <DedicatedYouTubePlayer
-          url={url}
-          onError={onError}
-          onLoad={() => setIsLoading(false)}
-          onPlaybackStart={onPlaybackStart}
-          autoPlay={autoPlay}
-          style={style}
-          maxRetries={maxRetries}
-        />
-      </View>
-    );
-  }
+  // Route YouTube to dedicated player is disabled - using existing WebView player for now
+  // TODO: Re-enable when DedicatedYouTubePlayer is fully implemented
   
   if (routeResult.playerType === 'mp4' && routeResult.shouldUseNewPlayer) {
     console.log('[UniversalVideoPlayer] Using DedicatedMP4Player');

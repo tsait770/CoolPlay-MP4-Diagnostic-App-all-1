@@ -243,6 +243,7 @@ export default function UniversalVideoPlayer({
       cc_load_policy: '0',
       disablekb: '0',
       wmode: 'transparent',
+      widget_referrer: 'https://rork.app',
     };
     
     const origin = typeof window !== 'undefined' && window.location ? window.location.origin : 'https://rork.app';
@@ -409,12 +410,16 @@ export default function UniversalVideoPlayer({
               : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7',
-            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
             'Referer': 'https://www.youtube.com/',
+            'Origin': 'https://www.youtube.com',
             'DNT': '1',
             'Sec-Fetch-Dest': 'iframe',
             'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'cross-site',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Ch-Ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+            'Sec-Ch-Ua-Mobile': retryCount >= 3 ? '?1' : '?0',
+            'Sec-Ch-Ua-Platform': retryCount >= 3 ? '"iOS"' : '"Windows"',
           } : sourceInfo.type === 'adult' ? {
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
@@ -440,7 +445,6 @@ export default function UniversalVideoPlayer({
         mixedContentMode="always"
         cacheEnabled={sourceInfo.type !== 'adult'}
         incognito={sourceInfo.type === 'adult'}
-        // YouTube 特定配置
         allowsProtectedMedia={true}
         allowFileAccess={true}
         allowFileAccessFromFileURLs={true}

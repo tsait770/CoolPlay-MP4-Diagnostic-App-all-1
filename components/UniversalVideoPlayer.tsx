@@ -27,7 +27,7 @@ import SocialMediaPlayer from '@/components/SocialMediaPlayer';
 import DedicatedMP4Player from '@/components/DedicatedMP4Player';
 import { logDiagnostic } from '@/utils/videoDiagnostics';
 import { validateMP4Url, detectCodecFromUrl, getDiagnosticInfo } from '@/utils/mp4PlayerHelper';
-import { playerRouter } from '@/utils/player/PlayerRouter';
+import { PlayerRouter } from '@/utils/player/PlayerRouter';
 import Colors from '@/constants/colors';
 
 export interface UniversalVideoPlayerProps {
@@ -82,13 +82,42 @@ export default function UniversalVideoPlayer({
   // Only initialize native player if we're actually using it
   // For WebView-required URLs, use a dummy URL for the native player to avoid errors
   // IMPORTANT: Always provide a valid URL - never empty string
-  const validUrl = (validatedUrl && validatedUrl.trim() !== '') || (url && url.trim() !== '') 
-    ? (validatedUrl || url) 
-    : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-  const safeUrl = shouldUseNativePlayer && validatedUrl ? validatedUrl : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+  const validUrl = React.useMemo(() => {
+    if (validatedUrl && validatedUrl.trim() !== '') return validatedUrl;
+    if (url && url.trim() !== '') return url;
+    return 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+  }, [validatedUrl, url]);
+  
+  const safeUrl = React.useMemo(() => {
+    if (shouldUseNativePlayer && validatedUrl && validatedUrl.trim() !== '') {
+      return validatedUrl;
+    }
+    if (shouldUseNativePlayer && url && url.trim() !== '') {
+      return url;
+    }
+    return 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+  }, [shouldUseNativePlayer, validatedUrl, url]);
   
   // Route early to determine player type
-  const routeResult = playerRouter.route(url);
+  const routeResult = React.useMemo(() => {
+    if (!url || url.trim() === '') {
+      return {
+        playerType: 'unknown' as const,
+        sourceInfo: {
+          type: 'unknown' as const,
+          platform: 'Unknown',
+          requiresPremium: false,
+          error: 'Invalid URL: URL is empty',
+          requiresWebView: false,
+        },
+        shouldUseNewPlayer: false,
+        originalUrl: url || '',
+        processedUrl: url || '',
+        reason: 'Invalid URL',
+      };
+    }
+    return PlayerRouter.getInstance().route(url);
+  }, [url]);
   
   // Only initialize native player if needed
   const player = useVideoPlayer(safeUrl, (player) => {

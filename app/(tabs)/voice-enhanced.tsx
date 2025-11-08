@@ -45,6 +45,34 @@ export default function EnhancedVoiceControlScreen() {
     toggleAlwaysListening = () => Promise.resolve(),
   } = voiceControl || {};
 
+  const [permissionError, setPermissionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleVoiceError = (event: Event) => {
+      const { code, message } = (event as CustomEvent).detail || {};
+      if (code === 'mic-denied' || code === 'mic-error') {
+        setPermissionError(message || 'Microphone permission denied');
+        Alert.alert(
+          t('permission_required') || 'Permission Required',
+          t('microphone_permission_required') || 'Please allow microphone access to use voice control',
+          [
+            {
+              text: t('ok') || 'OK',
+              onPress: () => setPermissionError(null),
+            },
+          ]
+        );
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('voiceError', handleVoiceError as EventListener);
+      return () => {
+        window.removeEventListener('voiceError', handleVoiceError as EventListener);
+      };
+    }
+  }, [t]);
+
   const insets = useSafeAreaInsets();
   const [videoSource, setVideoSource] = useState<VideoSource | null>(null);
   const defaultVideoUri = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
@@ -361,15 +389,24 @@ export default function EnhancedVoiceControlScreen() {
                 style={[
                   styles.mainVoiceButton,
                   (isListening || alwaysListening) && styles.mainVoiceButtonActive,
+                  permissionError && styles.mainVoiceButtonError,
                 ]}
-                onPress={toggleAlwaysListening}
+                onPress={async () => {
+                  setPermissionError(null);
+                  try {
+                    await toggleAlwaysListening();
+                  } catch (err: any) {
+                    console.error('Voice control error:', err);
+                    setPermissionError(err?.message || 'Failed to start voice control');
+                  }
+                }}
                 activeOpacity={0.8}
               >
                 <Mic size={48} color="#fff" />
               </TouchableOpacity>
             </Animated.View>
             <Text style={styles.voiceButtonHint}>
-              {alwaysListening ? t('continuous_listening') : t('tap_to_speak')}
+              {permissionError ? permissionError : alwaysListening ? t('continuous_listening') : t('tap_to_speak')}
             </Text>
           </View>
 
@@ -724,6 +761,10 @@ const styles = StyleSheet.create({
   mainVoiceButtonActive: {
     backgroundColor: '#FF3B30',
     shadowColor: '#FF3B30',
+  },
+  mainVoiceButtonError: {
+    backgroundColor: '#FF9500',
+    shadowColor: '#FF9500',
   },
   voiceButtonHint: {
     fontSize: 16,

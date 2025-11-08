@@ -90,19 +90,24 @@ export class YouTubePlayerModule {
     }
 
     const params = new URLSearchParams({
-      playsinline: '1',
-      enablejsapi: '1',
-      modestbranding: '1',
-      rel: '0',
-      iv_load_policy: '3',
-      fs: '1',
       autoplay: config.autoplay ? '1' : '0',
+      playsinline: '1',
       controls: config.controls !== false ? '1' : '0',
       loop: config.loop ? '1' : '0',
       mute: config.muted ? '1' : '0',
+      rel: '0',
+      modestbranding: '1',
+      fs: '1',
+      enablejsapi: '1',
+      iv_load_policy: '3',
+      cc_load_policy: '0',
+      disablekb: '0',
+      hl: 'en',
+      origin: 'https://rork.app',
+      widget_referrer: 'https://rork.app',
     });
 
-    const embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
+    const embedUrl = `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
 
     console.log('[YouTubePlayerModule] Generated embed URL:', embedUrl);
 
@@ -134,40 +139,81 @@ export class YouTubePlayerModule {
       };
     }
 
-    const domains = [
-      'www.youtube-nocookie.com',
-      'www.youtube.com',
-      'youtube.com',
+    const strategies: {domain: string; params: Record<string, string>}[] = [
+      {
+        domain: 'www.youtube.com',
+        params: {
+          autoplay: config.autoplay ? '1' : '0',
+          playsinline: '1',
+          controls: config.controls !== false ? '1' : '0',
+          loop: config.loop ? '1' : '0',
+          mute: config.muted ? '1' : '0',
+          rel: '0',
+          modestbranding: '1',
+          fs: '1',
+          enablejsapi: '1',
+          iv_load_policy: '3',
+          cc_load_policy: '0',
+          disablekb: '0',
+          hl: 'en',
+          origin: 'https://rork.app',
+          widget_referrer: 'https://rork.app',
+        },
+      },
+      {
+        domain: 'www.youtube-nocookie.com',
+        params: {
+          autoplay: config.autoplay ? '1' : '0',
+          playsinline: '1',
+          controls: config.controls !== false ? '1' : '0',
+          loop: config.loop ? '1' : '0',
+          mute: config.muted ? '1' : '0',
+          rel: '0',
+          modestbranding: '1',
+          fs: '1',
+          enablejsapi: '1',
+          iv_load_policy: '3',
+          origin: 'https://rork.app',
+        },
+      },
+      {
+        domain: 'www.youtube.com',
+        params: {
+          autoplay: config.autoplay ? '1' : '0',
+          playsinline: '1',
+          controls: '1',
+          rel: '0',
+          modestbranding: '1',
+          fs: '1',
+          hl: 'en',
+        },
+      },
+      {
+        domain: 'www.youtube-nocookie.com',
+        params: {
+          autoplay: config.autoplay ? '1' : '0',
+          playsinline: '1',
+          controls: '1',
+          rel: '0',
+          fs: '1',
+        },
+      },
+      {
+        domain: 'invidious.snopyta.org',
+        params: {
+          autoplay: config.autoplay ? '1' : '0',
+          loop: config.loop ? '1' : '0',
+        },
+      },
     ];
 
-    const domainIndex = attemptNumber % domains.length;
-    const domain = domains[domainIndex];
-
-    const baseParams: Record<string, string> = {
-      playsinline: '1',
-      enablejsapi: '1',
-      modestbranding: '1',
-      rel: '0',
-      iv_load_policy: '3',
-      fs: '1',
-      autoplay: config.autoplay ? '1' : '0',
-      controls: config.controls !== false ? '1' : '0',
-      loop: config.loop ? '1' : '0',
-      mute: config.muted ? '1' : '0',
-    };
-
-    if (attemptNumber >= 1) {
-      baseParams['origin'] = 'https://rork.app';
-    }
-
-    if (attemptNumber >= 2) {
-      baseParams['widget_referrer'] = 'https://rork.app';
-    }
-
-    const params = new URLSearchParams(baseParams);
-    const embedUrl = `https://${domain}/embed/${videoId}?${params.toString()}`;
+    const strategyIndex = attemptNumber % strategies.length;
+    const strategy = strategies[strategyIndex];
+    const params = new URLSearchParams(Object.entries(strategy.params));
+    const embedUrl = `https://${strategy.domain}/embed/${videoId}?${params.toString()}`;
 
     console.log('[YouTubePlayerModule] Generated fallback embed URL:', embedUrl);
+    console.log('[YouTubePlayerModule] Using strategy:', strategyIndex + 1, '/', strategies.length);
 
     return {
       embedUrl,
@@ -191,28 +237,36 @@ export class YouTubePlayerModule {
       thirdPartyCookiesEnabled: true,
       sharedCookiesEnabled: true,
       cacheEnabled: true,
+      incognito: false,
+      setSupportMultipleWindows: false,
     };
 
     const userAgents = [
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
     ];
 
     const userAgent = userAgents[attemptNumber % userAgents.length];
 
     const headers: Record<string, string> = {
       'User-Agent': userAgent,
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+      'Accept-Language': 'en-US,en;q=0.9',
       'Accept-Encoding': 'gzip, deflate, br',
       'Referer': 'https://www.youtube.com/',
+      'Origin': 'https://rork.app',
       'DNT': '1',
       'Sec-Fetch-Dest': 'iframe',
       'Sec-Fetch-Mode': 'navigate',
       'Sec-Fetch-Site': 'cross-site',
+      'Sec-Fetch-User': '?1',
       'Upgrade-Insecure-Requests': '1',
+      'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+      'sec-ch-ua-mobile': '?0',
+      'sec-ch-ua-platform': '"Windows"',
     };
 
     return {
@@ -228,21 +282,31 @@ export class YouTubePlayerModule {
   public generateInjectedJavaScript(): string {
     return `
       (function() {
-        var logPrefix = '[YouTube Player]';
+        var logPrefix = '[YouTube Player Injected]';
+        console.log(logPrefix, 'Script injected and executing');
         
         window.addEventListener('error', function(e) {
+          console.log(logPrefix, 'Error caught:', e.message);
           return true;
         }, true);
         
         window.onerror = function(msg, url, lineNo, columnNo, error) {
+          console.log(logPrefix, 'Global error:', msg);
           return true;
         };
         
         window.addEventListener('unhandledrejection', function(event) {
+          console.log(logPrefix, 'Unhandled rejection:', event.reason);
           return true;
         });
         
-        setTimeout(function() {
+        var attempts = 0;
+        var maxAttempts = 30;
+        
+        function styleIframes() {
+          attempts++;
+          console.log(logPrefix, 'Styling attempt:', attempts);
+          
           try {
             if (document.body) {
               document.body.style.margin = '0';
@@ -257,25 +321,49 @@ export class YouTubePlayerModule {
             }
             
             var iframes = document.querySelectorAll('iframe');
+            console.log(logPrefix, 'Found iframes:', iframes.length);
+            
             if (iframes.length > 0) {
               for (var i = 0; i < iframes.length; i++) {
-                iframes[i].style.width = '100%';
-                iframes[i].style.height = '100%';
-                iframes[i].style.border = 'none';
-                iframes[i].style.position = 'absolute';
-                iframes[i].style.top = '0';
-                iframes[i].style.left = '0';
+                var iframe = iframes[i];
+                iframe.style.width = '100%';
+                iframe.style.height = '100%';
+                iframe.style.border = 'none';
+                iframe.style.position = 'absolute';
+                iframe.style.top = '0';
+                iframe.style.left = '0';
+                iframe.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
+                iframe.setAttribute('allowfullscreen', 'true');
+                iframe.setAttribute('webkitallowfullscreen', 'true');
+                iframe.setAttribute('mozallowfullscreen', 'true');
               }
+              
+              console.log(logPrefix, 'iframes styled successfully');
+              
+              if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                  type: 'playerReady',
+                  timestamp: Date.now(),
+                  iframeCount: iframes.length
+                }));
+              }
+              
+              return true;
             }
-            
-            if (window.ReactNativeWebView) {
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'playerReady',
-                timestamp: Date.now()
-              }));
-            }
-          } catch (e) {}
-        }, 1000);
+          } catch (e) {
+            console.error(logPrefix, 'Error styling iframes:', e);
+          }
+          
+          if (attempts < maxAttempts) {
+            setTimeout(styleIframes, 200);
+          } else {
+            console.warn(logPrefix, 'Max attempts reached, no iframes found');
+          }
+          
+          return false;
+        }
+        
+        setTimeout(styleIframes, 500);
         
       })();
       true;

@@ -1,41 +1,55 @@
 /**
- * 独立的 MP4 播放器模块
- * 专门处理 MP4 和直接视频文件播放
- * 完全独立的架构，不影响其他播放器
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * MP4 Player Module (专用MP4播放模块)
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * 
+ * 职责：
+ * - MP4 URL 验证
+ * - 编解码器检测
+ * - 生成诊断信息
+ * 
+ * ⚠️ 重要限制：
+ * - 仅负责 MP4 相关功能
+ * - 不得干扰其他播放器模块
+ * 
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  */
 
 export interface MP4ValidationResult {
   isValid: boolean;
   canPlay: boolean;
-  supportsRange: boolean;
-  contentType: string | null;
-  contentLength: number | null;
-  redirectUrl: string | null;
-  errorMessage: string | null;
-  statusCode: number | null;
+  errorMessage?: string;
+  contentType?: string;
+  contentLength?: number;
+  supportsRange?: boolean;
+  redirectUrl?: string;
 }
 
 export interface MP4CodecInfo {
+  videoCodec?: string;
+  audioCodec?: string;
+  container?: string;
   supported: boolean;
-  codec: string;
-  container: string;
-  errorMessage: string | null;
-  recommendation: string | null;
-}
-
-export interface MP4PlayerConfig {
-  url: string;
-  autoplay?: boolean;
-  loop?: boolean;
-  muted?: boolean;
-  headers?: Record<string, string>;
+  requiresSoftwareDecoding?: boolean;
+  errorMessage?: string;
 }
 
 export class MP4PlayerModule {
   private static instance: MP4PlayerModule;
 
+  private readonly SUPPORTED_CODECS = {
+    video: ['h264', 'avc', 'avc1', 'h.264'],
+    audio: ['aac', 'mp3', 'opus', 'vorbis'],
+    containers: ['mp4', 'webm', 'ogg', 'm4v'],
+  };
+
+  private readonly UNSUPPORTED_CODECS = {
+    video: ['h265', 'hevc', 'vp8', 'vp9', 'av1', 'mpeg4', 'divx', 'xvid'],
+    audio: ['ac3', 'eac3', 'dts', 'truehd'],
+  };
+
   private constructor() {
-    console.log('[MP4PlayerModule] Initialized');
+    console.log('[MP4PlayerModule] ✅ Module initialized');
   }
 
   public static getInstance(): MP4PlayerModule {
@@ -46,112 +60,107 @@ export class MP4PlayerModule {
   }
 
   /**
-   * 验证 MP4 URL 是否可播放
+   * 验证 MP4 URL
    */
-  public async validateMP4Url(url: string): Promise<MP4ValidationResult> {
+  public async validateMP4Url(url: string, timeout: number = 10000): Promise<MP4ValidationResult> {
     console.log('[MP4PlayerModule] Validating URL:', url);
-
-    const defaultResult: MP4ValidationResult = {
-      isValid: false,
-      canPlay: false,
-      supportsRange: false,
-      contentType: null,
-      contentLength: null,
-      redirectUrl: null,
-      errorMessage: null,
-      statusCode: null,
-    };
-
+    
     if (!url || typeof url !== 'string' || url.trim() === '') {
-      console.error('[MP4PlayerModule] Invalid URL: empty or not a string');
       return {
-        ...defaultResult,
-        errorMessage: 'Invalid URL: URL is empty',
-      };
-    }
-
-    const trimmedUrl = url.trim();
-
-    if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
-      console.error('[MP4PlayerModule] Invalid URL: must start with http:// or https://');
-      return {
-        ...defaultResult,
-        errorMessage: 'Invalid URL: must be HTTP or HTTPS',
+        isValid: false,
+        canPlay: false,
+        errorMessage: 'URL is empty or invalid',
       };
     }
 
     try {
-      console.log('[MP4PlayerModule] Sending HEAD request to:', trimmedUrl);
-
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      const response = await fetch(trimmedUrl, {
+      const response = await fetch(url, {
         method: 'HEAD',
-        signal: controller.signal,
         headers: {
-          'Range': 'bytes=0-',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          'Range': 'bytes=0-1',
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
+          'Accept': 'video/*,*/*;q=0.8',
         },
+        signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
 
-      console.log('[MP4PlayerModule] Response status:', response.status);
-      console.log('[MP4PlayerModule] Response headers:', Object.fromEntries(response.headers.entries()));
+      console.log('[MP4PlayerModule] HEAD response:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: response.url,
+      });
 
-      const contentType = response.headers.get('content-type') || response.headers.get('Content-Type');
-      const contentLength = response.headers.get('content-length') || response.headers.get('Content-Length');
-      const acceptRanges = response.headers.get('accept-ranges') || response.headers.get('Accept-Ranges');
-
-      const supportsRange = acceptRanges === 'bytes';
-      const finalUrl = response.url || trimmedUrl;
-
-      if (response.status >= 200 && response.status < 300) {
-        const canPlay = this.isPlayableContentType(contentType);
-
-        if (!canPlay) {
-          console.warn('[MP4PlayerModule] Content-Type not playable:', contentType);
-        }
-
-        if (!supportsRange) {
-          console.warn('[MP4PlayerModule] Server does not support Range requests');
-        }
-
+      if (response.status === 404) {
         return {
-          isValid: true,
-          canPlay,
-          supportsRange,
-          contentType,
-          contentLength: contentLength ? parseInt(contentLength, 10) : null,
-          redirectUrl: finalUrl !== trimmedUrl ? finalUrl : null,
-          errorMessage: canPlay ? null : `Unsupported content type: ${contentType}`,
-          statusCode: response.status,
-        };
-      } else {
-        const errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        console.error('[MP4PlayerModule]', errorMessage);
-
-        return {
-          ...defaultResult,
-          errorMessage,
-          statusCode: response.status,
+          isValid: false,
+          canPlay: false,
+          errorMessage: 'Video file not found (404)',
         };
       }
-    } catch (error: any) {
-      console.error('[MP4PlayerModule] Validation error:', error);
 
-      let errorMessage = 'Unknown error';
+      if (response.status === 403) {
+        return {
+          isValid: false,
+          canPlay: false,
+          errorMessage: 'Access denied (403)',
+        };
+      }
 
-      if (error.name === 'AbortError') {
-        errorMessage = 'Request timeout: Server took too long to respond';
-      } else if (error.message) {
-        errorMessage = error.message;
+      if (response.status >= 400) {
+        return {
+          isValid: false,
+          canPlay: false,
+          errorMessage: `HTTP error ${response.status}`,
+        };
+      }
+
+      const contentType = response.headers.get('content-type');
+      const contentLength = response.headers.get('content-length');
+      const acceptRanges = response.headers.get('accept-ranges');
+      const finalUrl = response.url;
+
+      const supportsRange = acceptRanges === 'bytes' || response.status === 206;
+
+      if (!contentType || !contentType.includes('video')) {
+        console.warn('[MP4PlayerModule] Content-Type is not video:', contentType);
+        
+        if (contentType && contentType.includes('text/html')) {
+          return {
+            isValid: false,
+            canPlay: false,
+            errorMessage: 'URL points to a web page, not a video file',
+          };
+        }
       }
 
       return {
-        ...defaultResult,
-        errorMessage: `Validation failed: ${errorMessage}`,
+        isValid: true,
+        canPlay: true,
+        contentType: contentType || undefined,
+        contentLength: contentLength ? parseInt(contentLength, 10) : undefined,
+        supportsRange,
+        redirectUrl: url !== finalUrl ? finalUrl : undefined,
+      };
+    } catch (error) {
+      console.error('[MP4PlayerModule] Validation error:', error);
+      
+      if ((error as Error).name === 'AbortError') {
+        return {
+          isValid: false,
+          canPlay: false,
+          errorMessage: `Connection timeout after ${timeout / 1000}s`,
+        };
+      }
+
+      return {
+        isValid: false,
+        canPlay: false,
+        errorMessage: `Failed to validate video: ${(error as Error).message}`,
       };
     }
   }
@@ -160,90 +169,48 @@ export class MP4PlayerModule {
    * 检测视频编解码器
    */
   public detectCodec(url: string): MP4CodecInfo {
-    console.log('[MP4PlayerModule] Detecting codec for:', url);
+    console.log('[MP4PlayerModule] Detecting codec from URL:', url);
+    
+    const lowerUrl = url.toLowerCase();
+    
+    const container = this.SUPPORTED_CODECS.containers.find(ext => 
+      lowerUrl.includes(`.${ext}`)
+    );
 
-    const urlLower = url.toLowerCase();
-
-    const supportedExtensions = [
-      '.mp4', '.m4v', '.mov',
-      '.webm', '.ogg', '.ogv',
-    ];
-
-    const unsupportedExtensions = [
-      '.mkv', '.avi', '.wmv', '.flv',
-      '.3gp', '.ts', '.m2ts', '.mts',
-    ];
-
-    const h265Extensions = ['.hevc', '.h265'];
-
-    for (const ext of h265Extensions) {
-      if (urlLower.includes(ext)) {
-        return {
-          supported: false,
-          codec: 'H.265/HEVC',
-          container: 'MP4',
-          errorMessage: 'H.265/HEVC codec is not widely supported on mobile devices',
-          recommendation: 'Use H.264 encoded videos for best compatibility',
-        };
-      }
-    }
-
-    for (const ext of unsupportedExtensions) {
-      if (urlLower.endsWith(ext)) {
-        const container = ext.substring(1).toUpperCase();
-        return {
-          supported: false,
-          codec: 'Unknown',
-          container,
-          errorMessage: `${container} format is not supported by native video players`,
-          recommendation: 'Convert video to MP4 with H.264 codec',
-        };
-      }
-    }
-
-    for (const ext of supportedExtensions) {
-      if (urlLower.endsWith(ext)) {
-        const container = ext.substring(1).toUpperCase();
-        return {
-          supported: true,
-          codec: 'H.264 (assumed)',
-          container,
-          errorMessage: null,
-          recommendation: null,
-        };
-      }
-    }
-
-    return {
+    const result: MP4CodecInfo = {
+      container,
       supported: true,
-      codec: 'Unknown',
-      container: 'Unknown',
-      errorMessage: null,
-      recommendation: null,
     };
-  }
 
-  /**
-   * 判断 Content-Type 是否可播放
-   */
-  private isPlayableContentType(contentType: string | null): boolean {
-    if (!contentType) {
-      return false;
+    for (const codec of this.UNSUPPORTED_CODECS.video) {
+      if (lowerUrl.includes(codec)) {
+        result.videoCodec = codec.toUpperCase();
+        result.supported = false;
+        result.requiresSoftwareDecoding = true;
+        result.errorMessage = `Video uses ${codec.toUpperCase()} codec which is not supported by most devices. Supported: H.264/AVC only.`;
+        console.warn('[MP4PlayerModule] Unsupported video codec:', codec);
+        break;
+      }
     }
 
-    const playableTypes = [
-      'video/mp4',
-      'video/webm',
-      'video/ogg',
-      'video/quicktime',
-      'video/x-m4v',
-      'application/vnd.apple.mpegurl',
-      'application/x-mpegurl',
-    ];
+    for (const codec of this.UNSUPPORTED_CODECS.audio) {
+      if (lowerUrl.includes(codec)) {
+        result.audioCodec = codec.toUpperCase();
+        result.supported = false;
+        result.requiresSoftwareDecoding = true;
+        result.errorMessage = result.errorMessage 
+          ? result.errorMessage + `\n\nAudio codec ${codec.toUpperCase()} is also not supported.`
+          : `Audio codec ${codec.toUpperCase()} is not supported. Supported: AAC, MP3, Opus.`;
+        console.warn('[MP4PlayerModule] Unsupported audio codec:', codec);
+        break;
+      }
+    }
 
-    const contentTypeLower = contentType.toLowerCase();
+    if (result.supported) {
+      console.log('[MP4PlayerModule] Codec appears to be supported');
+    }
 
-    return playableTypes.some(type => contentTypeLower.includes(type));
+    return result;
   }
 
   /**
@@ -252,77 +219,38 @@ export class MP4PlayerModule {
   public generateDiagnosticInfo(url: string, error?: string): string {
     const codecInfo = this.detectCodec(url);
     
-    let diagnostic = `MP4 播放器诊断信息\n\n`;
+    let diagnostic = `🔍 MP4 视频诊断报告\n\n`;
     diagnostic += `URL: ${url}\n\n`;
     
-    if (codecInfo.container !== 'Unknown') {
-      diagnostic += `格式: ${codecInfo.container}\n`;
+    if (codecInfo.container) {
+      diagnostic += `📦 容器格式: ${codecInfo.container.toUpperCase()}\n`;
     }
     
-    if (codecInfo.codec !== 'Unknown') {
-      diagnostic += `编解码器: ${codecInfo.codec}\n`;
+    if (codecInfo.videoCodec) {
+      diagnostic += `🎬 视频编码: ${codecInfo.videoCodec}\n`;
     }
     
-    diagnostic += `支持状态: ${codecInfo.supported ? '✓ 支持' : '✗ 不支持'}\n\n`;
-    
-    if (codecInfo.errorMessage) {
-      diagnostic += `问题: ${codecInfo.errorMessage}\n\n`;
+    if (codecInfo.audioCodec) {
+      diagnostic += `🔊 音频编码: ${codecInfo.audioCodec}\n`;
     }
     
-    if (codecInfo.recommendation) {
-      diagnostic += `建议: ${codecInfo.recommendation}\n\n`;
+    diagnostic += `\n`;
+    
+    if (!codecInfo.supported) {
+      diagnostic += `❌ 不支持原因:\n${codecInfo.errorMessage}\n\n`;
+      diagnostic += `✅ 建议解决方案:\n`;
+      diagnostic += `1. 使用 H.264 视频编码 + AAC 音频编码\n`;
+      diagnostic += `2. 使用 MP4 容器格式\n`;
+      diagnostic += `3. 确保 moov atom 在文件开头（fast start）\n`;
+    } else {
+      diagnostic += `✅ 编码格式: 支持\n\n`;
     }
     
     if (error) {
-      diagnostic += `错误详情: ${error}\n\n`;
+      diagnostic += `\n🔴 播放错误:\n${error}\n`;
     }
-    
-    diagnostic += `故障排除步骤:\n`;
-    diagnostic += `1. 确认视频文件格式为 MP4 (H.264)\n`;
-    diagnostic += `2. 检查视频 URL 是否可访问\n`;
-    diagnostic += `3. 确认服务器支持 Range 请求\n`;
-    diagnostic += `4. 验证 Content-Type 为 video/mp4\n`;
     
     return diagnostic;
-  }
-
-  /**
-   * 获取推荐的请求头
-   */
-  public getRecommendedHeaders(): Record<string, string> {
-    return {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-      'Accept': 'video/webm,video/ogg,video/*;q=0.9,application/ogg;q=0.7,audio/*;q=0.6,*/*;q=0.5',
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Range': 'bytes=0-',
-    };
-  }
-
-  /**
-   * 检查 URL 是否是 MP4 相关格式
-   */
-  public isMP4RelatedFormat(url: string): boolean {
-    const mp4Extensions = [
-      '.mp4', '.m4v', '.mov',
-      '.webm', '.ogg', '.ogv',
-    ];
-
-    const urlLower = url.toLowerCase();
-    return mp4Extensions.some(ext => urlLower.endsWith(ext));
-  }
-
-  /**
-   * 获取视频文件扩展名
-   */
-  public getVideoExtension(url: string): string | null {
-    try {
-      const urlObj = new URL(url);
-      const pathname = urlObj.pathname;
-      const match = pathname.match(/\.([a-z0-9]+)$/i);
-      return match ? match[1].toLowerCase() : null;
-    } catch {
-      return null;
-    }
   }
 }
 

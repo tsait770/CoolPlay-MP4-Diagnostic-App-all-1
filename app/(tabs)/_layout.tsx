@@ -61,12 +61,6 @@ export default function TabLayout() {
         <Ionicons name="logo-bitcoin" size={24} color={color} />
       ),
     },
-    "voice-control-enhanced": {
-      title: t("voice_control"),
-      tabBarIcon: ({ color }: { color: string }) => (
-        <Ionicons name="mic" size={24} color={color} />
-      ),
-    },
     player: {
       title: t("voice_control"),
       tabBarIcon: ({ color }: { color: string }) => (
@@ -141,15 +135,6 @@ export default function TabLayout() {
         listeners={{
           tabPress: () => {
             console.log('[Tabs] tabPress: favorites', Date.now());
-          },
-        } as any}
-      />
-      <Tabs.Screen
-        name="voice-control-enhanced"
-        options={tabOptions["voice-control-enhanced"]}
-        listeners={{
-          tabPress: () => {
-            console.log('[Tabs] tabPress: voice-control-enhanced', Date.now());
           },
         } as any}
       />

@@ -13,28 +13,28 @@ export default function Index() {
       try {
         console.log('[Index] Starting app initialization...');
         
-        // Immediate navigation without delay
+        // Give providers time to initialize
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        console.log('[Index] Initialization complete, navigating to home...');
         setIsReady(true);
         
-        // Navigate to home immediately
-        try {
-          router.replace('/(tabs)/home');
-        } catch (navError) {
-          console.error('[Index] Navigation error:', navError);
-          setError(navError instanceof Error ? navError.message : 'Navigation failed');
-        }
+        // Navigate to home
+        setTimeout(() => {
+          try {
+            router.replace('/(tabs)/home');
+          } catch (navError) {
+            console.error('[Index] Navigation error:', navError);
+            setError(navError instanceof Error ? navError.message : 'Navigation failed');
+          }
+        }, 100);
       } catch (err) {
         console.error('[Index] Initialization error:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
       }
     };
 
-    // Small delay to ensure router is ready
-    const timer = setTimeout(() => {
-      initApp();
-    }, 100);
-    
-    return () => clearTimeout(timer);
+    initApp();
   }, [router]);
 
   if (error) {

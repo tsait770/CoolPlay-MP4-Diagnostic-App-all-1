@@ -23,8 +23,6 @@ import { detectVideoSource, canPlayVideo } from '@/utils/videoSourceDetector';
 import { getSocialMediaConfig } from '@/utils/socialMediaPlayer';
 import { useMembership } from '@/providers/MembershipProvider';
 import SocialMediaPlayer from '@/components/SocialMediaPlayer';
-import { logDiagnostic } from '@/utils/videoDiagnostics';
-import { PlayerRouter } from '@/utils/player/PlayerRouter';
 import Colors from '@/constants/colors';
 
 export interface UniversalVideoPlayerProps {
@@ -59,7 +57,6 @@ export default function UniversalVideoPlayer({
   const [showControls, setShowControls] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   const [loadStartTime, setLoadStartTime] = useState<number>(0);
-  const [validatedUrl, setValidatedUrl] = useState<string | null>(null);
   const webViewRef = useRef<WebView>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -78,57 +75,15 @@ export default function UniversalVideoPlayer({
   // Only initialize native player if we're actually using it
   // For WebView-required URLs, use a dummy URL for the native player to avoid errors
   // IMPORTANT: Always provide a valid URL - never empty string
-  const validUrl = React.useMemo(() => {
-    if (validatedUrl && validatedUrl.trim() !== '') return validatedUrl;
-    if (url && url.trim() !== '') return url;
-    return 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-  }, [validatedUrl, url]);
+  const validUrl = url && url.trim() !== '' ? url : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+  const safeUrl = shouldUseNativePlayer ? validUrl : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
   
-  const safeUrl = React.useMemo(() => {
-    if (shouldUseNativePlayer && validatedUrl && validatedUrl.trim() !== '') {
-      return validatedUrl;
-    }
-    if (shouldUseNativePlayer && url && url.trim() !== '') {
-      return url;
-    }
-    return 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-  }, [shouldUseNativePlayer, validatedUrl, url]);
-  
-  // Route early to determine player type
-  const routeResult = React.useMemo(() => {
-    if (!url || url.trim() === '') {
-      return {
-        playerType: 'unknown' as const,
-        sourceInfo: {
-          type: 'unknown' as const,
-          platform: 'Unknown',
-          requiresPremium: false,
-          error: 'Invalid URL: URL is empty',
-          requiresWebView: false,
-        },
-        shouldUseNewPlayer: false,
-        originalUrl: url || '',
-        processedUrl: url || '',
-        reason: 'Invalid URL',
-      };
-    }
-    return PlayerRouter.getInstance().route(url);
-  }, [url]);
-  
-  // Only initialize native player if needed
   const player = useVideoPlayer(safeUrl, (player) => {
     player.loop = false;
     player.muted = isMuted;
     if (autoPlay && shouldUseNativePlayer) {
       player.play();
     }
-  });
-  
-  console.log('[UniversalVideoPlayer] Player routing:', {
-    url,
-    playerType: routeResult.playerType,
-    shouldUseNewPlayer: routeResult.shouldUseNewPlayer,
-    reason: routeResult.reason,
   });
   
   console.log('[UniversalVideoPlayer] Source detection:', {
@@ -139,14 +94,6 @@ export default function UniversalVideoPlayer({
     requiresAgeVerification: sourceInfo.requiresAgeVerification,
     canPlay: playbackEligibility.canPlay,
   });
-
-  useEffect(() => {
-    logDiagnostic(url);
-  }, [url]);
-
-  useEffect(() => {
-    setValidatedUrl(url);
-  }, [url]);
 
   useEffect(() => {
     console.log('[UniversalVideoPlayer] Initialized with:', {
@@ -265,8 +212,9 @@ export default function UniversalVideoPlayer({
           return;
         }
         
+        // Check if it's a common MP4 loading error
         if (errorMsg.includes('source.uri') || errorMsg.includes('empty') || errorMsg.includes('invalid')) {
-          errorMsg = `Invalid video source: ${errorMsg}`;
+          errorMsg = `無法載入視頻\n\n錯誤詳情:\n${errorMsg}\n\nURL: ${url}\n\n可能原因：\n• 視頻檔案不存在或已被移除\n• 網路連線問題\n• URL格式不正確\n• 伺服器不允許存取\n\n建議解決方案：\n1. 確認視頻URL是否正確\n2. 檢查網路連線\n3. 嘗試在瀏覽器中開啟URL測試\n4. 如果是本地檔案,請確認檔案路徑正確`;
         }
         
         const fullErrorMsg = `Playback error: ${errorMsg}`;
@@ -281,12 +229,60 @@ export default function UniversalVideoPlayer({
     };
   }, [player, autoPlay, onPlaybackStart, onError, url, sourceInfo.type, sourceInfo.platform]);
 
-  const getVimeoEmbedUrl = (videoId: string): string => {
-    return `https://player.vimeo.com/video/${videoId}?autoplay=${autoPlay ? 1 : 0}`;
+  const getYouTubeEmbedUrl = (videoId: string, attempt: number = 0): string => {
+    const baseParams = {
+      autoplay: autoPlay ? '1' : '0',
+      playsinline: '1',
+      rel: '0',
+      modestbranding: '1',
+      fs: '1',
+      controls: '1',
+      enablejsapi: '1',
+      html5: '1',
+      iv_load_policy: '3',
+      cc_load_policy: '0',
+      disablekb: '0',
+      wmode: 'transparent',
+      widget_referrer: 'https://rork.app',
+    };
+    
+    const origin = typeof window !== 'undefined' && window.location ? window.location.origin : 'https://rork.app';
+    const params = new URLSearchParams({ ...baseParams, origin });
+    
+    return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
   };
 
-  const getYouTubeEmbedUrl = (videoId: string): string => {
-    return `https://www.youtube.com/embed/${videoId}?autoplay=${autoPlay ? 1 : 0}&playsinline=1&enablejsapi=1`;
+  const getYouTubeWebPlayerUrl = (videoId: string): string => {
+    return `https://www.youtube.com/watch?v=${videoId}&autoplay=${autoPlay ? '1' : '0'}&html5=1`;
+  };
+
+  const getYouTubeNoEmbedUrl = (videoId: string): string => {
+    const params = new URLSearchParams({
+      autoplay: autoPlay ? '1' : '0',
+      playsinline: '1',
+      rel: '0',
+      modestbranding: '1',
+      controls: '1',
+      fs: '1',
+      html5: '1',
+    });
+    return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
+  };
+
+  const getYouTubeMobileUrl = (videoId: string): string => {
+    return `https://m.youtube.com/watch?v=${videoId}&autoplay=${autoPlay ? '1' : '0'}`;
+  };
+
+  const getInvidiousUrl = (videoId: string): string => {
+    return `https://yewtu.be/embed/${videoId}?autoplay=${autoPlay ? '1' : '0'}`;
+  };
+
+  const getYouTubeDirectUrl = (videoId: string): string => {
+    return `https://www.youtube.com/embed/${videoId}?enablejsapi=0&autoplay=${autoPlay ? '1' : '0'}&controls=1&fs=1&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3`;
+  };
+
+  const getVimeoEmbedUrl = (videoId: string): string => {
+    return `https://player.vimeo.com/video/${videoId}?autoplay=${autoPlay ? 1 : 0}`;
   };
 
   const handleLoadTimeout = () => {
@@ -337,131 +333,71 @@ export default function UniversalVideoPlayer({
     let injectedJavaScript = '';
 
     if (sourceInfo.type === 'youtube' && sourceInfo.videoId) {
-      embedUrl = getYouTubeEmbedUrl(sourceInfo.videoId);
+      console.log('[UniversalVideoPlayer] === YouTube Playback System ===' );
+      console.log('[UniversalVideoPlayer] Video ID:', sourceInfo.videoId);
+      console.log('[UniversalVideoPlayer] Retry attempt:', retryCount + 1, '/', maxRetries + 1);
+      console.log('[UniversalVideoPlayer] Error Code 4 Detection: ACTIVE');
+      
+      const strategies = [
+        { url: getYouTubeEmbedUrl(sourceInfo.videoId, 0), name: 'Standard YouTube Embed' },
+        { url: getYouTubeNoEmbedUrl(sourceInfo.videoId), name: 'YouTube NoCookie Domain' },
+        { url: getYouTubeDirectUrl(sourceInfo.videoId), name: 'YouTube Direct Embed' },
+        { url: getYouTubeMobileUrl(sourceInfo.videoId), name: 'YouTube Mobile URL' },
+        { url: getInvidiousUrl(sourceInfo.videoId), name: 'Alternative Frontend (Invidious)' },
+      ];
+      
+      const strategy = strategies[Math.min(retryCount, strategies.length - 1)];
+      embedUrl = strategy.url;
+      
+      console.log('[UniversalVideoPlayer] Strategy:', strategy.name);
+      console.log('[UniversalVideoPlayer] Embed URL:', embedUrl);
+      console.log('[UniversalVideoPlayer] Starting load sequence...');
+      
+      injectedJavaScript = `
+        (function() {
+          console.log('[YouTube Player] Iframe loaded successfully');
+          console.log('[YouTube Player] Video ID: ${sourceInfo.videoId}');
+          console.log('[YouTube Player] URL: ${embedUrl}');
+          
+          window.addEventListener('error', function(e) {
+            console.error('[YouTube Player] Error detected:', e.message);
+          });
+          
+          var checkVideo = setInterval(function() {
+            var iframe = document.querySelector('iframe');
+            var video = document.querySelector('video');
+            if (iframe || video) {
+              console.log('[YouTube Player] Player element detected');
+              clearInterval(checkVideo);
+            }
+          }, 500);
+          
+          setTimeout(function() {
+            clearInterval(checkVideo);
+          }, 10000);
+        })();
+      `;
     } else if (sourceInfo.type === 'vimeo' && sourceInfo.videoId) {
       embedUrl = getVimeoEmbedUrl(sourceInfo.videoId);
       console.log('[UniversalVideoPlayer] Vimeo embed URL:', embedUrl);
     } else if (sourceInfo.type === 'adult') {
-      // Validate URL before using it
-      if (!url || url.trim() === '') {
-        console.error('[UniversalVideoPlayer] Adult platform URL is empty');
-        setPlaybackError(`無法載入 ${sourceInfo.platform} 視頻：URL 無效`);
-        return null;
-      }
-      embedUrl = url.trim();
-      console.log('[UniversalVideoPlayer] Adult platform URL:', {
-        platform: sourceInfo.platform,
-        url: embedUrl,
-        urlLength: embedUrl.length,
-      });
       injectedJavaScript = `
         (function() {
-          console.log('[AdultPlatform] Script injected for: ${sourceInfo.platform}');
-          
-          // Remove any overlays that might block the video
           var style = document.createElement('style');
-          style.innerHTML = 
-            'body { margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: #000 !important; }' +
-            'html { background: #000 !important; }' +
-            'video { width: 100% !important; height: 100% !important; object-fit: contain !important; background: #000 !important; display: block !important; }' +
-            '.ad, [class*="ad-"], [id*="ad-"], [class*="overlay"] { display: none !important; }' +
-            'div[style*="position: absolute"], div[style*="position: fixed"] { z-index: 1 !important; }';
+          style.innerHTML = 'video { width: 100% !important; height: 100% !important; object-fit: contain; }';
           document.head.appendChild(style);
           
-          // Enhanced video discovery and play
-          function findAndPlayVideo() {
+          setTimeout(function() {
             var videos = document.querySelectorAll('video');
-            console.log('[AdultPlatform] Found ' + videos.length + ' video elements');
-            
             if (videos.length > 0) {
-              var video = videos[0];
-              
-              // Make video visible
-              video.style.cssText = 'position: relative !important; width: 100% !important; height: 100% !important; object-fit: contain !important; z-index: 10 !important; background: #000 !important; display: block !important;';
-              video.controls = true;
-              video.playsInline = true;
-              video.setAttribute('playsinline', 'true');
-              video.setAttribute('webkit-playsinline', 'true');
-              
-              // Remove any wrapper restrictions
-              var parent = video.parentElement;
-              if (parent) {
-                parent.style.cssText = 'width: 100% !important; height: 100% !important; position: relative !important; overflow: visible !important; background: #000 !important;';
-              }
-              
-              // Try to play
-              if (video.paused) {
-                var playPromise = video.play();
-                if (playPromise !== undefined) {
-                  playPromise
-                    .then(function() { console.log('[AdultPlatform] Video playing'); })
-                    .catch(function(e) { 
-                      console.log('[AdultPlatform] Autoplay blocked:', e); 
-                    });
-                }
-              }
-              
-              // Monitor video events
-              video.addEventListener('loadstart', function() { console.log('[AdultPlatform] Video loading'); });
-              video.addEventListener('canplay', function() { console.log('[AdultPlatform] Video ready'); });
-              video.addEventListener('playing', function() { console.log('[AdultPlatform] Video playing'); });
-              video.addEventListener('error', function(e) { console.error('[AdultPlatform] Video error:', e); });
-              
-              return true;
+              videos[0].play().catch(function(e) { console.log('Autoplay blocked:', e); });
             }
-            return false;
-          }
-          
-          // Try immediately and with delays
-          if (!findAndPlayVideo()) {
-            setTimeout(findAndPlayVideo, 500);
-            setTimeout(findAndPlayVideo, 1000);
-            setTimeout(findAndPlayVideo, 2000);
-            setTimeout(findAndPlayVideo, 3000);
-          }
-          
-          // Monitor for dynamically added videos
-          if (typeof MutationObserver !== 'undefined') {
-            var observer = new MutationObserver(function(mutations) {
-              var foundVideo = false;
-              mutations.forEach(function(mutation) {
-                if (!foundVideo) {
-                  mutation.addedNodes.forEach(function(node) {
-                    if (node.tagName === 'VIDEO') {
-                      console.log('[AdultPlatform] New video detected');
-                      foundVideo = findAndPlayVideo();
-                    }
-                  });
-                }
-              });
-            });
-            
-            observer.observe(document.body, { childList: true, subtree: true });
-          }
+          }, 1000);
         })();
       `;
     }
 
-    // Validate embedUrl before rendering
-    if (!embedUrl || embedUrl.trim() === '') {
-      console.error('[UniversalVideoPlayer] embedUrl is empty, cannot render WebView');
-      console.error('[UniversalVideoPlayer] Context:', {
-        url,
-        sourceType: sourceInfo.type,
-        platform: sourceInfo.platform,
-        embedUrl,
-      });
-      setPlaybackError(`無法載入視頻：URL 無效或為空`);
-      return null;
-    }
-
     console.log('[UniversalVideoPlayer] WebView rendering for:', sourceInfo.platform || 'Unknown');
-    console.log('[UniversalVideoPlayer] WebView embedUrl:', embedUrl);
-    console.log('[UniversalVideoPlayer] WebView source will be:', {
-      uri: embedUrl,
-      isValid: !!(embedUrl && embedUrl.trim() !== ''),
-      length: embedUrl?.length || 0,
-    });
 
     return (
       <WebView
@@ -471,43 +407,26 @@ export default function UniversalVideoPlayer({
           headers: sourceInfo.type === 'youtube' ? {
             'User-Agent': retryCount >= 3 
               ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
-              : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+              : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7',
-            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
             'Referer': 'https://www.youtube.com/',
+            'Origin': 'https://www.youtube.com',
             'DNT': '1',
             'Sec-Fetch-Dest': 'iframe',
             'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'cross-site',
-            'Sec-Ch-Ua': '"Chromium";v="131", "Not_A Brand";v="24", "Google Chrome";v="131"',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Ch-Ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
             'Sec-Ch-Ua-Mobile': retryCount >= 3 ? '?1' : '?0',
             'Sec-Ch-Ua-Platform': retryCount >= 3 ? '"iOS"' : '"Windows"',
-            'Upgrade-Insecure-Requests': '1',
           } : sourceInfo.type === 'adult' ? {
-            'User-Agent': retryCount === 0
-              ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
-              : retryCount === 1
-              ? 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
-              : retryCount === 2
-              ? 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
-              : 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7,ja;q=0.6',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
-            'Referer': embedUrl.includes('airav') ? 'https://airav.io/' : embedUrl,
-            'Origin': embedUrl.includes('airav') ? 'https://airav.io' : new URL(embedUrl).origin,
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
             'DNT': '1',
-            'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'Sec-Ch-Ua': '"Chromium";v="131", "Not_A Brand";v="24", "Google Chrome";v="131"',
-            'Sec-Ch-Ua-Mobile': retryCount >= 3 ? '?1' : '?0',
-            'Sec-Ch-Ua-Platform': retryCount >= 3 ? '"iOS"' : '"Windows"',
-            'Cache-Control': 'max-age=0',
           } : {
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -516,13 +435,13 @@ export default function UniversalVideoPlayer({
         }}
         style={styles.webView}
         originWhitelist={['*']}
-        allowsFullscreenVideo={true}
-        allowsInlineMediaPlayback={true}
+        allowsFullscreenVideo
+        allowsInlineMediaPlayback
         mediaPlaybackRequiresUserAction={false}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
+        javaScriptEnabled
+        domStorageEnabled
         sharedCookiesEnabled={sourceInfo.type !== 'adult'}
-        thirdPartyCookiesEnabled={true}
+        thirdPartyCookiesEnabled={sourceInfo.type !== 'adult'}
         mixedContentMode="always"
         cacheEnabled={sourceInfo.type !== 'adult'}
         incognito={sourceInfo.type === 'adult'}
@@ -531,7 +450,7 @@ export default function UniversalVideoPlayer({
         allowFileAccessFromFileURLs={true}
         allowUniversalAccessFromFileURLs={true}
         scalesPageToFit={false}
-        bounces={sourceInfo.type !== 'youtube'}
+        bounces={true}
         scrollEnabled={sourceInfo.type !== 'youtube'}
         automaticallyAdjustContentInsets={false}
         contentInset={{ top: 0, left: 0, bottom: 0, right: 0 }}
@@ -576,16 +495,7 @@ export default function UniversalVideoPlayer({
         }}
         onError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
-          const errorDetails = {
-            code: nativeEvent.code,
-            description: nativeEvent.description,
-            domain: nativeEvent.domain,
-            url: nativeEvent.url,
-            sourceType: sourceInfo.type,
-            platform: sourceInfo.platform,
-            retryCount,
-          };
-          console.error('[UniversalVideoPlayer] WebView error:', JSON.stringify(errorDetails, null, 2));
+          console.error('[UniversalVideoPlayer] WebView error:', nativeEvent);
           clearLoadTimeout();
           
           if (sourceInfo.type === 'youtube') {
@@ -615,7 +525,7 @@ export default function UniversalVideoPlayer({
               error: nativeEvent,
             });
             
-            const error = `YouTube 播放失敗\n\n嘗試次數: ${maxRetries + 1}\n\nVideo ID: ${sourceInfo.videoId}\n\n⚠️ 可能原因：\n• 視頻被設為私人\n• 視頻禁止嵌入\n• 地區限制\n• 網路問題`;
+            const error = `YouTube 播放失敗 (Error Code 4)\n\n嘗試了 ${maxRetries + 1} 種播放方式，視頻無法載入\n\n🔍 可能原因：\n1. 視頻設定為私人/不公開\n2. 視頻已被刪除或下架\n3. 禁止嵌入到第三方應用\n4. 地區限制（您的地區不可觀看）\n5. 年齡限制內容（需要登入驗證）\n6. 版權限制\n\n📋 視頻資訊：\nVideo ID: ${sourceInfo.videoId}\nYouTube URL: https://youtu.be/${sourceInfo.videoId}\n\n🛠️ 診斷步驟：\n1. 在瀏覽器直接打開 YouTube 連結測試\n2. 確認視頻存在且可公開訪問\n3. 檢查視頻設定是否允許嵌入\n4. 使用 VPN 嘗試其他地區\n5. 等待幾分鐘後重試\n\n💡 建議：\n如果這是您自己的視頻，請前往 YouTube Studio 檢查嵌入設定\n如果問題持續，請聯繫技術支援並提供 Video ID`;
             setPlaybackError(error);
             onError?.(error);
             return;
@@ -697,11 +607,6 @@ export default function UniversalVideoPlayer({
               default:
                 if (nativeEvent.statusCode >= 500) {
                   errorMessage = `伺服器錯誤 (${nativeEvent.statusCode})\n\n視頻伺服器暫時無法回應。請稍後再試。`;
-                  shouldRetry = retryCount < maxRetries;
-                } else if (nativeEvent.statusCode < 0 && sourceInfo.type === 'adult') {
-                  // Handle connection errors for adult sites
-                  console.log(`[UniversalVideoPlayer] Adult site connection issue (code: ${nativeEvent.statusCode})`);
-                  errorMessage = `正在載入 ${sourceInfo.platform} 內容...\n\n如果持續無法載入，請確認：\n• 網路連接正常\n• 網站可以在瀏覽器中訪問\n• 嘗試重新載入`;
                   shouldRetry = retryCount < maxRetries;
                 } else {
                   errorMessage = `HTTP 錯誤 ${nativeEvent.statusCode}\n\n無法載入視頻。請檢查連結是否正確。`;

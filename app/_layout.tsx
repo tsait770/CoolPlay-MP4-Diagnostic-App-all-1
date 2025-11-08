@@ -259,18 +259,20 @@ export default function RootLayout() {
 
   useEffect(() => {
     let mounted = true;
-    const initTimeout = setTimeout(() => {
-      if (mounted) {
-        console.error('[App] Initialization timeout after 3s - forcing ready state');
-        setIsInitialized(true);
-        setProvidersReady(true);
-        SplashScreen.hideAsync();
-      }
-    }, 3000);
+    let initTimeout: ReturnType<typeof setTimeout> | undefined;
 
     const initialize = async () => {
       try {
         console.log('[App] Starting initialization...');
+        
+        initTimeout = setTimeout(() => {
+          if (mounted) {
+            console.warn('[App] Initialization timeout after 2s - forcing ready state');
+            setIsInitialized(true);
+            setProvidersReady(true);
+            SplashScreen.hideAsync().catch(e => console.warn('[App] Error hiding splash:', e));
+          }
+        }, 2000);
         
         if (!mounted) return;
         setIsInitialized(true);
@@ -280,14 +282,16 @@ export default function RootLayout() {
         clearTimeout(initTimeout);
         
         setTimeout(() => {
-          SplashScreen.hideAsync();
-        }, 50);
+          SplashScreen.hideAsync().catch(e => console.warn('[App] Error hiding splash:', e));
+        }, 100);
       } catch (error) {
         console.error('[App] Initialization error:', error);
         if (mounted) {
           setInitError(error instanceof Error ? error.message : 'Unknown error');
+          setIsInitialized(true);
+          setProvidersReady(true);
         }
-        SplashScreen.hideAsync();
+        SplashScreen.hideAsync().catch(e => console.warn('[App] Error hiding splash:', e));
       }
     };
 
@@ -295,7 +299,9 @@ export default function RootLayout() {
 
     return () => {
       mounted = false;
-      clearTimeout(initTimeout);
+      if (initTimeout) {
+        clearTimeout(initTimeout);
+      }
     };
   }, []);
 

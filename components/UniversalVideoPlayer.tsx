@@ -23,6 +23,9 @@ import { detectVideoSource, canPlayVideo } from '@/utils/videoSourceDetector';
 import { getSocialMediaConfig } from '@/utils/socialMediaPlayer';
 import { useMembership } from '@/providers/MembershipProvider';
 import SocialMediaPlayer from '@/components/SocialMediaPlayer';
+import DedicatedYouTubePlayer from '@/components/DedicatedYouTubePlayer';
+import DedicatedMP4Player from '@/components/DedicatedMP4Player';
+import { playerRouter } from '@/utils/player/PlayerRouter';
 import { getYouTubeAlternatives } from '@/utils/videoUrlConverter';
 import { logDiagnostic, getYouTubeErrorMessage } from '@/utils/videoDiagnostics';
 import { validateMP4Url, detectCodecFromUrl, getDiagnosticInfo } from '@/utils/mp4PlayerHelper';
@@ -91,6 +94,15 @@ export default function UniversalVideoPlayer({
     if (autoPlay && shouldUseNativePlayer) {
       player.play();
     }
+  });
+  
+  const routeResult = playerRouter.route(url);
+  
+  console.log('[UniversalVideoPlayer] Player routing:', {
+    url,
+    playerType: routeResult.playerType,
+    shouldUseNewPlayer: routeResult.shouldUseNewPlayer,
+    reason: routeResult.reason,
   });
   
   console.log('[UniversalVideoPlayer] Source detection:', {
@@ -821,6 +833,41 @@ export default function UniversalVideoPlayer({
           <Text style={styles.errorTitle}>No Video Selected</Text>
           <Text style={styles.errorMessage}>Please select a video to play</Text>
         </View>
+      </View>
+    );
+  }
+
+  if (routeResult.playerType === 'youtube' && routeResult.shouldUseNewPlayer) {
+    console.log('[UniversalVideoPlayer] Using DedicatedYouTubePlayer');
+    return (
+      <View style={[styles.container, style]}>
+        <DedicatedYouTubePlayer
+          url={url}
+          onError={onError}
+          onLoad={() => setIsLoading(false)}
+          onPlaybackStart={onPlaybackStart}
+          autoPlay={autoPlay}
+          style={style}
+          maxRetries={maxRetries}
+        />
+      </View>
+    );
+  }
+  
+  if (routeResult.playerType === 'mp4' && routeResult.shouldUseNewPlayer) {
+    console.log('[UniversalVideoPlayer] Using DedicatedMP4Player');
+    return (
+      <View style={[styles.container, style]}>
+        <DedicatedMP4Player
+          url={url}
+          onError={onError}
+          onLoad={() => setIsLoading(false)}
+          onPlaybackStart={onPlaybackStart}
+          onPlaybackEnd={onPlaybackEnd}
+          autoPlay={autoPlay}
+          style={style}
+          showControls={true}
+        />
       </View>
     );
   }

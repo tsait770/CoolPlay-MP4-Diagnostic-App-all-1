@@ -5,12 +5,10 @@ export * from './ErrorReporting';
 export * from './CodecDetector';
 export * from './RangeRequestHandler';
 export * from './CodecSwitcher';
-export { PlayerRouter, playerRouter, type PlayerRouteResult } from './PlayerRouter';
-export * from './UniversalPlayerController';
 
 export * from './adapters/NativePlayerAdapter';
-export * from './adapters/EnhancedNativePlayerAdapter';
 export * from './adapters/WebViewPlayerAdapter';
+export * from './adapters/YouTubePlayerAdapter';
 export * from './adapters/CloudDrivePlayerAdapter';
 export * from './adapters/SocialMediaPlayerAdapter';
 export * from './adapters/TwitchPlayerAdapter';

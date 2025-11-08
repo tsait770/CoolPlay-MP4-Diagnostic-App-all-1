@@ -1,4 +1,6 @@
 import '../models/source.dart';
+import 'youtube_utils.dart';
+import 'youtube_resolver.dart';
 import 'vimeo_resolver.dart';
 import 'twitch_resolver.dart';
 import 'facebook_resolver.dart';
@@ -23,8 +25,9 @@ class SourceParser {
 
   final List<SourceResolver> _resolvers;
 
-  /// Convenience factory with built-in resolvers.
+  /// Convenience factory with built-in resolvers (YouTube, etc.).
   factory SourceParser.withDefaults() => SourceParser(<SourceResolver>[
+        YouTubeResolver(),
         VimeoResolver(),
         TwitchResolver(),
         FacebookResolver(),
@@ -34,6 +37,19 @@ class SourceParser {
       ]);
 
   Future<ParsedSource> parse(Uri input) async {
+    // YouTube normalization quick path
+    final youTubeEmbed = YouTubeUtils.toEmbedUrl(input.toString());
+    if (youTubeEmbed != null) {
+      return ParsedSource(
+        source: MediaSource(
+          id: input.toString(),
+          title: 'YouTube',
+          isLive: false,
+          url: Uri.parse(youTubeEmbed),
+          mimeType: 'text/html',
+        ),
+      );
+    }
     for (final resolver in _resolvers) {
       if (resolver.canHandle(input)) {
         return resolver.resolve(input);

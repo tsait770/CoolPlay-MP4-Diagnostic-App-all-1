@@ -26,20 +26,47 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   const [initializing, setInitializing] = useState<boolean>(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      setInitializing(false);
-      setLoading(false);
-    });
+    let mounted = true;
+    
+    // Add timeout protection for hydration
+    const timeout = setTimeout(() => {
+      if (mounted && initializing) {
+        console.warn('[AuthProvider] Initialization timeout, setting ready state');
+        setInitializing(false);
+        setLoading(false);
+      }
+    }, 1500);
+    
+    supabase.auth.getSession()
+      .then(({ data: { session: currentSession } }) => {
+        if (!mounted) return;
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        setInitializing(false);
+        setLoading(false);
+        clearTimeout(timeout);
+      })
+      .catch((error) => {
+        console.error('[AuthProvider] Error getting session:', error);
+        if (mounted) {
+          setInitializing(false);
+          setLoading(false);
+          clearTimeout(timeout);
+        }
+      });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      if (!mounted) return;
       setSession(newSession);
       setUser(newSession?.user ?? null);
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loadProfile = useCallback(async () => {

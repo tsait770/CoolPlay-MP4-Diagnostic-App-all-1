@@ -259,35 +259,38 @@ export default function RootLayout() {
 
   useEffect(() => {
     let mounted = true;
+    
+    // Reduced timeout for faster hydration
     const initTimeout = setTimeout(() => {
       if (mounted) {
-        console.error('[App] Initialization timeout after 3s - forcing ready state');
+        console.warn('[App] Initialization timeout after 1.5s - forcing ready state');
         setIsInitialized(true);
         setProvidersReady(true);
-        SplashScreen.hideAsync();
+        SplashScreen.hideAsync().catch(console.error);
       }
-    }, 3000);
+    }, 1500);
 
     const initialize = async () => {
       try {
         console.log('[App] Starting initialization...');
         
         if (!mounted) return;
+        
+        // Immediate initialization
         setIsInitialized(true);
         setProvidersReady(true);
         
         console.log('[App] Initialization complete');
         clearTimeout(initTimeout);
         
-        setTimeout(() => {
-          SplashScreen.hideAsync();
-        }, 50);
+        // Hide splash screen immediately
+        SplashScreen.hideAsync().catch(console.error);
       } catch (error) {
         console.error('[App] Initialization error:', error);
         if (mounted) {
           setInitError(error instanceof Error ? error.message : 'Unknown error');
         }
-        SplashScreen.hideAsync();
+        SplashScreen.hideAsync().catch(console.error);
       }
     };
 

@@ -356,16 +356,88 @@ export default function UniversalVideoPlayer({
       });
       injectedJavaScript = `
         (function() {
+          console.log('[AdultPlatform] Script injected for: ${sourceInfo.platform}');
+          
+          // Remove any overlays that might block the video
           var style = document.createElement('style');
-          style.innerHTML = 'video { width: 100% !important; height: 100% !important; object-fit: contain; }';
+          style.innerHTML = 
+            'body { margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: #000 !important; }' +
+            'html { background: #000 !important; }' +
+            'video { width: 100% !important; height: 100% !important; object-fit: contain !important; background: #000 !important; display: block !important; }' +
+            '.ad, [class*="ad-"], [id*="ad-"], [class*="overlay"] { display: none !important; }' +
+            'div[style*="position: absolute"], div[style*="position: fixed"] { z-index: 1 !important; }';
           document.head.appendChild(style);
           
-          setTimeout(function() {
+          // Enhanced video discovery and play
+          function findAndPlayVideo() {
             var videos = document.querySelectorAll('video');
+            console.log('[AdultPlatform] Found ' + videos.length + ' video elements');
+            
             if (videos.length > 0) {
-              videos[0].play().catch(function(e) { console.log('Autoplay blocked:', e); });
+              var video = videos[0];
+              
+              // Make video visible
+              video.style.cssText = 'position: relative !important; width: 100% !important; height: 100% !important; object-fit: contain !important; z-index: 10 !important; background: #000 !important; display: block !important;';
+              video.controls = true;
+              video.playsInline = true;
+              video.setAttribute('playsinline', 'true');
+              video.setAttribute('webkit-playsinline', 'true');
+              
+              // Remove any wrapper restrictions
+              var parent = video.parentElement;
+              if (parent) {
+                parent.style.cssText = 'width: 100% !important; height: 100% !important; position: relative !important; overflow: visible !important; background: #000 !important;';
+              }
+              
+              // Try to play
+              if (video.paused) {
+                var playPromise = video.play();
+                if (playPromise !== undefined) {
+                  playPromise
+                    .then(function() { console.log('[AdultPlatform] Video playing'); })
+                    .catch(function(e) { 
+                      console.log('[AdultPlatform] Autoplay blocked:', e); 
+                    });
+                }
+              }
+              
+              // Monitor video events
+              video.addEventListener('loadstart', function() { console.log('[AdultPlatform] Video loading'); });
+              video.addEventListener('canplay', function() { console.log('[AdultPlatform] Video ready'); });
+              video.addEventListener('playing', function() { console.log('[AdultPlatform] Video playing'); });
+              video.addEventListener('error', function(e) { console.error('[AdultPlatform] Video error:', e); });
+              
+              return true;
             }
-          }, 1000);
+            return false;
+          }
+          
+          // Try immediately and with delays
+          if (!findAndPlayVideo()) {
+            setTimeout(findAndPlayVideo, 500);
+            setTimeout(findAndPlayVideo, 1000);
+            setTimeout(findAndPlayVideo, 2000);
+            setTimeout(findAndPlayVideo, 3000);
+          }
+          
+          // Monitor for dynamically added videos
+          if (typeof MutationObserver !== 'undefined') {
+            var observer = new MutationObserver(function(mutations) {
+              var foundVideo = false;
+              mutations.forEach(function(mutation) {
+                if (!foundVideo) {
+                  mutation.addedNodes.forEach(function(node) {
+                    if (node.tagName === 'VIDEO') {
+                      console.log('[AdultPlatform] New video detected');
+                      foundVideo = findAndPlayVideo();
+                    }
+                  });
+                }
+              });
+            });
+            
+            observer.observe(document.body, { childList: true, subtree: true });
+          }
         })();
       `;
     }
@@ -625,6 +697,11 @@ export default function UniversalVideoPlayer({
               default:
                 if (nativeEvent.statusCode >= 500) {
                   errorMessage = `伺服器錯誤 (${nativeEvent.statusCode})\n\n視頻伺服器暫時無法回應。請稍後再試。`;
+                  shouldRetry = retryCount < maxRetries;
+                } else if (nativeEvent.statusCode < 0 && sourceInfo.type === 'adult') {
+                  // Handle connection errors for adult sites
+                  console.log(`[UniversalVideoPlayer] Adult site connection issue (code: ${nativeEvent.statusCode})`);
+                  errorMessage = `正在載入 ${sourceInfo.platform} 內容...\n\n如果持續無法載入，請確認：\n• 網路連接正常\n• 網站可以在瀏覽器中訪問\n• 嘗試重新載入`;
                   shouldRetry = retryCount < maxRetries;
                 } else {
                   errorMessage = `HTTP 錯誤 ${nativeEvent.statusCode}\n\n無法載入視頻。請檢查連結是否正確。`;

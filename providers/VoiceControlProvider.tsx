@@ -39,7 +39,7 @@ interface VoiceCommand {
   utterances: Record<string, string[]>;
 }
 
-export const [VoiceControlProvider, useVoiceControl] = createContextHook(() => {
+const [VoiceControlProvider, useVoiceControl] = createContextHook(() => {
   const { language } = useLanguage();
   const storage = useStorage();
   const [state, setState] = useState<VoiceControlState>({
@@ -690,3 +690,5 @@ export const [VoiceControlProvider, useVoiceControl] = createContextHook(() => {
     toggleAlwaysListening: typeof toggleAlwaysListening === 'function' ? toggleAlwaysListening : () => Promise.resolve(),
   }), [state, startListening, stopListening, toggleAlwaysListening]);
 });
+
+export { VoiceControlProvider, useVoiceControl };

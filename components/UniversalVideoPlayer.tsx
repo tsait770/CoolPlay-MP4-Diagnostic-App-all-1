@@ -342,6 +342,18 @@ export default function UniversalVideoPlayer({
       embedUrl = getVimeoEmbedUrl(sourceInfo.videoId);
       console.log('[UniversalVideoPlayer] Vimeo embed URL:', embedUrl);
     } else if (sourceInfo.type === 'adult') {
+      // Validate URL before using it
+      if (!url || url.trim() === '') {
+        console.error('[UniversalVideoPlayer] Adult platform URL is empty');
+        setPlaybackError(`無法載入 ${sourceInfo.platform} 視頻：URL 無效`);
+        return null;
+      }
+      embedUrl = url.trim();
+      console.log('[UniversalVideoPlayer] Adult platform URL:', {
+        platform: sourceInfo.platform,
+        url: embedUrl,
+        urlLength: embedUrl.length,
+      });
       injectedJavaScript = `
         (function() {
           var style = document.createElement('style');
@@ -358,7 +370,26 @@ export default function UniversalVideoPlayer({
       `;
     }
 
+    // Validate embedUrl before rendering
+    if (!embedUrl || embedUrl.trim() === '') {
+      console.error('[UniversalVideoPlayer] embedUrl is empty, cannot render WebView');
+      console.error('[UniversalVideoPlayer] Context:', {
+        url,
+        sourceType: sourceInfo.type,
+        platform: sourceInfo.platform,
+        embedUrl,
+      });
+      setPlaybackError(`無法載入視頻：URL 無效或為空`);
+      return null;
+    }
+
     console.log('[UniversalVideoPlayer] WebView rendering for:', sourceInfo.platform || 'Unknown');
+    console.log('[UniversalVideoPlayer] WebView embedUrl:', embedUrl);
+    console.log('[UniversalVideoPlayer] WebView source will be:', {
+      uri: embedUrl,
+      isValid: !!(embedUrl && embedUrl.trim() !== ''),
+      length: embedUrl?.length || 0,
+    });
 
     return (
       <WebView

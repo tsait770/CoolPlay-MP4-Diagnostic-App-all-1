@@ -46,6 +46,8 @@ export function getYouTubeEmbedUrl(url: string, autoplay: boolean = false): stri
     return null;
   }
 
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://rork.app';
+  
   const params = new URLSearchParams({
     autoplay: autoplay ? '1' : '0',
     playsinline: '1',
@@ -54,14 +56,19 @@ export function getYouTubeEmbedUrl(url: string, autoplay: boolean = false): stri
     fs: '1',
     controls: '1',
     enablejsapi: '1',
-    origin: typeof window !== 'undefined' ? window.location.origin : 'https://rork.app',
-    widget_referrer: 'https://rork.app',
+    origin: origin,
+    widget_referrer: origin,
+    iv_load_policy: '3',
+    cc_load_policy: '0',
+    disablekb: '0',
+    hl: 'en',
   });
 
   if (timestamp) {
     params.append('start', timestamp.toString());
   }
 
+  console.log('[VideoUrlConverter] Generated YouTube embed URL:', `https://www.youtube.com/embed/${videoId}?${params.toString()}`);
   return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
 }
 
@@ -75,13 +82,14 @@ export function getYouTubeAlternatives(url: string, autoplay: boolean = false): 
     return [];
   }
 
-  const baseParams = `autoplay=${autoplay ? '1' : '0'}&playsinline=1&rel=0&modestbranding=1&controls=1`;
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://rork.app';
+  const baseParams = `autoplay=${autoplay ? '1' : '0'}&playsinline=1&rel=0&modestbranding=1&controls=1&iv_load_policy=3&cc_load_policy=0`;
   
   return [
-    `https://www.youtube.com/embed/${videoId}?${baseParams}&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://rork.app'}`,
-    `https://www.youtube-nocookie.com/embed/${videoId}?${baseParams}`,
+    `https://www.youtube.com/embed/${videoId}?${baseParams}&enablejsapi=1&origin=${origin}&widget_referrer=${origin}`,
+    `https://www.youtube-nocookie.com/embed/${videoId}?${baseParams}&enablejsapi=1&origin=${origin}`,
     `https://www.youtube.com/embed/${videoId}?${baseParams}`,
-    `https://m.youtube.com/watch?v=${videoId}&${baseParams}`,
+    `https://www.youtube-nocookie.com/embed/${videoId}?${baseParams}`,
     `https://yewtu.be/embed/${videoId}?${baseParams}`,
   ];
 }

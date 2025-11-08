@@ -23,10 +23,7 @@ import { detectVideoSource, canPlayVideo } from '@/utils/videoSourceDetector';
 import { getSocialMediaConfig } from '@/utils/socialMediaPlayer';
 import { useMembership } from '@/providers/MembershipProvider';
 import SocialMediaPlayer from '@/components/SocialMediaPlayer';
-
-import DedicatedMP4Player from '@/components/DedicatedMP4Player';
 import { logDiagnostic } from '@/utils/videoDiagnostics';
-import { validateMP4Url, detectCodecFromUrl, getDiagnosticInfo } from '@/utils/mp4PlayerHelper';
 import { PlayerRouter } from '@/utils/player/PlayerRouter';
 import Colors from '@/constants/colors';
 
@@ -62,7 +59,6 @@ export default function UniversalVideoPlayer({
   const [showControls, setShowControls] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   const [loadStartTime, setLoadStartTime] = useState<number>(0);
-  const [isValidatingUrl, setIsValidatingUrl] = useState(false);
   const [validatedUrl, setValidatedUrl] = useState<string | null>(null);
   const webViewRef = useRef<WebView>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -149,49 +145,8 @@ export default function UniversalVideoPlayer({
   }, [url]);
 
   useEffect(() => {
-    if (shouldUseNativePlayer && url && url.trim() !== '') {
-      console.log('[UniversalVideoPlayer] Starting MP4 validation for:', url);
-      setIsValidatingUrl(true);
-      
-      const codecInfo = detectCodecFromUrl(url);
-      if (!codecInfo.supported) {
-        console.error('[UniversalVideoPlayer] Unsupported codec detected');
-        setPlaybackError(codecInfo.errorMessage || 'Unsupported video codec');
-        setIsValidatingUrl(false);
-        return;
-      }
-      
-      validateMP4Url(url)
-        .then((result) => {
-          console.log('[UniversalVideoPlayer] MP4 validation result:', result);
-          
-          if (!result.isValid) {
-            console.error('[UniversalVideoPlayer] MP4 validation failed:', result.error);
-            setPlaybackError(result.error || 'Invalid video URL');
-            setIsValidatingUrl(false);
-            return;
-          }
-          
-          if (!result.supportsRange) {
-            console.warn('[UniversalVideoPlayer] Server does not support Range requests');
-            console.warn('[UniversalVideoPlayer] Seeking may not work properly');
-          }
-          
-          const urlToUse = result.redirectUrl || url;
-          console.log('[UniversalVideoPlayer] Using validated URL:', urlToUse);
-          setValidatedUrl(urlToUse);
-          setIsValidatingUrl(false);
-        })
-        .catch((error) => {
-          console.error('[UniversalVideoPlayer] MP4 validation error:', error);
-          console.log('[UniversalVideoPlayer] Proceeding with original URL despite validation error');
-          setValidatedUrl(url);
-          setIsValidatingUrl(false);
-        });
-    } else {
-      setValidatedUrl(url);
-    }
-  }, [url, shouldUseNativePlayer]);
+    setValidatedUrl(url);
+  }, [url]);
 
   useEffect(() => {
     console.log('[UniversalVideoPlayer] Initialized with:', {
@@ -311,13 +266,7 @@ export default function UniversalVideoPlayer({
         }
         
         if (errorMsg.includes('source.uri') || errorMsg.includes('empty') || errorMsg.includes('invalid')) {
-          const diagnosticInfo = getDiagnosticInfo(url, errorMsg);
-          errorMsg = diagnosticInfo;
-        } else {
-          const codecInfo = detectCodecFromUrl(url);
-          if (!codecInfo.supported && codecInfo.errorMessage) {
-            errorMsg = `${errorMsg}\n\n${codecInfo.errorMessage}`;
-          }
+          errorMsg = `Invalid video source: ${errorMsg}`;
         }
         
         const fullErrorMsg = `Playback error: ${errorMsg}`;
@@ -745,12 +694,10 @@ export default function UniversalVideoPlayer({
           </View>
         )}
 
-        {(isLoading || isValidatingUrl) && (
+        {isLoading && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color={Colors.primary.accent} />
-            <Text style={styles.loadingText}>
-              {isValidatingUrl ? 'Validating video...' : 'Loading video...'}
-            </Text>
+            <Text style={styles.loadingText}>Loading video...</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -824,27 +771,6 @@ export default function UniversalVideoPlayer({
           <Text style={styles.errorTitle}>No Video Selected</Text>
           <Text style={styles.errorMessage}>Please select a video to play</Text>
         </View>
-      </View>
-    );
-  }
-
-  // Route YouTube to dedicated player is disabled - using existing WebView player for now
-  // TODO: Re-enable when DedicatedYouTubePlayer is fully implemented
-  
-  if (routeResult.playerType === 'mp4' && routeResult.shouldUseNewPlayer) {
-    console.log('[UniversalVideoPlayer] Using DedicatedMP4Player');
-    return (
-      <View style={[styles.container, style]}>
-        <DedicatedMP4Player
-          url={url}
-          onError={onError}
-          onLoad={() => setIsLoading(false)}
-          onPlaybackStart={onPlaybackStart}
-          onPlaybackEnd={onPlaybackEnd}
-          autoPlay={autoPlay}
-          style={style}
-          showControls={true}
-        />
       </View>
     );
   }

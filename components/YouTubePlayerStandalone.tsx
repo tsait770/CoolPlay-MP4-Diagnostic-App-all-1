@@ -144,7 +144,7 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
     
     scrollTimeoutRef.current = setTimeout(() => {
       setIsScrolling(false);
-    }, 1500);
+    }, 120);
   }, []);
 
   useEffect(() => {
@@ -233,6 +233,24 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
       setTimeout(() => {
         webViewRef.current?.injectJavaScript(initScript);
       }, 2000);
+      
+      const scrollDetectionScript = `
+        (function() {
+          let scrollTimer;
+          window.addEventListener('scroll', function() {
+            window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'scroll_start' }));
+            clearTimeout(scrollTimer);
+            scrollTimer = setTimeout(function() {
+              window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'scroll_stop' }));
+            }, 100);
+          }, { passive: true });
+        })();
+        true;
+      `;
+      
+      setTimeout(() => {
+        webViewRef.current?.injectJavaScript(scrollDetectionScript);
+      }, 2500);
     }
   }, [onLoad, sourceInfo]);
 
@@ -256,11 +274,18 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
           isPlaying: data.isPlaying || false,
           currentTime: data.currentTime * 1000 || 0
         });
+      } else if (data.type === 'scroll_start') {
+        handleScroll();
+      } else if (data.type === 'scroll_stop') {
+        if (scrollTimeoutRef.current) {
+          clearTimeout(scrollTimeoutRef.current);
+        }
+        setIsScrolling(false);
       }
     } catch (error) {
       console.error('Error parsing WebView message:', error);
     }
-  }, [onPlaybackStatusUpdate]);
+  }, [onPlaybackStatusUpdate, handleScroll]);
 
   useEffect(() => {
     if (webViewRef.current && sourceInfo.sourceInfo.platform === 'YouTube') {
@@ -387,9 +412,7 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
         >
           <TouchableOpacity
             onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              }
+              router.replace('/player');
             }}
             style={styles.backButton}
             activeOpacity={0.7}
@@ -451,9 +474,7 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
       >
         <TouchableOpacity
           onPress={() => {
-            if (router.canGoBack()) {
-              router.back();
-            }
+            router.replace('/player');
           }}
           style={styles.backButton}
           activeOpacity={0.7}

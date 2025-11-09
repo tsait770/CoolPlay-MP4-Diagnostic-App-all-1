@@ -6,9 +6,12 @@ import {
   Text,
   TouchableOpacity,
   Platform,
+  Animated,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { AlertCircle, RefreshCw } from 'lucide-react-native';
+import { AlertCircle, RefreshCw, ArrowLeft } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import {
   getSocialMediaConfig,
   getDefaultHeaders,
@@ -39,10 +42,16 @@ export default function SocialMediaPlayer({
   const [error, setError] = useState<string | null>(null);
   const [currentStrategyIndex, setCurrentStrategyIndex] = useState(0);
   const [retryCount, setRetryCount] = useState(0);
+  const [isScrolling, setIsScrolling] = useState(false);
 
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
   const webViewRef = useRef<WebView>(null);
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const backButtonOpacity = useRef(new Animated.Value(1)).current;
+  
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const config = getSocialMediaConfig(url);
 
@@ -102,9 +111,44 @@ export default function SocialMediaPlayer({
   }, [currentStrategyIndex]);
 
   useEffect(() => {
+    if (isScrolling) {
+      Animated.timing(backButtonOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(backButtonOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isScrolling, backButtonOpacity]);
+
+  const handleScroll = useCallback(() => {
+    setIsScrolling(true);
+    
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    
+    scrollTimeoutRef.current = setTimeout(() => {
+      setIsScrolling(false);
+    }, 120);
+  }, []);
+
+  const handleBackPress = useCallback(() => {
+    router.replace('/player');
+  }, [router]);
+
+  useEffect(() => {
     return () => {
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
+      }
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
       }
     };
   }, []);
@@ -272,6 +316,33 @@ export default function SocialMediaPlayer({
             onLoadEnd={handleLoadEnd}
             onError={handleError}
             onHttpError={handleHttpError}
+            onScroll={handleScroll}
+            onMessage={(event) => {
+              try {
+                const data = JSON.parse(event.nativeEvent.data);
+                if (data.type === 'scroll_start') {
+                  handleScroll();
+                } else if (data.type === 'scroll_stop') {
+                  if (scrollTimeoutRef.current) {
+                    clearTimeout(scrollTimeoutRef.current);
+                  }
+                  setIsScrolling(false);
+                }
+              } catch (e) {}
+            }}
+            injectedJavaScript={`
+              (function() {
+                let scrollTimer;
+                window.addEventListener('scroll', function() {
+                  window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'scroll_start' }));
+                  clearTimeout(scrollTimer);
+                  scrollTimer = setTimeout(function() {
+                    window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'scroll_stop' }));
+                  }, 100);
+                }, { passive: true });
+              })();
+              true;
+            `}
             renderLoading={() => (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={Colors.primary.accent} />
@@ -284,6 +355,24 @@ export default function SocialMediaPlayer({
               </View>
             )}
           />
+          
+          <Animated.View
+            style={[
+              styles.backButtonContainer,
+              { top: insets.top + 16, opacity: backButtonOpacity }
+            ]}
+            pointerEvents={isScrolling ? 'none' : 'auto'}
+          >
+            <TouchableOpacity
+              onPress={handleBackPress}
+              style={styles.backButton}
+              activeOpacity={0.7}
+            >
+              <View style={styles.backButtonInner}>
+                <ArrowLeft color="#ffffff" size={24} />
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
           
           {isLoading && (
             <View style={styles.loadingOverlay}>
@@ -383,5 +472,30 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 16,
     textAlign: 'center',
+  },
+  backButtonContainer: {
+    position: 'absolute',
+    left: 16,
+    zIndex: 1001,
+  },
+  backButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(30, 30, 30, 0.75)',
+    backdropFilter: 'blur(10px)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  } as any,
+  backButtonInner: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

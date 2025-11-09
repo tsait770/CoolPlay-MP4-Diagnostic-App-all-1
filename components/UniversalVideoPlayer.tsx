@@ -128,37 +128,11 @@ export default function UniversalVideoPlayer({
     
     scrollTimeoutRef.current = setTimeout(() => {
       setIsScrolling(false);
-    }, 1500);
+    }, 120);
   }, []);
 
   const handleBackPress = useCallback(() => {
-    if (webViewRef.current) {
-      webViewRef.current.injectJavaScript(`
-        (function() {
-          try {
-            if (window.history.length > 1) {
-              window.history.back();
-              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'went_back' }));
-            } else {
-              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'no_history' }));
-            }
-          } catch (e) {
-            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'no_history' }));
-          }
-        })();
-        true;
-      `);
-      
-      setTimeout(() => {
-        if (router.canGoBack()) {
-          router.back();
-        }
-      }, 100);
-    } else {
-      if (router.canGoBack()) {
-        router.back();
-      }
-    }
+    router.replace('/player');
   }, [router]);
 
   useEffect(() => {
@@ -430,7 +404,7 @@ export default function UniversalVideoPlayer({
         automaticallyAdjustContentInsets={false}
         contentInset={{ top: 0, left: 0, bottom: 0, right: 0 }}
         webviewDebuggingEnabled={__DEV__}
-        injectedJavaScript={injectedJavaScript || `
+        injectedJavaScript={(injectedJavaScript || '') + `
           (function() {
             try {
               document.body.style.margin = '0';
@@ -444,7 +418,16 @@ export default function UniversalVideoPlayer({
                 document.head.appendChild(style);
               }
               
-              console.log('[WebView] Page styles injected successfully');
+              let scrollTimer;
+              window.addEventListener('scroll', function() {
+                window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'scroll_start' }));
+                clearTimeout(scrollTimer);
+                scrollTimer = setTimeout(function() {
+                  window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'scroll_stop' }));
+                }, 100);
+              }, { passive: true });
+              
+              console.log('[WebView] Page styles and scroll detection injected successfully');
             } catch(e) {
               console.error('[WebView] Failed to inject styles:', e);
             }
@@ -469,6 +452,19 @@ export default function UniversalVideoPlayer({
           setRetryCount(0);
         }}
         onScroll={handleScroll}
+        onMessage={(event) => {
+          try {
+            const data = JSON.parse(event.nativeEvent.data);
+            if (data.type === 'scroll_start') {
+              handleScroll();
+            } else if (data.type === 'scroll_stop') {
+              if (scrollTimeoutRef.current) {
+                clearTimeout(scrollTimeoutRef.current);
+              }
+              setIsScrolling(false);
+            }
+          } catch (e) {}
+        }}
         onError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
           console.error('[UniversalVideoPlayer] WebView error:', nativeEvent);

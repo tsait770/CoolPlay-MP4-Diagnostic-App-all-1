@@ -1014,22 +1014,7 @@ export default function PlayerScreen() {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  const handleBackPress = () => {
-    Animated.sequence([
-      Animated.timing(backButtonScale, {
-        toValue: 0.85,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(backButtonScale, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      router.back();
-    });
-  };
+  // Removed back button functionality - UI element deleted
 
   const getProgressPercentage = () => {
     if (duration === 0) return 0;

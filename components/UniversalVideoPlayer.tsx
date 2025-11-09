@@ -132,9 +132,16 @@ export default function UniversalVideoPlayer({
   }, []);
 
   const handleBackPress = useCallback(() => {
+    console.log('[UniversalVideoPlayer] Back button pressed - navigating to player tab');
     // Navigate back to Voice Control main screen (player tab)
-    // Use replace to clear navigation stack and go directly to main screen
-    router.replace('/(tabs)/player');
+    // Use push with reset to ensure we go to the main screen
+    try {
+      router.push('/(tabs)/player');
+    } catch (error) {
+      console.error('[UniversalVideoPlayer] Navigation error:', error);
+      // Fallback to replace if push fails
+      router.replace('/(tabs)/player');
+    }
   }, [router]);
 
   useEffect(() => {
@@ -834,14 +841,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   webViewWrapper: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     width: '100%',
     height: '100%',
     backgroundColor: '#000',
-    position: 'relative',
   },
   webView: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     width: '100%',
     height: '100%',
     backgroundColor: '#000',

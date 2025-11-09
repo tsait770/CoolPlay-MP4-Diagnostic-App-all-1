@@ -47,14 +47,17 @@ export default function VideoURLModal({ visible, onClose, onSubmit }: VideoURLMo
       onRequestClose={handleClose}
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.modalOverlay}
+        keyboardVerticalOffset={0}
       >
         <View style={styles.modalContainer}>
           <ScrollView
             style={styles.scrollView}
+            contentContainerStyle={styles.scrollViewContent}
             showsVerticalScrollIndicator={false}
-            bounces={false}
+            bounces={true}
+            keyboardShouldPersistTaps="handled"
           >
             {/* Header */}
             <View style={styles.header}>
@@ -187,7 +190,9 @@ export default function VideoURLModal({ visible, onClose, onSubmit }: VideoURLMo
               </View>
             </View>
 
-            {/* Action Buttons */}
+          </ScrollView>
+          {/* Action Buttons - Fixed at bottom */}
+          <View style={styles.actionButtonsContainer}>
             <View style={styles.actions}>
               <TouchableOpacity
                 style={[styles.button, styles.cancelButton]}
@@ -203,7 +208,7 @@ export default function VideoURLModal({ visible, onClose, onSubmit }: VideoURLMo
                 <Text style={styles.confirmButtonText}>{t('load_video')}</Text>
               </TouchableOpacity>
             </View>
-          </ScrollView>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -313,11 +318,24 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondary.bg,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '90%',
+    maxHeight: '92%',
     width: '100%',
+    flex: 1,
   },
   scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
     padding: 20,
+    paddingBottom: 20,
+  },
+  actionButtonsContainer: {
+    backgroundColor: Colors.secondary.bg,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.card.border,
   },
   header: {
     flexDirection: 'row',

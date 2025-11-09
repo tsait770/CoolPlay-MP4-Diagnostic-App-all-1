@@ -8,16 +8,7 @@ import {
   Animated,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { VideoView, useVideoPlayer } from 'expo-video';
 import {
-  Play,
-  Pause,
-  Volume2,
-  VolumeX,
-  Maximize,
-  Minimize,
-  SkipForward,
-  SkipBack,
   AlertCircle,
   ArrowLeft,
 } from 'lucide-react-native';
@@ -28,6 +19,7 @@ import { getSocialMediaConfig } from '@/utils/socialMediaPlayer';
 import { useMembership } from '@/providers/MembershipProvider';
 import SocialMediaPlayer from '@/components/SocialMediaPlayer';
 import YouTubePlayerStandalone from '@/components/YouTubePlayerStandalone';
+import Mp4Player from '@/components/Mp4Player';
 import Colors from '@/constants/colors';
 
 export interface UniversalVideoPlayerProps {
@@ -58,41 +50,17 @@ export default function UniversalVideoPlayer({
   const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(true);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(autoPlay);
-  const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showControls, setShowControls] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   const [loadStartTime, setLoadStartTime] = useState<number>(0);
   const [isScrolling, setIsScrolling] = useState(false);
   const webViewRef = useRef<WebView>(null);
-  const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const backButtonOpacity = useRef(new Animated.Value(1)).current;
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
-  // Detect source info FIRST before anything else
   const sourceInfo = detectVideoSource(url);
   const playbackEligibility = canPlayVideo(url, tier);
-  
-  // Determine which player to use based on source info
-  const shouldUseNativePlayer =
-    sourceInfo.type === 'direct' ||
-    sourceInfo.type === 'stream' ||
-    sourceInfo.type === 'hls' ||
-    sourceInfo.type === 'dash';
-
-  // Only initialize native player if we're actually using it
-  // For WebView-required URLs, use a dummy URL for the native player to avoid errors
-  const safeUrl = shouldUseNativePlayer && url && url.trim() !== '' ? url : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-  
-  const player = useVideoPlayer(safeUrl, (player) => {
-    player.loop = false;
-    player.muted = isMuted;
-    if (autoPlay && shouldUseNativePlayer) {
-      player.play();
-    }
-  });
   
   console.log('[UniversalVideoPlayer] Source detection:', {
     url,
@@ -159,18 +127,7 @@ export default function UniversalVideoPlayer({
   }, [url, sourceInfo.type, sourceInfo.platform, sourceInfo.requiresAgeVerification, tier, playbackEligibility.canPlay, playbackEligibility.reason, onError, onAgeVerificationRequired]);
 
   useEffect(() => {
-    if (showControls) {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-      controlsTimeoutRef.current = setTimeout(() => {
-        setShowControls(false);
-      }, 3000);
-    }
     return () => {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
       }
@@ -178,90 +135,11 @@ export default function UniversalVideoPlayer({
         clearTimeout(scrollTimeoutRef.current);
       }
     };
-  }, [showControls]);
+  }, []);
 
-  const handlePlayPause = () => {
-    if (player) {
-      if (isPlaying) {
-        player.pause();
-      } else {
-        player.play();
-        onPlaybackStart?.();
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
 
-  const handleMute = () => {
-    if (player) {
-      player.muted = !isMuted;
-      setIsMuted(!isMuted);
-    }
-  };
 
-  const handleSeek = (seconds: number) => {
-    if (player) {
-      const currentTime = player.currentTime || 0;
-      const newPosition = Math.max(0, currentTime + seconds);
-      player.currentTime = newPosition;
-    }
-  };
 
-  useEffect(() => {
-    if (!player) return;
-
-    const subscription = player.addListener('playingChange', (event) => {
-      setIsPlaying(event.isPlaying);
-    });
-
-    const statusSubscription = player.addListener('statusChange', (status) => {
-      if (status.status === 'readyToPlay') {
-        setIsLoading(false);
-        if (autoPlay) {
-          onPlaybackStart?.();
-        }
-      } else if (status.status === 'error') {
-        // Extract readable error message
-        let errorMsg = 'Unknown playback error';
-        if (status.error) {
-          if (typeof status.error === 'object' && 'message' in status.error) {
-            errorMsg = String((status.error as any).message || 'Unknown error');
-          } else if (typeof status.error === 'string') {
-            errorMsg = status.error;
-          } else {
-            errorMsg = JSON.stringify(status.error);
-          }
-        }
-        
-        console.error('[UniversalVideoPlayer] Native player error:', {
-          error: status.error,
-          errorMessage: errorMsg,
-          url,
-          sourceType: sourceInfo.type,
-          platform: sourceInfo.platform,
-          shouldUseNativePlayer,
-          shouldUseWebView: sourceInfo.requiresWebView,
-        });
-        
-        // If this is a URL that should use WebView, provide helpful error
-        if (sourceInfo.requiresWebView || sourceInfo.type === 'youtube' || sourceInfo.type === 'adult') {
-          errorMsg = `This ${sourceInfo.platform} video cannot be played with the native player. The video will be loaded in a web player instead.`;
-          console.log('[UniversalVideoPlayer] Switching to WebView for:', sourceInfo.platform);
-          // Don't set error, let WebView handle it
-          return;
-        }
-        
-        const fullErrorMsg = `Playback error: ${errorMsg}`;
-        setPlaybackError(fullErrorMsg);
-        onError?.(fullErrorMsg);
-      }
-    });
-
-    return () => {
-      subscription.remove();
-      statusSubscription.remove();
-    };
-  }, [player, autoPlay, onPlaybackStart, onError, url, sourceInfo.type, sourceInfo.platform, shouldUseNativePlayer, sourceInfo.requiresWebView]);
 
   const getVimeoEmbedUrl = (videoId: string): string => {
     return `https://player.vimeo.com/video/${videoId}?autoplay=${autoPlay ? 1 : 0}`;
@@ -632,84 +510,19 @@ export default function UniversalVideoPlayer({
   };
 
   const renderNativePlayer = () => {
-    console.log('[UniversalVideoPlayer] Rendering native player for:', url);
+    console.log('[UniversalVideoPlayer] Rendering MP4 player for:', url);
 
     return (
-      <TouchableOpacity
-        style={styles.videoContainer}
-        activeOpacity={1}
-        onPress={() => setShowControls(true)}
-      >
-        <VideoView
-          player={player}
-          style={styles.video}
-          contentFit="contain"
-          nativeControls={false}
-          allowsFullscreen
-          allowsPictureInPicture
-        />
-        
-        {showControls && (
-          <View style={styles.controlsOverlay}>
-            <View style={styles.controlsContainer}>
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={() => handleSeek(-10)}
-              >
-                <SkipBack size={24} color="#fff" />
-                <Text style={styles.controlButtonText}>10s</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.controlButtonLarge}
-                onPress={handlePlayPause}
-              >
-                {isPlaying ? (
-                  <Pause size={48} color="#fff" fill="#fff" />
-                ) : (
-                  <Play size={48} color="#fff" fill="#fff" />
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={() => handleSeek(10)}
-              >
-                <SkipForward size={24} color="#fff" />
-                <Text style={styles.controlButtonText}>10s</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.bottomControls}>
-              <TouchableOpacity style={styles.controlButton} onPress={handleMute}>
-                {isMuted ? (
-                  <VolumeX size={24} color="#fff" />
-                ) : (
-                  <Volume2 size={24} color="#fff" />
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={() => setIsFullscreen(!isFullscreen)}
-              >
-                {isFullscreen ? (
-                  <Minimize size={24} color="#fff" />
-                ) : (
-                  <Maximize size={24} color="#fff" />
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {isLoading && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={Colors.primary.accent} />
-            <Text style={styles.loadingText}>Loading video...</Text>
-          </View>
-        )}
-      </TouchableOpacity>
+      <Mp4Player
+        url={url}
+        onError={onError}
+        onLoad={() => setIsLoading(false)}
+        onPlaybackStart={onPlaybackStart}
+        onPlaybackEnd={onPlaybackEnd}
+        autoPlay={autoPlay}
+        style={style}
+        onBack={handleBackPress}
+      />
     );
   };
 

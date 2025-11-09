@@ -24,13 +24,21 @@ jobs:
         with:
           node-version: '20'
           
+      - name: Install dependencies
+        run: npm install || bun install || yarn install || true
+        continue-on-error: true
+          
       - name: Run translation sync
         run: node scripts/sync-translations.js
         
       - name: Check for changes
         id: check_changes
         run: |
-          git diff --exit-code l10n/ translation_missing_report.md || echo "has_changes=true" >> $GITHUB_OUTPUT
+          if git diff --quiet l10n/ translation_missing_report.md 2>/dev/null; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
           
       - name: Commit changes
         if: steps.check_changes.outputs.has_changes == 'true'

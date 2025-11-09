@@ -133,8 +133,8 @@ export default function UniversalVideoPlayer({
 
   const handleBackPress = useCallback(() => {
     // Navigate back to Voice Control main screen (player tab)
-    // Use replace to prevent going back to video screen
-    router.replace('/player');
+    // Use push to navigate to the player tab directly
+    router.push('/(tabs)/player');
   }, [router]);
 
   useEffect(() => {

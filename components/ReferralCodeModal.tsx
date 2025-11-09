@@ -102,9 +102,13 @@ export default function ReferralCodeModal({ visible, onClose, isFirstTime = true
           <TouchableOpacity
             style={styles.closeButton}
             onPress={onClose}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+            activeOpacity={0.7}
+            accessible={true}
+            accessibilityLabel="Close"
+            accessibilityRole="button"
           >
-            <X size={24} color={Colors.primary.textSecondary} />
+            <X size={24} color={Colors.primary.text} />
           </TouchableOpacity>
           
           <View style={styles.iconContainer}>
@@ -217,7 +221,7 @@ const styles = StyleSheet.create({
     right: 16,
     zIndex: 10001,
     padding: 8,
-    backgroundColor: Colors.card.bg,
+    backgroundColor: 'transparent',
     borderRadius: 20,
     width: 40,
     height: 40,

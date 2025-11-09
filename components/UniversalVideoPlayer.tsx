@@ -613,7 +613,7 @@ export default function UniversalVideoPlayer({
         <Animated.View
           style={[
             styles.backButtonContainer,
-            { top: insets.top + 16, opacity: backButtonOpacity }
+            { top: insets.top - 4, opacity: backButtonOpacity }
           ]}
           pointerEvents={isScrolling ? 'none' : 'auto'}
         >
@@ -623,7 +623,7 @@ export default function UniversalVideoPlayer({
             activeOpacity={0.7}
           >
             <View style={styles.backButtonInner}>
-              <ArrowLeft color="#ffffff" size={24} />
+              <ArrowLeft color="#ffffff" size={20} />
             </View>
           </TouchableOpacity>
         </Animated.View>
@@ -924,10 +924,10 @@ const styles = StyleSheet.create({
     zIndex: 1001,
   },
   backButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(30, 30, 30, 0.75)',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(30, 30, 30, 0.53)',
     backdropFilter: 'blur(10px)',
     justifyContent: 'center',
     alignItems: 'center',

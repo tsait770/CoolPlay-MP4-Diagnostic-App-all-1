@@ -1,6 +1,6 @@
-import { Stack, useRouter, useNavigation } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import React from "react";
-import { TouchableOpacity, StatusBar } from "react-native";
+import { TouchableOpacity } from "react-native";
 import { ChevronLeft } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -8,30 +8,27 @@ import { useTranslation } from "@/hooks/useTranslation";
 export default function SettingsLayout() {
   const { t } = useTranslation();
   const router = useRouter();
-  const navigation = useNavigation();
 
   return (
-    <>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.primary.bg} />
-      <Stack
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: Colors.primary.bg,
-          },
-          headerTintColor: Colors.primary.text,
-          headerTitleStyle: {
-            fontWeight: "700" as const,
-            fontSize: 20,
-            color: Colors.primary.text,
-          },
-          headerShadowVisible: false,
-          headerBackTitle: t("back"),
-          headerBackVisible: true,
-          contentStyle: {
-            backgroundColor: Colors.primary.bg,
-          },
-        }}
-      >
+    <Stack
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: Colors.primary.bg,
+        },
+        headerTintColor: Colors.primary.text,
+        headerTitleStyle: {
+          fontWeight: "700" as const,
+          fontSize: 20,
+          color: Colors.primary.text,
+        },
+        headerShadowVisible: false,
+        headerBackTitle: t("back"),
+        headerBackVisible: true,
+        contentStyle: {
+          backgroundColor: Colors.primary.bg,
+        },
+      }}
+    >
       <Stack.Screen
         name="index"
         options={{
@@ -40,13 +37,7 @@ export default function SettingsLayout() {
           headerBackVisible: true,
           headerLeft: () => (
             <TouchableOpacity
-              onPress={() => {
-                if (navigation.canGoBack()) {
-                  router.back();
-                } else {
-                  router.replace("/(tabs)/home");
-                }
-              }}
+              onPress={() => router.back()}
               style={{ marginLeft: -8, padding: 8 }}
             >
               <ChevronLeft size={24} color={Colors.primary.text} />
@@ -276,7 +267,6 @@ export default function SettingsLayout() {
           title: t("experimental_features"),
         }}
       />
-      </Stack>
-    </>
+    </Stack>
   );
 }

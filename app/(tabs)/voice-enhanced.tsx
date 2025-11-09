@@ -41,7 +41,7 @@ export default function EnhancedVoiceControlScreen() {
   const voiceControl = useVoiceControl();
   const isListening = voiceControl?.isListening ?? false;
   const alwaysListening = voiceControl?.alwaysListening ?? false;
-  const toggleAlwaysListening = voiceControl?.toggleAlwaysListening ?? (async () => Promise.resolve());
+  const toggleAlwaysListening = voiceControl?.toggleAlwaysListening;
 
   const [permissionError, setPermissionError] = useState<string | null>(null);
 
@@ -392,12 +392,17 @@ export default function EnhancedVoiceControlScreen() {
                 onPress={async () => {
                   setPermissionError(null);
                   try {
-                    if (toggleAlwaysListening && typeof toggleAlwaysListening === 'function') {
-                      await toggleAlwaysListening();
-                    } else {
-                      console.warn('toggleAlwaysListening is not available');
+                    if (!voiceControl) {
+                      console.warn('Voice control provider not available');
                       setPermissionError('Voice control not initialized');
+                      return;
                     }
+                    if (!toggleAlwaysListening || typeof toggleAlwaysListening !== 'function') {
+                      console.warn('toggleAlwaysListening is not a function');
+                      setPermissionError('Voice control not properly initialized');
+                      return;
+                    }
+                    await toggleAlwaysListening();
                   } catch (err: any) {
                     console.error('Voice control error:', err);
                     setPermissionError(err?.message || 'Failed to start voice control');

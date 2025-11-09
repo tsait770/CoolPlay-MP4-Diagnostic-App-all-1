@@ -249,12 +249,23 @@ export default function UniversalVideoPlayer({
             'Sec-Fetch-Mode': 'navigate',
             'Sec-Fetch-Site': 'cross-site',
           } : sourceInfo.type === 'adult' ? {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'DNT': '1',
+            'User-Agent': retryCount >= 2
+              ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+              : retryCount >= 1
+              ? 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+              : 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Sec-Ch-Ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+            'Sec-Ch-Ua-Mobile': retryCount >= 2 ? '?0' : '?1',
+            'Sec-Ch-Ua-Platform': retryCount >= 2 ? '"Windows"' : '"iOS"',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
             'Upgrade-Insecure-Requests': '1',
+            'Cache-Control': 'max-age=0',
           } : {
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -268,11 +279,11 @@ export default function UniversalVideoPlayer({
         mediaPlaybackRequiresUserAction={false}
         javaScriptEnabled
         domStorageEnabled
-        sharedCookiesEnabled={sourceInfo.type !== 'adult'}
-        thirdPartyCookiesEnabled={sourceInfo.type !== 'adult'}
+        sharedCookiesEnabled={true}
+        thirdPartyCookiesEnabled={true}
         mixedContentMode="always"
-        cacheEnabled={sourceInfo.type !== 'adult'}
-        incognito={sourceInfo.type === 'adult'}
+        cacheEnabled={true}
+        incognito={false}
         // YouTube 特定配置
         allowsProtectedMedia={true}
         allowFileAccess={true}
@@ -449,6 +460,10 @@ export default function UniversalVideoPlayer({
                 if (isYouTubeError4Related) {
                   errorMessage = `YouTube 錯誤碼 4 檢測\n\n此視頻無法播放，常見原因：\n• 視頻被設為「私人」或「不公開」\n• 視頻已被刪除或下架\n• 視頻禁止嵌入播放\n• 地區限制（您所在地區無法觀看）\n• 年齡限制內容\n• 版權限制\n\n來源: ${sourceInfo.platform}\nVideo ID: ${sourceInfo.videoId}\n當前嘗試: ${retryCount + 1}/${maxRetries + 1}\n\n建議解決方案：\n1. 在 YouTube 網站直接測試該連結\n2. 確認視頻設定允許嵌入\n3. 檢查視頻是否在您的地區可用\n4. 使用 VPN 嘗試不同地區\n5. ��繫視頻上傳者確認權限設定`;
                   shouldRetry = retryCount < maxRetries;
+                } else if (sourceInfo.type === 'adult') {
+                  console.log(`[UniversalVideoPlayer] Adult platform 403 error, retrying with different headers (${retryCount + 1}/${maxRetries})`);
+                  errorMessage = `${sourceInfo.platform || '成人網站'} 訪問被拒絕\n\n正在嘗試使用不同的瀏覽器配置重新載入...\n\n當前嘗試: ${retryCount + 1}/${maxRetries + 1}\n\n403 錯誤可能是由於：\n• 網站的反機器人保護\n• 需要特定的瀏覽器標識\n• 網站暫時阻止訪問\n\n系統將自動重試多次以找到最佳配置`;
+                  shouldRetry = retryCount < maxRetries;
                 } else {
                   errorMessage = `視頻訪問被拒絕 (403 Forbidden)\n\n無法播放此視頻，可能原因：\n• 視頻來源阻止嵌入播放\n• 需要特定的權限或訂閱\n• 地區限制\n• 防盜鏈保護\n\n來源: ${sourceInfo.platform || '未知'}\n\n建議：\n1. 嘗試在瀏覽器中直接開啟連結\n2. 確認視頻允許嵌入播放\n3. 檢查是否需要登入或訂閱\n4. 使用 VPN 嘗試不同地區`;
                   shouldRetry = retryCount < maxRetries;
@@ -475,11 +490,12 @@ export default function UniversalVideoPlayer({
             
             if (shouldRetry) {
               console.log(`[UniversalVideoPlayer] Retrying after HTTP ${nativeEvent.statusCode} (${retryCount + 1}/${maxRetries})`);
+              const retryDelay = sourceInfo.type === 'adult' ? 1500 : 2000;
               setTimeout(() => {
                 setRetryCount(prev => prev + 1);
                 setIsLoading(true);
                 setPlaybackError(null);
-              }, 2000);
+              }, retryDelay);
             } else {
               console.error(`[UniversalVideoPlayer] HTTP ${nativeEvent.statusCode} error for ${nativeEvent.url}`);
               setPlaybackError(errorMessage);

@@ -28,7 +28,7 @@ export interface VideoSourceInfo {
   requiresPremium: boolean;
   videoId?: string;
   error?: string;
-  streamType?: 'hls' | 'dash' | 'rtmp' | 'mp4' | 'webm' | 'ogg' | 'mkv' | 'avi' | 'mov' | 'wmv' | 'flv' | '3gp' | 'ts' | 'm4v';
+  streamType?: 'hls' | 'dash' | 'rtmp' | 'mp4' | 'webm' | 'ogg' | 'mkv' | 'avi' | 'mov';
   requiresWebView?: boolean;
   requiresAgeVerification?: boolean;
 }

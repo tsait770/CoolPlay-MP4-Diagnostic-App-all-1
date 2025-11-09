@@ -135,11 +135,17 @@ export default function UniversalVideoPlayer({
     // Always navigate to the player tab (Voice Control main screen)
     // This is the final destination - no intermediate pages
     try {
-      router.replace('/(tabs)/player');
+      // Check if we can go back first
+      if (router.canGoBack && router.canGoBack()) {
+        router.back();
+      } else {
+        // If no history, navigate to player tab
+        router.replace('/(tabs)/player');
+      }
     } catch (error) {
       console.error('[UniversalVideoPlayer] Navigation error:', error);
-      // Fallback: try to navigate using push
-      router.push('/(tabs)/player');
+      // Fallback: do nothing if navigation fails
+      console.log('[UniversalVideoPlayer] Unable to navigate, staying on current screen');
     }
   }, [router]);
 

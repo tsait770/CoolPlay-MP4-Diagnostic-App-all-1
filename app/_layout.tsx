@@ -3,9 +3,11 @@ import { trpc, trpcClient } from "@/lib/trpc";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState, useCallback, Component, ReactNode } from "react";
-import { StyleSheet, Platform, Alert, View, Text, TouchableOpacity } from "react-native";
+import { StyleSheet, Platform, Alert, View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+// eslint-disable-next-line @rork/linters/rsp-no-asyncstorage-direct
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LanguageProvider } from "@/hooks/useLanguage";
 import { BookmarkProvider } from "@/providers/BookmarkProvider";
 import { CategoryProvider } from "@/providers/CategoryProvider";
@@ -258,51 +260,68 @@ export default function RootLayout() {
   const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
-    let mounted = true;
-    let initTimeout: ReturnType<typeof setTimeout> | undefined;
-
     const initialize = async () => {
       try {
         console.log('[App] Starting initialization...');
+        const startTime = Date.now();
         
-        initTimeout = setTimeout(() => {
-          if (mounted) {
-            console.warn('[App] Initialization timeout after 2s - forcing ready state');
-            setIsInitialized(true);
-            setProvidersReady(true);
-            SplashScreen.hideAsync().catch(e => console.warn('[App] Error hiding splash:', e));
-          }
-        }, 2000);
-        
-        if (!mounted) return;
         setIsInitialized(true);
         setProvidersReady(true);
         
-        console.log('[App] Initialization complete');
-        clearTimeout(initTimeout);
+        const duration = Date.now() - startTime;
+        console.log(`[App] Initialization completed in ${duration}ms`);
         
         setTimeout(() => {
-          SplashScreen.hideAsync().catch(e => console.warn('[App] Error hiding splash:', e));
+          SplashScreen.hideAsync();
         }, 100);
+        
+        setTimeout(async () => {
+          try {
+            console.log('[App] Running deferred storage cleanup...');
+            const allKeys = await AsyncStorage.getAllKeys();
+            const corruptedKeys: string[] = [];
+            
+            const maxCheck = Math.min(allKeys.length, 30);
+            for (let i = 0; i < maxCheck; i++) {
+              const key = allKeys[i];
+              try {
+                const data = await AsyncStorage.getItem(key);
+                if (data && typeof data === 'string' && data.length > 0) {
+                  const cleaned = data.trim();
+                  if (cleaned.includes('[object Object]') || 
+                      cleaned === 'undefined' || 
+                      cleaned === 'NaN' ||
+                      cleaned === 'null' ||
+                      cleaned.startsWith('object ') ||
+                      cleaned.startsWith('Object ')) {
+                    corruptedKeys.push(key);
+                  } else if (cleaned.startsWith('{') || cleaned.startsWith('[')) {
+                    try {
+                      JSON.parse(cleaned);
+                    } catch {
+                      corruptedKeys.push(key);
+                    }
+                  }
+                }
+              } catch {}
+            }
+            
+            if (corruptedKeys.length > 0) {
+              console.log(`[App] Cleared ${corruptedKeys.length} corrupted storage keys`);
+              await AsyncStorage.multiRemove(corruptedKeys);
+            }
+          } catch (cleanupError) {
+            console.warn('[App] Deferred cleanup failed:', cleanupError);
+          }
+        }, 2000);
       } catch (error) {
         console.error('[App] Initialization error:', error);
-        if (mounted) {
-          setInitError(error instanceof Error ? error.message : 'Unknown error');
-          setIsInitialized(true);
-          setProvidersReady(true);
-        }
-        SplashScreen.hideAsync().catch(e => console.warn('[App] Error hiding splash:', e));
+        setInitError(error instanceof Error ? error.message : 'Unknown error');
+        SplashScreen.hideAsync();
       }
     };
 
     initialize();
-
-    return () => {
-      mounted = false;
-      if (initTimeout) {
-        clearTimeout(initTimeout);
-      }
-    };
   }, []);
 
   if (initError) {
@@ -315,7 +334,17 @@ export default function RootLayout() {
   }
 
   if (!isInitialized || !providersReady) {
-    return null;
+    return (
+      <View style={styles.loadingContainer} testID="app-loading">
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>
+          {!isInitialized ? 'Initializing App...' : 'Loading Providers...'}
+        </Text>
+        <Text style={[styles.loadingText, { fontSize: 12, marginTop: 10, opacity: 0.6 }]}>
+          Please wait... This should only take a moment
+        </Text>
+      </View>
+    );
   }
 
   console.log('[RootLayout] Rendering providers, isInitialized:', isInitialized, 'providersReady:', providersReady);

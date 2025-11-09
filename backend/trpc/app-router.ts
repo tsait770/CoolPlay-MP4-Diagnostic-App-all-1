@@ -14,8 +14,6 @@ import { createSubscriptionProcedure } from "@/backend/trpc/routes/paypal/create
 import { activateSubscriptionProcedure } from "@/backend/trpc/routes/paypal/activate-subscription/route";
 import { cancelSubscriptionProcedure as cancelPayPalSubscriptionProcedure } from "@/backend/trpc/routes/paypal/cancel-subscription/route";
 import { getSubscriptionProcedure } from "@/backend/trpc/routes/paypal/get-subscription/route";
-import { reportPlayerErrorProcedure } from "@/backend/trpc/routes/player/report-error/route";
-import { getErrorStatsProcedure } from "@/backend/trpc/routes/player/get-error-stats/route";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -42,10 +40,6 @@ export const appRouter = createTRPCRouter({
     activateSubscription: activateSubscriptionProcedure,
     cancelSubscription: cancelPayPalSubscriptionProcedure,
     getSubscription: getSubscriptionProcedure,
-  }),
-  player: createTRPCRouter({
-    reportError: reportPlayerErrorProcedure,
-    getErrorStats: getErrorStatsProcedure,
   }),
 });
 

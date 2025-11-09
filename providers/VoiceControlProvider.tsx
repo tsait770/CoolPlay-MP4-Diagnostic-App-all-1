@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Platform } from 'react-native';
 import createContextHook from '@nkzw/create-context-hook';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -39,7 +39,7 @@ interface VoiceCommand {
   utterances: Record<string, string[]>;
 }
 
-const [VoiceControlProvider, useVoiceControl] = createContextHook(() => {
+export const [VoiceControlProvider, useVoiceControl] = createContextHook(() => {
   const { language } = useLanguage();
   const storage = useStorage();
   const [state, setState] = useState<VoiceControlState>({
@@ -683,12 +683,10 @@ const [VoiceControlProvider, useVoiceControl] = createContextHook(() => {
   startListeningRef.current = startListening;
   stopListeningRef.current = stopListening;
 
-  return {
+  return useMemo(() => ({
     ...state,
-    startListening,
-    stopListening,
-    toggleAlwaysListening,
-  };
+    startListening: typeof startListening === 'function' ? startListening : () => Promise.resolve(),
+    stopListening: typeof stopListening === 'function' ? stopListening : () => Promise.resolve(),
+    toggleAlwaysListening: typeof toggleAlwaysListening === 'function' ? toggleAlwaysListening : () => Promise.resolve(),
+  }), [state, startListening, stopListening, toggleAlwaysListening]);
 });
-
-export { VoiceControlProvider, useVoiceControl };

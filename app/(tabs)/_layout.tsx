@@ -61,16 +61,16 @@ export default function TabLayout() {
         <Ionicons name="logo-bitcoin" size={24} color={color} />
       ),
     },
-    'voice-enhanced': {
-      title: t("voice_control") + " 2.0",
-      tabBarIcon: ({ color }: { color: string }) => (
-        <Ionicons name="mic" size={24} color={color} />
-      ),
-    },
     player: {
       title: t("voice_control"),
       tabBarIcon: ({ color }: { color: string }) => (
         <Ionicons name="mic-outline" size={24} color={color} />
+      ),
+    },
+    community: {
+      title: t("community_share"),
+      tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+        <Ionicons name="share-social" size={24} color={focused ? "#1E293B" : color} />
       ),
     },
     settings: {
@@ -139,18 +139,6 @@ export default function TabLayout() {
         } as any}
       />
       <Tabs.Screen
-        name="voice-enhanced"
-        options={{
-          ...tabOptions['voice-enhanced'],
-          headerShown: false,
-        }}
-        listeners={{
-          tabPress: () => {
-            console.log('[Tabs] tabPress: voice-enhanced', Date.now());
-          },
-        } as any}
-      />
-      <Tabs.Screen
         name="player"
         options={{
           ...tabOptions.player,
@@ -159,6 +147,15 @@ export default function TabLayout() {
         listeners={{
           tabPress: () => {
             console.log('[Tabs] tabPress: player', Date.now());
+          },
+        } as any}
+      />
+      <Tabs.Screen
+        name="community"
+        options={tabOptions.community}
+        listeners={{
+          tabPress: () => {
+            console.log('[Tabs] tabPress: community', Date.now());
           },
         } as any}
       />

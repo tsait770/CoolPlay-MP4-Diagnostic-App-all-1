@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
   Text,
+  Animated,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { VideoView, useVideoPlayer } from 'expo-video';
@@ -18,7 +19,10 @@ import {
   SkipForward,
   SkipBack,
   AlertCircle,
+  ArrowLeft,
 } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { detectVideoSource, canPlayVideo } from '@/utils/videoSourceDetector';
 import { getSocialMediaConfig } from '@/utils/socialMediaPlayer';
 import { useMembership } from '@/providers/MembershipProvider';
@@ -50,6 +54,8 @@ export default function UniversalVideoPlayer({
   maxRetries = 4,
 }: UniversalVideoPlayerProps) {
   const { tier } = useMembership();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(true);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(autoPlay);
@@ -58,9 +64,12 @@ export default function UniversalVideoPlayer({
   const [showControls, setShowControls] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   const [loadStartTime, setLoadStartTime] = useState<number>(0);
+  const [isScrolling, setIsScrolling] = useState(false);
   const webViewRef = useRef<WebView>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const backButtonOpacity = useRef(new Animated.Value(1)).current;
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Detect source info FIRST before anything else
   const sourceInfo = detectVideoSource(url);
@@ -93,6 +102,64 @@ export default function UniversalVideoPlayer({
     requiresAgeVerification: sourceInfo.requiresAgeVerification,
     canPlay: playbackEligibility.canPlay,
   });
+
+  useEffect(() => {
+    if (isScrolling) {
+      Animated.timing(backButtonOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(backButtonOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isScrolling, backButtonOpacity]);
+
+  const handleScroll = useCallback(() => {
+    setIsScrolling(true);
+    
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    
+    scrollTimeoutRef.current = setTimeout(() => {
+      setIsScrolling(false);
+    }, 1500);
+  }, []);
+
+  const handleBackPress = useCallback(() => {
+    if (webViewRef.current) {
+      webViewRef.current.injectJavaScript(`
+        (function() {
+          try {
+            if (window.history.length > 1) {
+              window.history.back();
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'went_back' }));
+            } else {
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'no_history' }));
+            }
+          } catch (e) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'no_history' }));
+          }
+        })();
+        true;
+      `);
+      
+      setTimeout(() => {
+        if (router.canGoBack()) {
+          router.back();
+        }
+      }, 100);
+    } else {
+      if (router.canGoBack()) {
+        router.back();
+      }
+    }
+  }, [router]);
 
   useEffect(() => {
     console.log('[UniversalVideoPlayer] Initialized with:', {
@@ -130,6 +197,9 @@ export default function UniversalVideoPlayer({
       }
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
+      }
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
       }
     };
   }, [showControls]);
@@ -307,7 +377,8 @@ export default function UniversalVideoPlayer({
     console.log('[UniversalVideoPlayer] WebView rendering for:', sourceInfo.platform || 'Unknown');
 
     return (
-      <WebView
+      <View style={styles.webViewWrapper}>
+        <WebView
         ref={webViewRef}
         source={{ 
           uri: embedUrl,
@@ -397,6 +468,7 @@ export default function UniversalVideoPlayer({
           setIsLoading(false);
           setRetryCount(0);
         }}
+        onScroll={handleScroll}
         onError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
           console.error('[UniversalVideoPlayer] WebView error:', nativeEvent);
@@ -531,7 +603,25 @@ export default function UniversalVideoPlayer({
             }
           }
         }}
-      />
+        />
+        <Animated.View
+          style={[
+            styles.backButtonContainer,
+            { top: insets.top + 16, opacity: backButtonOpacity }
+          ]}
+          pointerEvents={isScrolling ? 'none' : 'auto'}
+        >
+          <TouchableOpacity
+            onPress={handleBackPress}
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <View style={styles.backButtonInner}>
+              <ArrowLeft color="#ffffff" size={24} />
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
     );
   };
 
@@ -718,6 +808,13 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#000',
   },
+  webViewWrapper: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#000',
+    position: 'relative',
+  },
   webView: {
     flex: 1,
     width: '100%',
@@ -814,5 +911,30 @@ const styles = StyleSheet.create({
     color: Colors.primary.accent,
     marginTop: 16,
     textAlign: 'center',
+  },
+  backButtonContainer: {
+    position: 'absolute',
+    left: 16,
+    zIndex: 1001,
+  },
+  backButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(30, 30, 30, 0.75)',
+    backdropFilter: 'blur(10px)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  } as any,
+  backButtonInner: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

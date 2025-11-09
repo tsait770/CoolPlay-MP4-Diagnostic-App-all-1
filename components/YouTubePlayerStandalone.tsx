@@ -255,7 +255,17 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
   }, [onLoad, sourceInfo]);
 
   const handleError = useCallback((error: any) => {
-    console.error('WebView error details:', error?.nativeEvent?.description || 'Unknown error');
+    const errorDetails = {
+      description: error?.nativeEvent?.description,
+      code: error?.nativeEvent?.code,
+      domain: error?.nativeEvent?.domain,
+      url: error?.nativeEvent?.url,
+      title: error?.nativeEvent?.title,
+      canGoBack: error?.nativeEvent?.canGoBack,
+      canGoForward: error?.nativeEvent?.canGoForward,
+      loading: error?.nativeEvent?.loading,
+    };
+    console.error('[YouTubePlayerStandalone] WebView error details:', JSON.stringify(errorDetails, null, 2));
 
     setIsLoading(false);
     setHasError(true);
@@ -448,11 +458,15 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
           onError={handleError}
           onHttpError={(syntheticEvent) => {
             const { nativeEvent } = syntheticEvent;
-            console.error('WebView HTTP error:', {
+            console.error('[YouTubePlayerStandalone] WebView HTTP error:', JSON.stringify({
               statusCode: nativeEvent.statusCode,
               description: nativeEvent.description,
-              url: nativeEvent.url
-            });
+              url: nativeEvent.url,
+              title: nativeEvent.title,
+              canGoBack: nativeEvent.canGoBack,
+              canGoForward: nativeEvent.canGoForward,
+              loading: nativeEvent.loading,
+            }, null, 2));
             handleError(syntheticEvent);
           }}
           onMessage={handleMessage}

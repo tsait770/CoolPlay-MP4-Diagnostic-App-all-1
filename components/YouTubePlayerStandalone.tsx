@@ -422,7 +422,7 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
         >
           <TouchableOpacity
             onPress={() => {
-              router.replace('/player');
+              router.replace('/(tabs)/player');
             }}
             style={styles.backButton}
             activeOpacity={0.7}
@@ -488,7 +488,7 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
       >
         <TouchableOpacity
           onPress={() => {
-            router.replace('/player');
+            router.replace('/(tabs)/player');
           }}
           style={styles.backButton}
           activeOpacity={0.7}

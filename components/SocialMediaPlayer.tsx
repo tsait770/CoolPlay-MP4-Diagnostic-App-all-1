@@ -139,7 +139,7 @@ export default function SocialMediaPlayer({
   }, []);
 
   const handleBackPress = useCallback(() => {
-    router.replace('/player');
+    router.replace('/(tabs)/player');
   }, [router]);
 
   useEffect(() => {

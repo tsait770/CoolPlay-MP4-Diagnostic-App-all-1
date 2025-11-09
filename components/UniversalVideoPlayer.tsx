@@ -527,14 +527,30 @@ export default function UniversalVideoPlayer({
 
   const renderNativePlayer = () => {
     console.log('[UniversalVideoPlayer] Rendering MP4 player for:', url);
+    console.log('[UniversalVideoPlayer] Source info:', sourceInfo);
 
     return (
       <Mp4Player
         url={url}
-        onError={onError}
-        onLoad={() => setIsLoading(false)}
-        onPlaybackStart={onPlaybackStart}
-        onPlaybackEnd={onPlaybackEnd}
+        onError={(error) => {
+          console.error('[UniversalVideoPlayer] MP4Player error:', error);
+          setPlaybackError(error);
+          setIsLoading(false);
+          onError?.(error);
+        }}
+        onLoad={() => {
+          console.log('[UniversalVideoPlayer] MP4 loaded successfully');
+          setIsLoading(false);
+          setRetryCount(0);
+        }}
+        onPlaybackStart={() => {
+          console.log('[UniversalVideoPlayer] MP4 playback started');
+          onPlaybackStart?.();
+        }}
+        onPlaybackEnd={() => {
+          console.log('[UniversalVideoPlayer] MP4 playback ended');
+          onPlaybackEnd?.();
+        }}
         autoPlay={autoPlay}
         style={style}
         onBack={handleBackPress}
@@ -592,11 +608,16 @@ export default function UniversalVideoPlayer({
     sourceInfo.type === 'hls' ||
     sourceInfo.type === 'dash');
 
+  const isDirectMp4 = sourceInfo.type === 'direct' && 
+    (sourceInfo.streamType === 'mp4' || sourceInfo.streamType === 'm4v');
+
   console.log('[UniversalVideoPlayer] Player selection:', {
     useSocialMediaPlayer,
     shouldUseWebView,
     shouldUseNativePlayer: shouldUseNativePlayerRender,
+    isDirectMp4,
     sourceType: sourceInfo.type,
+    streamType: sourceInfo.streamType,
   });
 
   // Validate URL after hooks
@@ -612,6 +633,19 @@ export default function UniversalVideoPlayer({
       </View>
     );
   }
+
+  console.log('[UniversalVideoPlayer] Final URL check:', {
+    hasUrl: !!url,
+    urlLength: url?.length,
+    urlPreview: url?.substring(0, 100),
+  });
+
+  console.log('[UniversalVideoPlayer] Final render decision:', {
+    useSocialMediaPlayer,
+    shouldUseWebView,
+    shouldUseNativePlayerRender,
+    willRenderError: !useSocialMediaPlayer && !shouldUseWebView && !shouldUseNativePlayerRender,
+  });
 
   return (
     <View style={[styles.container, style]}>

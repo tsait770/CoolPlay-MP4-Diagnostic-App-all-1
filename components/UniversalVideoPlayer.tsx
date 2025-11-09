@@ -23,6 +23,7 @@ import { detectVideoSource, canPlayVideo } from '@/utils/videoSourceDetector';
 import { getSocialMediaConfig } from '@/utils/socialMediaPlayer';
 import { useMembership } from '@/providers/MembershipProvider';
 import SocialMediaPlayer from '@/components/SocialMediaPlayer';
+import YouTubePlayerStandalone from '@/components/YouTubePlayerStandalone';
 import Colors from '@/constants/colors';
 
 export interface UniversalVideoPlayerProps {
@@ -214,58 +215,7 @@ export default function UniversalVideoPlayer({
       subscription.remove();
       statusSubscription.remove();
     };
-  }, [player, autoPlay, onPlaybackStart, onError, url, sourceInfo.type, sourceInfo.platform]);
-
-  const getYouTubeEmbedUrl = (videoId: string, attempt: number = 0): string => {
-    const baseParams = {
-      autoplay: autoPlay ? '1' : '0',
-      playsinline: '1',
-      rel: '0',
-      modestbranding: '1',
-      fs: '1',
-      controls: '1',
-      enablejsapi: '1',
-      html5: '1',
-      iv_load_policy: '3',
-      cc_load_policy: '0',
-      disablekb: '0',
-      wmode: 'transparent',
-    };
-    
-    const origin = typeof window !== 'undefined' && window.location ? window.location.origin : 'https://rork.app';
-    const params = new URLSearchParams({ ...baseParams, origin });
-    
-    return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
-  };
-
-  const getYouTubeWebPlayerUrl = (videoId: string): string => {
-    return `https://www.youtube.com/watch?v=${videoId}&autoplay=${autoPlay ? '1' : '0'}&html5=1`;
-  };
-
-  const getYouTubeNoEmbedUrl = (videoId: string): string => {
-    const params = new URLSearchParams({
-      autoplay: autoPlay ? '1' : '0',
-      playsinline: '1',
-      rel: '0',
-      modestbranding: '1',
-      controls: '1',
-      fs: '1',
-      html5: '1',
-    });
-    return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
-  };
-
-  const getYouTubeMobileUrl = (videoId: string): string => {
-    return `https://m.youtube.com/watch?v=${videoId}&autoplay=${autoPlay ? '1' : '0'}`;
-  };
-
-  const getInvidiousUrl = (videoId: string): string => {
-    return `https://yewtu.be/embed/${videoId}?autoplay=${autoPlay ? '1' : '0'}`;
-  };
-
-  const getYouTubeDirectUrl = (videoId: string): string => {
-    return `https://www.youtube.com/embed/${videoId}?enablejsapi=0&autoplay=${autoPlay ? '1' : '0'}&controls=1&fs=1&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3`;
-  };
+  }, [player, autoPlay, onPlaybackStart, onError, url, sourceInfo.type, sourceInfo.platform, shouldUseNativePlayer, sourceInfo.requiresWebView]);
 
   const getVimeoEmbedUrl = (videoId: string): string => {
     return `https://player.vimeo.com/video/${videoId}?autoplay=${autoPlay ? 1 : 0}`;
@@ -315,55 +265,26 @@ export default function UniversalVideoPlayer({
   };
 
   const renderWebViewPlayer = () => {
+    if (sourceInfo.type === 'youtube') {
+      console.log('[UniversalVideoPlayer] Using standalone YouTube player');
+      return (
+        <YouTubePlayerStandalone
+          url={url}
+          onError={onError}
+          onLoad={() => {
+            setIsLoading(false);
+            setRetryCount(0);
+          }}
+          isFullscreen={isFullscreen}
+          toggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+        />
+      );
+    }
+
     let embedUrl = url;
     let injectedJavaScript = '';
 
-    if (sourceInfo.type === 'youtube' && sourceInfo.videoId) {
-      console.log('[UniversalVideoPlayer] === YouTube Playback System ===' );
-      console.log('[UniversalVideoPlayer] Video ID:', sourceInfo.videoId);
-      console.log('[UniversalVideoPlayer] Retry attempt:', retryCount + 1, '/', maxRetries + 1);
-      console.log('[UniversalVideoPlayer] Error Code 4 Detection: ACTIVE');
-      
-      const strategies = [
-        { url: getYouTubeEmbedUrl(sourceInfo.videoId, 0), name: 'Standard YouTube Embed' },
-        { url: getYouTubeNoEmbedUrl(sourceInfo.videoId), name: 'YouTube NoCookie Domain' },
-        { url: getYouTubeDirectUrl(sourceInfo.videoId), name: 'YouTube Direct Embed' },
-        { url: getYouTubeMobileUrl(sourceInfo.videoId), name: 'YouTube Mobile URL' },
-        { url: getInvidiousUrl(sourceInfo.videoId), name: 'Alternative Frontend (Invidious)' },
-      ];
-      
-      const strategy = strategies[Math.min(retryCount, strategies.length - 1)];
-      embedUrl = strategy.url;
-      
-      console.log('[UniversalVideoPlayer] Strategy:', strategy.name);
-      console.log('[UniversalVideoPlayer] Embed URL:', embedUrl);
-      console.log('[UniversalVideoPlayer] Starting load sequence...');
-      
-      injectedJavaScript = `
-        (function() {
-          console.log('[YouTube Player] Iframe loaded successfully');
-          console.log('[YouTube Player] Video ID: ${sourceInfo.videoId}');
-          console.log('[YouTube Player] URL: ${embedUrl}');
-          
-          window.addEventListener('error', function(e) {
-            console.error('[YouTube Player] Error detected:', e.message);
-          });
-          
-          var checkVideo = setInterval(function() {
-            var iframe = document.querySelector('iframe');
-            var video = document.querySelector('video');
-            if (iframe || video) {
-              console.log('[YouTube Player] Player element detected');
-              clearInterval(checkVideo);
-            }
-          }, 500);
-          
-          setTimeout(function() {
-            clearInterval(checkVideo);
-          }, 10000);
-        })();
-      `;
-    } else if (sourceInfo.type === 'vimeo' && sourceInfo.videoId) {
+    if (sourceInfo.type === 'vimeo' && sourceInfo.videoId) {
       embedUrl = getVimeoEmbedUrl(sourceInfo.videoId);
       console.log('[UniversalVideoPlayer] Vimeo embed URL:', embedUrl);
     } else if (sourceInfo.type === 'adult') {

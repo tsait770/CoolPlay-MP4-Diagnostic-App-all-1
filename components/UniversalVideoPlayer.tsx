@@ -132,16 +132,9 @@ export default function UniversalVideoPlayer({
   }, []);
 
   const handleBackPress = useCallback(() => {
-    console.log('[UniversalVideoPlayer] Back button pressed - navigating to player tab');
     // Navigate back to Voice Control main screen (player tab)
-    // Use push with reset to ensure we go to the main screen
-    try {
-      router.push('/(tabs)/player');
-    } catch (error) {
-      console.error('[UniversalVideoPlayer] Navigation error:', error);
-      // Fallback to replace if push fails
-      router.replace('/(tabs)/player');
-    }
+    // Use replace to prevent going back to video screen
+    router.replace('/player');
   }, [router]);
 
   useEffect(() => {
@@ -409,12 +402,10 @@ export default function UniversalVideoPlayer({
         allowUniversalAccessFromFileURLs={true}
         scalesPageToFit={false}
         bounces={true}
-        scrollEnabled={true}
+        scrollEnabled={sourceInfo.type !== 'youtube'}
         automaticallyAdjustContentInsets={false}
         contentInset={{ top: 0, left: 0, bottom: 0, right: 0 }}
         webviewDebuggingEnabled={__DEV__}
-        nestedScrollEnabled={true}
-        overScrollMode="always"
         injectedJavaScript={(injectedJavaScript || '') + `
           (function() {
             try {
@@ -424,35 +415,18 @@ export default function UniversalVideoPlayer({
               document.documentElement.style.overflow = 'hidden';
               
               var style = document.createElement('style');
-              style.innerHTML = '* { -webkit-overflow-scrolling: touch !important; -webkit-user-select: text !important; user-select: text !important; } body { overscroll-behavior: auto; -webkit-overflow-scrolling: touch; touch-action: manipulation; } html, body { height: 100%; overflow: auto !important; }';
+              style.innerHTML = '* { -webkit-overflow-scrolling: touch !important; } body { overscroll-behavior: contain; }';
               if (document.head) {
                 document.head.appendChild(style);
               }
               
               let scrollTimer;
-              let touchStartY = 0;
-              let isUserScrolling = false;
-              
-              document.addEventListener('touchstart', function(e) {
-                touchStartY = e.touches[0].clientY;
-                isUserScrolling = false;
-              }, { passive: true });
-              
-              document.addEventListener('touchmove', function(e) {
-                if (Math.abs(e.touches[0].clientY - touchStartY) > 10) {
-                  isUserScrolling = true;
-                }
-              }, { passive: true });
-              
               window.addEventListener('scroll', function() {
-                if (isUserScrolling) {
-                  window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'scroll_start' }));
-                  clearTimeout(scrollTimer);
-                  scrollTimer = setTimeout(function() {
-                    window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'scroll_stop' }));
-                    isUserScrolling = false;
-                  }, 120);
-                }
+                window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'scroll_start' }));
+                clearTimeout(scrollTimer);
+                scrollTimer = setTimeout(function() {
+                  window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'scroll_stop' }));
+                }, 100);
               }, { passive: true });
               
               console.log('[WebView] Page styles and scroll detection injected successfully');
@@ -841,21 +815,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   webViewWrapper: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     width: '100%',
     height: '100%',
     backgroundColor: '#000',
+    position: 'relative',
   },
   webView: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     width: '100%',
     height: '100%',
     backgroundColor: '#000',

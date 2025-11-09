@@ -101,7 +101,11 @@ export default function ReferralCodeModal({ visible, onClose, isFirstTime = true
         <View style={styles.container}>
           <TouchableOpacity
             style={styles.closeButton}
-            onPress={onClose}
+            onPress={() => {
+              console.log('[ReferralCodeModal] Close button pressed');
+              onClose();
+            }}
+            activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <X size={24} color={Colors.primary.textSecondary} />
@@ -213,16 +217,21 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: 'absolute' as const,
-    top: 16,
-    right: 16,
+    top: 12,
+    right: 12,
     zIndex: 10001,
-    padding: 8,
+    padding: 4,
     backgroundColor: Colors.card.bg,
     borderRadius: 20,
     width: 40,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   iconContainer: {
     marginBottom: 20,

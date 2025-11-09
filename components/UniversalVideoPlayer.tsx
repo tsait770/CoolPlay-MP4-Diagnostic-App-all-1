@@ -133,8 +133,8 @@ export default function UniversalVideoPlayer({
 
   const handleBackPress = useCallback(() => {
     // Navigate back to Voice Control main screen (player tab)
-    // Use replace to prevent going back to video screen
-    router.replace('/player');
+    // Use replace to clear navigation stack and go directly to main screen
+    router.replace('/(tabs)/player');
   }, [router]);
 
   useEffect(() => {
@@ -402,10 +402,12 @@ export default function UniversalVideoPlayer({
         allowUniversalAccessFromFileURLs={true}
         scalesPageToFit={false}
         bounces={true}
-        scrollEnabled={sourceInfo.type !== 'youtube'}
+        scrollEnabled={true}
         automaticallyAdjustContentInsets={false}
         contentInset={{ top: 0, left: 0, bottom: 0, right: 0 }}
         webviewDebuggingEnabled={__DEV__}
+        nestedScrollEnabled={true}
+        overScrollMode="always"
         injectedJavaScript={(injectedJavaScript || '') + `
           (function() {
             try {
@@ -415,18 +417,35 @@ export default function UniversalVideoPlayer({
               document.documentElement.style.overflow = 'hidden';
               
               var style = document.createElement('style');
-              style.innerHTML = '* { -webkit-overflow-scrolling: touch !important; } body { overscroll-behavior: contain; }';
+              style.innerHTML = '* { -webkit-overflow-scrolling: touch !important; -webkit-user-select: text !important; user-select: text !important; } body { overscroll-behavior: auto; -webkit-overflow-scrolling: touch; touch-action: manipulation; } html, body { height: 100%; overflow: auto !important; }';
               if (document.head) {
                 document.head.appendChild(style);
               }
               
               let scrollTimer;
+              let touchStartY = 0;
+              let isUserScrolling = false;
+              
+              document.addEventListener('touchstart', function(e) {
+                touchStartY = e.touches[0].clientY;
+                isUserScrolling = false;
+              }, { passive: true });
+              
+              document.addEventListener('touchmove', function(e) {
+                if (Math.abs(e.touches[0].clientY - touchStartY) > 10) {
+                  isUserScrolling = true;
+                }
+              }, { passive: true });
+              
               window.addEventListener('scroll', function() {
-                window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'scroll_start' }));
-                clearTimeout(scrollTimer);
-                scrollTimer = setTimeout(function() {
-                  window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'scroll_stop' }));
-                }, 100);
+                if (isUserScrolling) {
+                  window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'scroll_start' }));
+                  clearTimeout(scrollTimer);
+                  scrollTimer = setTimeout(function() {
+                    window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'scroll_stop' }));
+                    isUserScrolling = false;
+                  }, 120);
+                }
               }, { passive: true });
               
               console.log('[WebView] Page styles and scroll detection injected successfully');

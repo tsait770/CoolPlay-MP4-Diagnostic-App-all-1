@@ -1,47 +1,10 @@
-import { Tabs, useRouter } from "expo-router";
+import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useMemo, useRef } from "react";
-import { Animated, TouchableOpacity } from "react-native";
+import React, { useMemo } from "react";
+import { TouchableOpacity } from "react-native";
 import Colors from "@/constants/colors";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useLanguage } from "@/hooks/useLanguage";
-
-function BackButton(): React.ReactElement {
-  const router = useRouter();
-  const scale = useRef(new Animated.Value(1)).current;
-
-  const pressIn = () => {
-    Animated.spring(scale, { toValue: 0.9, useNativeDriver: true, speed: 20, bounciness: 6 }).start();
-  };
-  const pressOut = () => {
-    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 6 }).start();
-  };
-
-  return (
-    <Animated.View style={{ transform: [{ scale }], marginLeft: 8 }}>
-      <TouchableOpacity
-        accessibilityRole="button"
-        onPress={() => router.back()}
-        onPressIn={pressIn}
-        onPressOut={pressOut}
-        activeOpacity={0.8}
-        testID="header-back-button"
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 14,
-          backgroundColor: "rgba(255,255,255,0.15)",
-          borderWidth: 1,
-          borderColor: "rgba(255,255,255,0.25)",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Ionicons name="chevron-back" size={18} color="#fff" />
-      </TouchableOpacity>
-    </Animated.View>
-  );
-}
 
 export default function TabLayout() {
   const { t } = useTranslation();
@@ -142,7 +105,6 @@ export default function TabLayout() {
         name="player"
         options={{
           ...tabOptions.player,
-          headerLeft: () => <BackButton />,
         }}
         listeners={{
           tabPress: () => {

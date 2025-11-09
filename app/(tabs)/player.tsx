@@ -1014,7 +1014,7 @@ export default function PlayerScreen() {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  // Back button removed from video playing view (as per requirements)
+  // Removed back button functionality - UI element deleted
 
   const getProgressPercentage = () => {
     if (duration === 0) return 0;

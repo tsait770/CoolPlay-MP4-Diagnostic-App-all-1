@@ -39,11 +39,9 @@ interface VideoSource {
 export default function EnhancedVoiceControlScreen() {
   const { t } = useTranslation();
   const voiceControl = useVoiceControl();
-  const {
-    isListening = false,
-    alwaysListening = false,
-    toggleAlwaysListening = () => Promise.resolve(),
-  } = voiceControl || {};
+  const isListening = voiceControl?.isListening ?? false;
+  const alwaysListening = voiceControl?.alwaysListening ?? false;
+  const toggleAlwaysListening = voiceControl?.toggleAlwaysListening ?? (async () => Promise.resolve());
 
   const [permissionError, setPermissionError] = useState<string | null>(null);
 
@@ -394,7 +392,12 @@ export default function EnhancedVoiceControlScreen() {
                 onPress={async () => {
                   setPermissionError(null);
                   try {
-                    await toggleAlwaysListening();
+                    if (toggleAlwaysListening && typeof toggleAlwaysListening === 'function') {
+                      await toggleAlwaysListening();
+                    } else {
+                      console.warn('toggleAlwaysListening is not available');
+                      setPermissionError('Voice control not initialized');
+                    }
                   } catch (err: any) {
                     console.error('Voice control error:', err);
                     setPermissionError(err?.message || 'Failed to start voice control');

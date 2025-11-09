@@ -8,7 +8,16 @@ import {
   Animated,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import {
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  Maximize,
+  Minimize,
+  SkipForward,
+  SkipBack,
   AlertCircle,
   ArrowLeft,
 } from 'lucide-react-native';
@@ -19,7 +28,6 @@ import { getSocialMediaConfig } from '@/utils/socialMediaPlayer';
 import { useMembership } from '@/providers/MembershipProvider';
 import SocialMediaPlayer from '@/components/SocialMediaPlayer';
 import YouTubePlayerStandalone from '@/components/YouTubePlayerStandalone';
-import Mp4Player from '@/components/Mp4Player';
 import Colors from '@/constants/colors';
 
 export interface UniversalVideoPlayerProps {
@@ -50,17 +58,41 @@ export default function UniversalVideoPlayer({
   const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(true);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(autoPlay);
+  const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showControls, setShowControls] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   const [loadStartTime, setLoadStartTime] = useState<number>(0);
   const [isScrolling, setIsScrolling] = useState(false);
   const webViewRef = useRef<WebView>(null);
+  const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const backButtonOpacity = useRef(new Animated.Value(1)).current;
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
+  // Detect source info FIRST before anything else
   const sourceInfo = detectVideoSource(url);
   const playbackEligibility = canPlayVideo(url, tier);
+  
+  // Determine which player to use based on source info
+  const shouldUseNativePlayer =
+    sourceInfo.type === 'direct' ||
+    sourceInfo.type === 'stream' ||
+    sourceInfo.type === 'hls' ||
+    sourceInfo.type === 'dash';
+
+  // Only initialize native player if we're actually using it
+  // For WebView-required URLs, use a dummy URL for the native player to avoid errors
+  const safeUrl = shouldUseNativePlayer && url && url.trim() !== '' ? url : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+  
+  const player = useVideoPlayer(safeUrl, (player) => {
+    player.loop = false;
+    player.muted = isMuted;
+    if (autoPlay && shouldUseNativePlayer) {
+      player.play();
+    }
+  });
   
   console.log('[UniversalVideoPlayer] Source detection:', {
     url,
@@ -101,8 +133,8 @@ export default function UniversalVideoPlayer({
 
   const handleBackPress = useCallback(() => {
     // Navigate back to Voice Control main screen (player tab)
-    // Use push to navigate to the player tab directly
-    router.push('/(tabs)/player');
+    // Use replace to prevent going back to video screen
+    router.replace('/player');
   }, [router]);
 
   useEffect(() => {
@@ -127,7 +159,18 @@ export default function UniversalVideoPlayer({
   }, [url, sourceInfo.type, sourceInfo.platform, sourceInfo.requiresAgeVerification, tier, playbackEligibility.canPlay, playbackEligibility.reason, onError, onAgeVerificationRequired]);
 
   useEffect(() => {
+    if (showControls) {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+      controlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 3000);
+    }
     return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
       }
@@ -135,11 +178,90 @@ export default function UniversalVideoPlayer({
         clearTimeout(scrollTimeoutRef.current);
       }
     };
-  }, []);
+  }, [showControls]);
 
+  const handlePlayPause = () => {
+    if (player) {
+      if (isPlaying) {
+        player.pause();
+      } else {
+        player.play();
+        onPlaybackStart?.();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
 
+  const handleMute = () => {
+    if (player) {
+      player.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
 
+  const handleSeek = (seconds: number) => {
+    if (player) {
+      const currentTime = player.currentTime || 0;
+      const newPosition = Math.max(0, currentTime + seconds);
+      player.currentTime = newPosition;
+    }
+  };
 
+  useEffect(() => {
+    if (!player) return;
+
+    const subscription = player.addListener('playingChange', (event) => {
+      setIsPlaying(event.isPlaying);
+    });
+
+    const statusSubscription = player.addListener('statusChange', (status) => {
+      if (status.status === 'readyToPlay') {
+        setIsLoading(false);
+        if (autoPlay) {
+          onPlaybackStart?.();
+        }
+      } else if (status.status === 'error') {
+        // Extract readable error message
+        let errorMsg = 'Unknown playback error';
+        if (status.error) {
+          if (typeof status.error === 'object' && 'message' in status.error) {
+            errorMsg = String((status.error as any).message || 'Unknown error');
+          } else if (typeof status.error === 'string') {
+            errorMsg = status.error;
+          } else {
+            errorMsg = JSON.stringify(status.error);
+          }
+        }
+        
+        console.error('[UniversalVideoPlayer] Native player error:', {
+          error: status.error,
+          errorMessage: errorMsg,
+          url,
+          sourceType: sourceInfo.type,
+          platform: sourceInfo.platform,
+          shouldUseNativePlayer,
+          shouldUseWebView: sourceInfo.requiresWebView,
+        });
+        
+        // If this is a URL that should use WebView, provide helpful error
+        if (sourceInfo.requiresWebView || sourceInfo.type === 'youtube' || sourceInfo.type === 'adult') {
+          errorMsg = `This ${sourceInfo.platform} video cannot be played with the native player. The video will be loaded in a web player instead.`;
+          console.log('[UniversalVideoPlayer] Switching to WebView for:', sourceInfo.platform);
+          // Don't set error, let WebView handle it
+          return;
+        }
+        
+        const fullErrorMsg = `Playback error: ${errorMsg}`;
+        setPlaybackError(fullErrorMsg);
+        onError?.(fullErrorMsg);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+      statusSubscription.remove();
+    };
+  }, [player, autoPlay, onPlaybackStart, onError, url, sourceInfo.type, sourceInfo.platform, shouldUseNativePlayer, sourceInfo.requiresWebView]);
 
   const getVimeoEmbedUrl = (videoId: string): string => {
     return `https://player.vimeo.com/video/${videoId}?autoplay=${autoPlay ? 1 : 0}`;
@@ -249,23 +371,12 @@ export default function UniversalVideoPlayer({
             'Sec-Fetch-Mode': 'navigate',
             'Sec-Fetch-Site': 'cross-site',
           } : sourceInfo.type === 'adult' ? {
-            'User-Agent': retryCount >= 2
-              ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-              : retryCount >= 1
-              ? 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-              : 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
-            'Sec-Ch-Ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
-            'Sec-Ch-Ua-Mobile': retryCount >= 2 ? '?0' : '?1',
-            'Sec-Ch-Ua-Platform': retryCount >= 2 ? '"Windows"' : '"iOS"',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
             'Upgrade-Insecure-Requests': '1',
-            'Cache-Control': 'max-age=0',
           } : {
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -279,11 +390,11 @@ export default function UniversalVideoPlayer({
         mediaPlaybackRequiresUserAction={false}
         javaScriptEnabled
         domStorageEnabled
-        sharedCookiesEnabled={true}
-        thirdPartyCookiesEnabled={true}
+        sharedCookiesEnabled={sourceInfo.type !== 'adult'}
+        thirdPartyCookiesEnabled={sourceInfo.type !== 'adult'}
         mixedContentMode="always"
-        cacheEnabled={true}
-        incognito={false}
+        cacheEnabled={sourceInfo.type !== 'adult'}
+        incognito={sourceInfo.type === 'adult'}
         // YouTube 特定配置
         allowsProtectedMedia={true}
         allowFileAccess={true}
@@ -460,10 +571,6 @@ export default function UniversalVideoPlayer({
                 if (isYouTubeError4Related) {
                   errorMessage = `YouTube 錯誤碼 4 檢測\n\n此視頻無法播放，常見原因：\n• 視頻被設為「私人」或「不公開」\n• 視頻已被刪除或下架\n• 視頻禁止嵌入播放\n• 地區限制（您所在地區無法觀看）\n• 年齡限制內容\n• 版權限制\n\n來源: ${sourceInfo.platform}\nVideo ID: ${sourceInfo.videoId}\n當前嘗試: ${retryCount + 1}/${maxRetries + 1}\n\n建議解決方案：\n1. 在 YouTube 網站直接測試該連結\n2. 確認視頻設定允許嵌入\n3. 檢查視頻是否在您的地區可用\n4. 使用 VPN 嘗試不同地區\n5. ��繫視頻上傳者確認權限設定`;
                   shouldRetry = retryCount < maxRetries;
-                } else if (sourceInfo.type === 'adult') {
-                  console.log(`[UniversalVideoPlayer] Adult platform 403 error, retrying with different headers (${retryCount + 1}/${maxRetries})`);
-                  errorMessage = `${sourceInfo.platform || '成人網站'} 訪問被拒絕\n\n正在嘗試使用不同的瀏覽器配置重新載入...\n\n當前嘗試: ${retryCount + 1}/${maxRetries + 1}\n\n403 錯誤可能是由於：\n• 網站的反機器人保護\n• 需要特定的瀏覽器標識\n• 網站暫時阻止訪問\n\n系統將自動重試多次以找到最佳配置`;
-                  shouldRetry = retryCount < maxRetries;
                 } else {
                   errorMessage = `視頻訪問被拒絕 (403 Forbidden)\n\n無法播放此視頻，可能原因：\n• 視頻來源阻止嵌入播放\n• 需要特定的權限或訂閱\n• 地區限制\n• 防盜鏈保護\n\n來源: ${sourceInfo.platform || '未知'}\n\n建議：\n1. 嘗試在瀏覽器中直接開啟連結\n2. 確認視頻允許嵌入播放\n3. 檢查是否需要登入或訂閱\n4. 使用 VPN 嘗試不同地區`;
                   shouldRetry = retryCount < maxRetries;
@@ -490,12 +597,11 @@ export default function UniversalVideoPlayer({
             
             if (shouldRetry) {
               console.log(`[UniversalVideoPlayer] Retrying after HTTP ${nativeEvent.statusCode} (${retryCount + 1}/${maxRetries})`);
-              const retryDelay = sourceInfo.type === 'adult' ? 1500 : 2000;
               setTimeout(() => {
                 setRetryCount(prev => prev + 1);
                 setIsLoading(true);
                 setPlaybackError(null);
-              }, retryDelay);
+              }, 2000);
             } else {
               console.error(`[UniversalVideoPlayer] HTTP ${nativeEvent.statusCode} error for ${nativeEvent.url}`);
               setPlaybackError(errorMessage);
@@ -526,35 +632,84 @@ export default function UniversalVideoPlayer({
   };
 
   const renderNativePlayer = () => {
-    console.log('[UniversalVideoPlayer] Rendering MP4 player for:', url);
-    console.log('[UniversalVideoPlayer] Source info:', sourceInfo);
+    console.log('[UniversalVideoPlayer] Rendering native player for:', url);
 
     return (
-      <Mp4Player
-        url={url}
-        onError={(error) => {
-          console.error('[UniversalVideoPlayer] MP4Player error:', error);
-          setPlaybackError(error);
-          setIsLoading(false);
-          onError?.(error);
-        }}
-        onLoad={() => {
-          console.log('[UniversalVideoPlayer] MP4 loaded successfully');
-          setIsLoading(false);
-          setRetryCount(0);
-        }}
-        onPlaybackStart={() => {
-          console.log('[UniversalVideoPlayer] MP4 playback started');
-          onPlaybackStart?.();
-        }}
-        onPlaybackEnd={() => {
-          console.log('[UniversalVideoPlayer] MP4 playback ended');
-          onPlaybackEnd?.();
-        }}
-        autoPlay={autoPlay}
-        style={style}
-        onBack={handleBackPress}
-      />
+      <TouchableOpacity
+        style={styles.videoContainer}
+        activeOpacity={1}
+        onPress={() => setShowControls(true)}
+      >
+        <VideoView
+          player={player}
+          style={styles.video}
+          contentFit="contain"
+          nativeControls={false}
+          allowsFullscreen
+          allowsPictureInPicture
+        />
+        
+        {showControls && (
+          <View style={styles.controlsOverlay}>
+            <View style={styles.controlsContainer}>
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={() => handleSeek(-10)}
+              >
+                <SkipBack size={24} color="#fff" />
+                <Text style={styles.controlButtonText}>10s</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.controlButtonLarge}
+                onPress={handlePlayPause}
+              >
+                {isPlaying ? (
+                  <Pause size={48} color="#fff" fill="#fff" />
+                ) : (
+                  <Play size={48} color="#fff" fill="#fff" />
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={() => handleSeek(10)}
+              >
+                <SkipForward size={24} color="#fff" />
+                <Text style={styles.controlButtonText}>10s</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.bottomControls}>
+              <TouchableOpacity style={styles.controlButton} onPress={handleMute}>
+                {isMuted ? (
+                  <VolumeX size={24} color="#fff" />
+                ) : (
+                  <Volume2 size={24} color="#fff" />
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={() => setIsFullscreen(!isFullscreen)}
+              >
+                {isFullscreen ? (
+                  <Minimize size={24} color="#fff" />
+                ) : (
+                  <Maximize size={24} color="#fff" />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {isLoading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={Colors.primary.accent} />
+            <Text style={styles.loadingText}>Loading video...</Text>
+          </View>
+        )}
+      </TouchableOpacity>
     );
   };
 
@@ -608,16 +763,11 @@ export default function UniversalVideoPlayer({
     sourceInfo.type === 'hls' ||
     sourceInfo.type === 'dash');
 
-  const isDirectMp4 = sourceInfo.type === 'direct' && 
-    (sourceInfo.streamType === 'mp4' || sourceInfo.streamType === 'm4v');
-
   console.log('[UniversalVideoPlayer] Player selection:', {
     useSocialMediaPlayer,
     shouldUseWebView,
     shouldUseNativePlayer: shouldUseNativePlayerRender,
-    isDirectMp4,
     sourceType: sourceInfo.type,
-    streamType: sourceInfo.streamType,
   });
 
   // Validate URL after hooks
@@ -633,19 +783,6 @@ export default function UniversalVideoPlayer({
       </View>
     );
   }
-
-  console.log('[UniversalVideoPlayer] Final URL check:', {
-    hasUrl: !!url,
-    urlLength: url?.length,
-    urlPreview: url?.substring(0, 100),
-  });
-
-  console.log('[UniversalVideoPlayer] Final render decision:', {
-    useSocialMediaPlayer,
-    shouldUseWebView,
-    shouldUseNativePlayerRender,
-    willRenderError: !useSocialMediaPlayer && !shouldUseWebView && !shouldUseNativePlayerRender,
-  });
 
   return (
     <View style={[styles.container, style]}>

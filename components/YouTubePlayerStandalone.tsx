@@ -416,20 +416,19 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
         <Animated.View
           style={[
             styles.backButtonContainer,
-            { top: insets.top - 2, opacity: backButtonOpacity }
+            { top: insets.top + 16, opacity: backButtonOpacity }
           ]}
           pointerEvents={isScrolling ? 'none' : 'auto'}
         >
           <TouchableOpacity
             onPress={() => {
-              // Navigate to Voice Control main page (final destination)
               router.replace('/player');
             }}
             style={styles.backButton}
             activeOpacity={0.7}
           >
             <View style={styles.backButtonInner}>
-              <ArrowLeft color="#ffffff" size={20} />
+              <ArrowLeft color="#ffffff" size={24} />
             </View>
           </TouchableOpacity>
         </Animated.View>
@@ -483,20 +482,19 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
       <Animated.View
         style={[
           styles.backButtonContainer,
-          { top: insets.top - 2, opacity: backButtonOpacity }
+          { top: insets.top + 16, opacity: backButtonOpacity }
         ]}
         pointerEvents={isScrolling ? 'none' : 'auto'}
       >
         <TouchableOpacity
           onPress={() => {
-            // Navigate to Voice Control main page (final destination)
             router.replace('/player');
           }}
           style={styles.backButton}
           activeOpacity={0.7}
         >
           <View style={styles.backButtonInner}>
-            <ArrowLeft color="#ffffff" size={20} />
+            <ArrowLeft color="#ffffff" size={24} />
           </View>
         </TouchableOpacity>
       </Animated.View>
@@ -579,10 +577,10 @@ const styles = StyleSheet.create({
     zIndex: 1001,
   },
   backButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(30, 30, 30, 0.9)',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(30, 30, 30, 0.75)',
     backdropFilter: 'blur(10px)',
     justifyContent: 'center',
     alignItems: 'center',

@@ -35,10 +35,13 @@ export default function Mp4Player({
   const [duration, setDuration] = useState(0);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
-  const player = useExpoVideoPlayer(url, (player) => {
+  console.log('[Mp4Player] Initializing with URL:', url?.substring(0, 100));
+  
+  const player = useExpoVideoPlayer(url && url.trim() !== '' ? url : undefined, (player) => {
     player.loop = false;
     player.muted = isMuted;
     if (autoPlay) {
+      console.log('[Mp4Player] Autoplay enabled, starting playback');
       player.play();
     }
   });
@@ -58,6 +61,22 @@ export default function Mp4Player({
       }
     };
   }, [showControls, isPlaying]);
+
+  const handleSeek = useCallback((seconds: number) => {
+    if (!player) {
+      console.warn('[Mp4Player] Cannot seek: player not available');
+      return;
+    }
+    
+    try {
+      const currentTime = player.currentTime || 0;
+      const newPosition = Math.max(0, Math.min(duration, currentTime + seconds));
+      console.log('[Mp4Player] Seeking from', currentTime, 'to', newPosition);
+      player.currentTime = newPosition;
+    } catch (error) {
+      console.error('[Mp4Player] Error seeking:', error);
+    }
+  }, [player, duration]);
 
   useEffect(() => {
     const handleVoiceCommand = (event: any) => {
@@ -144,13 +163,17 @@ export default function Mp4Player({
         window.removeEventListener('voiceCommand', handleVoiceCommand);
       }
     };
-  }, [player, handleSeek]);
+  }, [player, handleSeek, duration]);
 
   useEffect(() => {
-    if (!player) return;
+    if (!player) {
+      console.warn('[Mp4Player] Player not initialized');
+      return;
+    }
 
     const playingSubscription = player.addListener('playingChange', (event) => {
       const playing = event.isPlaying;
+      console.log('[Mp4Player] Playing state changed:', playing);
       setIsPlaying(playing);
       
       if (playing && !isPlaying) {
@@ -161,7 +184,9 @@ export default function Mp4Player({
     });
 
     const statusSubscription = player.addListener('statusChange', (status) => {
+      console.log('[Mp4Player] Status changed:', status.status);
       if (status.status === 'readyToPlay') {
+        console.log('[Mp4Player] Video ready to play');
         setIsLoading(false);
         onLoad?.();
       } else if (status.status === 'error') {
@@ -180,9 +205,10 @@ export default function Mp4Player({
           url,
         });
         
-        setError(errorMsg);
+        const userFriendlyError = `Unable to play MP4 video\n\nError: ${errorMsg}\n\nPlease check:\n• Video URL is correct and accessible\n• File format is supported (MP4, M4V)\n• Network connection is stable\n\nVideo URL: ${url.substring(0, 50)}${url.length > 50 ? '...' : ''}`;
+        setError(userFriendlyError);
         setIsLoading(false);
-        onError?.(errorMsg);
+        onError?.(userFriendlyError);
       }
     });
 
@@ -201,33 +227,44 @@ export default function Mp4Player({
   }, [player, onLoad, onError, onPlaybackStart, onPlaybackEnd, url, isPlaying]);
 
   const handlePlayPause = useCallback(() => {
-    if (!player) return;
-    
-    if (isPlaying) {
-      player.pause();
-    } else {
-      player.play();
+    if (!player) {
+      console.warn('[Mp4Player] Player not available');
+      return;
     }
-    setIsPlaying(!isPlaying);
+    
+    try {
+      if (isPlaying) {
+        console.log('[Mp4Player] Pausing playback');
+        player.pause();
+        setIsPlaying(false);
+      } else {
+        console.log('[Mp4Player] Starting playback');
+        player.play();
+        setIsPlaying(true);
+      }
+    } catch (error) {
+      console.error('[Mp4Player] Error in play/pause:', error);
+    }
   }, [player, isPlaying]);
 
   const handleMute = useCallback(() => {
-    if (!player) return;
+    if (!player) {
+      console.warn('[Mp4Player] Player not available');
+      return;
+    }
     
-    const newMuted = !isMuted;
-    player.muted = newMuted;
-    setIsMuted(newMuted);
+    try {
+      const newMuted = !isMuted;
+      console.log('[Mp4Player] Setting mute:', newMuted);
+      player.muted = newMuted;
+      setIsMuted(newMuted);
+    } catch (error) {
+      console.error('[Mp4Player] Error muting:', error);
+    }
   }, [player, isMuted]);
 
-  const handleSeek = useCallback((seconds: number) => {
-    if (!player) return;
-    
-    const currentTime = player.currentTime || 0;
-    const newPosition = Math.max(0, Math.min(duration, currentTime + seconds));
-    player.currentTime = newPosition;
-  }, [player, duration]);
-
   const handleFullscreen = useCallback(() => {
+    console.log('[Mp4Player] Toggling fullscreen:', !isFullscreen);
     setIsFullscreen(!isFullscreen);
   }, [isFullscreen]);
 
@@ -238,21 +275,31 @@ export default function Mp4Player({
   };
 
   if (!url || url.trim() === '') {
+    console.warn('[Mp4Player] No URL provided');
     return (
       <View style={[styles.container, style]}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>No video URL provided</Text>
+          <Text style={styles.errorTitle}>No Video</Text>
+          <Text style={styles.errorText}>No video URL provided. Please select an MP4 video to play.</Text>
         </View>
       </View>
     );
   }
 
+  console.log('[Mp4Player] Rendering with URL:', url.substring(0, 100));
+
   if (error) {
+    console.error('[Mp4Player] Showing error:', error);
     return (
       <View style={[styles.container, style]}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorTitle}>Playback Error</Text>
           <Text style={styles.errorText}>{error}</Text>
+          {onBack && (
+            <TouchableOpacity onPress={onBack} style={styles.retryButton}>
+              <Text style={styles.retryButtonText}>Go Back</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
@@ -403,6 +450,19 @@ const styles = StyleSheet.create({
     color: '#ef4444',
     fontSize: 14,
     textAlign: 'center',
+    lineHeight: 20,
+  },
+  retryButton: {
+    marginTop: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: '#10b981',
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   topControls: {
     position: 'absolute',

@@ -535,15 +535,23 @@ export default function UniversalVideoPlayer({
         }}
         onHttpError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
-          console.error('[UniversalVideoPlayer] WebView HTTP error:', nativeEvent);
-          console.error('[UniversalVideoPlayer] HTTP Error Details:', {
+          console.error('[UniversalVideoPlayer] WebView HTTP error:', JSON.stringify({
+            statusCode: nativeEvent.statusCode,
+            url: nativeEvent.url,
+            description: nativeEvent.description,
+            title: nativeEvent.title,
+            canGoBack: nativeEvent.canGoBack,
+            canGoForward: nativeEvent.canGoForward,
+            loading: nativeEvent.loading,
+          }, null, 2));
+          console.error('[UniversalVideoPlayer] HTTP Error Details:', JSON.stringify({
             statusCode: nativeEvent.statusCode,
             url: nativeEvent.url,
             description: nativeEvent.description,
             sourceType: sourceInfo.type,
             platform: sourceInfo.platform,
             retryCount,
-          });
+          }, null, 2));
           clearLoadTimeout();
           
           if (nativeEvent.statusCode >= 400) {

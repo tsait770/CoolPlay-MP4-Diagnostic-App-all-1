@@ -1,8 +1,9 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Platform, TouchableOpacity, Animated } from 'react-native';
 import { AlertCircle, ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
+import { useRouter } from 'expo-router';
 
 interface VideoSourceInfo {
   platform: string;
@@ -109,10 +110,50 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [isScrolling, setIsScrolling] = useState(false);
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const backButtonOpacity = useRef(new Animated.Value(1)).current;
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sourceInfo = detectVideoSource(url);
+
+  useEffect(() => {
+    if (isScrolling) {
+      Animated.timing(backButtonOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(backButtonOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isScrolling, backButtonOpacity]);
+
+  const handleScroll = useCallback(() => {
+    setIsScrolling(true);
+    
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    
+    scrollTimeoutRef.current = setTimeout(() => {
+      setIsScrolling(false);
+    }, 1500);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const getEmbedUrl = useCallback(() => {
     if (sourceInfo.sourceInfo.platform === 'YouTube' && sourceInfo.sourceInfo.videoId) {
@@ -321,92 +362,129 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
 
   if (Platform.OS === 'web') {
     return (
+      <View style={styles.outerContainer}>
+        <View style={styles.container} onScroll={handleScroll}>
+          {isLoading && (
+            <View style={styles.loadingOverlay}>
+              <Text style={styles.loadingText}>載入中...</Text>
+            </View>
+          )}
+          <iframe
+            src={embedUrl}
+            style={styles.iframe}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            onLoad={handleLoadEnd}
+            onError={handleError}
+          />
+        </View>
+        <Animated.View
+          style={[
+            styles.backButtonContainer,
+            { top: insets.top + 16, opacity: backButtonOpacity }
+          ]}
+          pointerEvents={isScrolling ? 'none' : 'auto'}
+        >
+          <TouchableOpacity
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              }
+            }}
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <View style={styles.backButtonInner}>
+              <ArrowLeft color="#ffffff" size={24} />
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.outerContainer}>
       <View style={styles.container}>
         {isLoading && (
           <View style={styles.loadingOverlay}>
             <Text style={styles.loadingText}>載入中...</Text>
           </View>
         )}
-        <iframe
-          src={embedUrl}
-          style={styles.iframe}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          onLoad={handleLoadEnd}
+        <WebView
+          ref={webViewRef}
+          source={{
+            uri: embedUrl,
+            headers: {
+              'Referer': 'https://localhost'
+            }
+          }}
+          style={styles.webview}
+          onLoadStart={handleLoadStart}
+          onLoadEnd={handleLoadEnd}
           onError={handleError}
+          onHttpError={(syntheticEvent) => {
+            const { nativeEvent } = syntheticEvent;
+            console.error('WebView HTTP error:', {
+              statusCode: nativeEvent.statusCode,
+              description: nativeEvent.description,
+              url: nativeEvent.url
+            });
+            handleError(syntheticEvent);
+          }}
+          onMessage={handleMessage}
+          onScroll={handleScroll}
+          allowsInlineMediaPlayback
+          mediaPlaybackRequiresUserAction={false}
+          javaScriptEnabled
+          domStorageEnabled
+          startInLoadingState={false}
+          originWhitelist={['*']}
         />
-        {isFullscreen && toggleFullscreen && (
-          <TouchableOpacity
-            onPress={toggleFullscreen}
-            style={[styles.backButton, { top: insets.top + 16 }]}
-          >
-            <View style={styles.backButtonInner}>
-              <ArrowLeft color="#ffffff" size={24} />
-            </View>
-          </TouchableOpacity>
-        )}
       </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      {isLoading && (
-        <View style={styles.loadingOverlay}>
-          <Text style={styles.loadingText}>載入中...</Text>
-        </View>
-      )}
-      <WebView
-        ref={webViewRef}
-        source={{
-          uri: embedUrl,
-          headers: {
-            'Referer': 'https://localhost'
-          }
-        }}
-        style={styles.webview}
-        onLoadStart={handleLoadStart}
-        onLoadEnd={handleLoadEnd}
-        onError={handleError}
-        onHttpError={(syntheticEvent) => {
-          const { nativeEvent } = syntheticEvent;
-          console.error('WebView HTTP error:', {
-            statusCode: nativeEvent.statusCode,
-            description: nativeEvent.description,
-            url: nativeEvent.url
-          });
-          handleError(syntheticEvent);
-        }}
-        onMessage={handleMessage}
-        allowsInlineMediaPlayback
-        mediaPlaybackRequiresUserAction={false}
-        javaScriptEnabled
-        domStorageEnabled
-        startInLoadingState={false}
-        originWhitelist={['*']}
-      />
-      {isFullscreen && toggleFullscreen && (
+      <Animated.View
+        style={[
+          styles.backButtonContainer,
+          { top: insets.top + 16, opacity: backButtonOpacity }
+        ]}
+        pointerEvents={isScrolling ? 'none' : 'auto'}
+      >
         <TouchableOpacity
-          onPress={toggleFullscreen}
-          style={[styles.backButton, { top: insets.top + 16 }]}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            }
+          }}
+          style={styles.backButton}
+          activeOpacity={0.7}
         >
           <View style={styles.backButtonInner}>
             <ArrowLeft color="#ffffff" size={24} />
           </View>
         </TouchableOpacity>
-      )}
+      </Animated.View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  outerContainer: {
+    flex: 1,
     width: '100%',
+    height: '100%',
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  container: {
+    width: '90%',
+    maxWidth: 1200,
     aspectRatio: 16/9,
     backgroundColor: '#000',
     borderRadius: 20,
     overflow: 'hidden',
     position: 'relative',
+    alignSelf: 'center',
   },
   webview: {
     flex: 1,
@@ -458,23 +536,27 @@ const styles = StyleSheet.create({
     border: 'none',
     borderRadius: 20,
   } as any,
-  backButton: {
+  backButtonContainer: {
     position: 'absolute',
     left: 16,
-    top: 16,
+    zIndex: 1001,
+  },
+  backButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(30, 30, 30, 0.75)',
+    backdropFilter: 'blur(10px)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1001,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 5,
-  },
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  } as any,
   backButtonInner: {
     justifyContent: 'center',
     alignItems: 'center',

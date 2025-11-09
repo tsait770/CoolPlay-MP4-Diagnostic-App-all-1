@@ -132,8 +132,8 @@ export default function UniversalVideoPlayer({
   }, []);
 
   const handleBackPress = useCallback(() => {
-    // Navigate back to Voice Control main screen (player tab)
-    // Use replace to prevent going back to video screen
+    // Navigate back to Voice Control main screen (player tab) - final destination
+    // Use replace to prevent going back to video screen and clear navigation stack
     router.replace('/player');
   }, [router]);
 
@@ -613,7 +613,7 @@ export default function UniversalVideoPlayer({
         <Animated.View
           style={[
             styles.backButtonContainer,
-            { top: insets.top + 16, opacity: backButtonOpacity }
+            { top: insets.top - 2, opacity: backButtonOpacity }
           ]}
           pointerEvents={isScrolling ? 'none' : 'auto'}
         >
@@ -623,7 +623,7 @@ export default function UniversalVideoPlayer({
             activeOpacity={0.7}
           >
             <View style={styles.backButtonInner}>
-              <ArrowLeft color="#ffffff" size={24} />
+              <ArrowLeft color="#ffffff" size={20} />
             </View>
           </TouchableOpacity>
         </Animated.View>
@@ -924,10 +924,10 @@ const styles = StyleSheet.create({
     zIndex: 1001,
   },
   backButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(30, 30, 30, 0.75)',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(30, 30, 30, 0.9)',
     backdropFilter: 'blur(10px)',
     justifyContent: 'center',
     alignItems: 'center',

@@ -683,12 +683,20 @@ const [VoiceControlProvider, useVoiceControl] = createContextHook(() => {
   startListeningRef.current = startListening;
   stopListeningRef.current = stopListening;
 
-  return useMemo(() => ({
+  const returnValue = useMemo(() => ({
     ...state,
     startListening: typeof startListening === 'function' ? startListening : () => Promise.resolve(),
     stopListening: typeof stopListening === 'function' ? stopListening : () => Promise.resolve(),
     toggleAlwaysListening: typeof toggleAlwaysListening === 'function' ? toggleAlwaysListening : () => Promise.resolve(),
   }), [state, startListening, stopListening, toggleAlwaysListening]);
+  
+  console.log('[VoiceControl] Returning context value with functions:', {
+    hasStartListening: typeof returnValue.startListening === 'function',
+    hasStopListening: typeof returnValue.stopListening === 'function',
+    hasToggleAlwaysListening: typeof returnValue.toggleAlwaysListening === 'function',
+  });
+  
+  return returnValue;
 });
 
 export { VoiceControlProvider, useVoiceControl };

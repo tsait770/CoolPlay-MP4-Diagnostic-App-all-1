@@ -423,10 +423,14 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
           <TouchableOpacity
             onPress={() => {
               try {
-                router.replace('/(tabs)/player');
+                if (router.canGoBack && router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/(tabs)/player');
+                }
               } catch (error) {
                 console.error('[YouTubePlayerStandalone] Navigation error:', error);
-                router.push('/(tabs)/player');
+                console.log('[YouTubePlayerStandalone] Unable to navigate, staying on current screen');
               }
             }}
             style={styles.backButton}
@@ -494,10 +498,14 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
         <TouchableOpacity
           onPress={() => {
             try {
-              router.replace('/(tabs)/player');
+              if (router.canGoBack && router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(tabs)/player');
+              }
             } catch (error) {
               console.error('[YouTubePlayerStandalone] Navigation error:', error);
-              router.push('/(tabs)/player');
+              console.log('[YouTubePlayerStandalone] Unable to navigate, staying on current screen');
             }
           }}
           style={styles.backButton}

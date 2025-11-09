@@ -754,5 +754,21 @@
   "imported": "Imported",
   "failed": "Failed",
   "skipped": "Skipped",
-  "management": "Management"
+  "management": "Management",
+  "enhanced_voice_control": "Enhanced Voice Control",
+  "minimal_glow_controller": "Minimal Glow Controller",
+  "minimal_glow_description": "A modern, minimalist voice control interface with gradient border glow effects and enhanced visual feedback.",
+  "sample_video_title": "Sample Video Title",
+  "key_features": "Key Features",
+  "gradient_border_glow": "Gradient Border Glow",
+  "gradient_border_description": "Beautiful purple-to-cyan gradient border with glow effects for a premium look",
+  "cyan_microphone": "Cyan Microphone",
+  "cyan_microphone_description": "Distinctive cyan (#69E7D8) color for microphone and voice-related elements",
+  "usage_stats": "Usage Statistics",
+  "usage_stats_description": "Real-time display of command usage and monthly limits with visual progress indicators",
+  "always_listen_description": "Continuous voice listening mode for hands-free operation",
+  "video_display_area": "Video Display Area",
+  "playing": "Playing",
+  "paused": "Paused",
+  "continuous_listening": "Continuous Listening"
 }

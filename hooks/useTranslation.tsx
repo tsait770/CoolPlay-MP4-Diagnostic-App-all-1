@@ -66,7 +66,13 @@ export function useTranslation() {
 
   const t = React.useCallback((key: string): string => {
     try {
-      return (currentTranslations as Record<string, string>)[key] || fallbackTranslations[key as keyof typeof fallbackTranslations] || key;
+      const result = (currentTranslations as Record<string, string>)[key] || fallbackTranslations[key as keyof typeof fallbackTranslations] || key;
+      // Ensure we never return undefined, null, or just whitespace
+      if (result === null || result === undefined || (typeof result === 'string' && result.trim() === '')) {
+        console.warn(`Empty translation for key "${key}" in language "${language}"`);
+        return key;
+      }
+      return String(result);
     } catch (error) {
       console.error(`Translation error for key "${key}" in language "${language}":`, error);
       return fallbackTranslations[key as keyof typeof fallbackTranslations] || key;

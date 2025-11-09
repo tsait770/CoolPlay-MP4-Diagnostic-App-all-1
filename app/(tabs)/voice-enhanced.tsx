@@ -41,7 +41,9 @@ export default function EnhancedVoiceControlScreen() {
   const voiceControl = useVoiceControl();
   const isListening = voiceControl?.isListening ?? false;
   const alwaysListening = voiceControl?.alwaysListening ?? false;
-  const toggleAlwaysListening = voiceControl?.toggleAlwaysListening;
+  const toggleAlwaysListening = voiceControl?.toggleAlwaysListening ?? (async () => {
+    console.warn('toggleAlwaysListening not available');
+  });
 
   const [permissionError, setPermissionError] = useState<string | null>(null);
 
@@ -397,7 +399,7 @@ export default function EnhancedVoiceControlScreen() {
                       setPermissionError('Voice control not initialized');
                       return;
                     }
-                    if (!toggleAlwaysListening || typeof toggleAlwaysListening !== 'function') {
+                    if (typeof toggleAlwaysListening !== 'function') {
                       console.warn('toggleAlwaysListening is not a function');
                       setPermissionError('Voice control not properly initialized');
                       return;

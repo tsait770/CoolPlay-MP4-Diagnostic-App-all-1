@@ -11,7 +11,6 @@ import {
 import { WebView } from 'react-native-webview';
 import { AlertCircle, RefreshCw, ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import {
   getSocialMediaConfig,
   getDefaultHeaders,
@@ -27,6 +26,7 @@ export interface SocialMediaPlayerProps {
   autoRetry?: boolean;
   maxRetries?: number;
   style?: any;
+  onBackPress?: () => void;
 }
 
 export default function SocialMediaPlayer({
@@ -37,6 +37,7 @@ export default function SocialMediaPlayer({
   autoRetry = true,
   maxRetries = 3,
   style,
+  onBackPress,
 }: SocialMediaPlayerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +52,6 @@ export default function SocialMediaPlayer({
   const backButtonOpacity = useRef(new Animated.Value(1)).current;
   
   const insets = useSafeAreaInsets();
-  const router = useRouter();
 
   const config = getSocialMediaConfig(url);
 
@@ -139,8 +139,12 @@ export default function SocialMediaPlayer({
   }, []);
 
   const handleBackPress = useCallback(() => {
-    router.replace('/player');
-  }, [router]);
+    if (onBackPress) {
+      onBackPress();
+    } else {
+      console.log('[SocialMediaPlayer] Back pressed, parent should handle navigation');
+    }
+  }, [onBackPress]);
 
   useEffect(() => {
     return () => {

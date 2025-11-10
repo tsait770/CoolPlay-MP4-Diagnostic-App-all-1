@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, Platform, TouchableOpacity, Animated } from 're
 import { AlertCircle, ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
-import { useRouter } from 'expo-router';
 
 interface VideoSourceInfo {
   platform: string;
@@ -97,6 +96,7 @@ interface YouTubePlayerProps {
   }) => void;
   isFullscreen?: boolean;
   toggleFullscreen?: () => void;
+  onBackPress?: () => void;
 }
 
 const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
@@ -106,14 +106,14 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
   onPlaybackStatusUpdate,
   registerControls,
   isFullscreen = false,
-  toggleFullscreen
+  toggleFullscreen,
+  onBackPress
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const backButtonOpacity = useRef(new Animated.Value(1)).current;
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -422,15 +422,10 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
         >
           <TouchableOpacity
             onPress={() => {
-              try {
-                if (router.canGoBack && router.canGoBack()) {
-                  router.back();
-                } else {
-                  router.replace('/(tabs)/player');
-                }
-              } catch (error) {
-                console.error('[YouTubePlayerStandalone] Navigation error:', error);
-                console.log('[YouTubePlayerStandalone] Unable to navigate, staying on current screen');
+              if (onBackPress) {
+                onBackPress();
+              } else {
+                console.log('[YouTubePlayerStandalone] Back pressed, parent should handle navigation');
               }
             }}
             style={styles.backButton}
@@ -497,15 +492,10 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
       >
         <TouchableOpacity
           onPress={() => {
-            try {
-              if (router.canGoBack && router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/(tabs)/player');
-              }
-            } catch (error) {
-              console.error('[YouTubePlayerStandalone] Navigation error:', error);
-              console.log('[YouTubePlayerStandalone] Unable to navigate, staying on current screen');
+            if (onBackPress) {
+              onBackPress();
+            } else {
+              console.log('[YouTubePlayerStandalone] Back pressed, parent should handle navigation');
             }
           }}
           style={styles.backButton}

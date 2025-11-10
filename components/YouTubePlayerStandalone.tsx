@@ -420,16 +420,21 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
             onLoad={handleLoadEnd}
             onError={handleError}
           />
+          {!fullPageMode && enableFullPageMode && (
+            <TouchableOpacity 
+              style={styles.transparentOverlayButton}
+              onPress={() => setFullPageMode(true)}
+              activeOpacity={1}
+            >
+              <View style={styles.transparentOverlay} />
+            </TouchableOpacity>
+          )}
         </View>
         {!fullPageMode && enableFullPageMode && (
-          <TouchableOpacity 
-            style={styles.fullPageButton}
-            onPress={() => setFullPageMode(true)}
-            activeOpacity={0.8}
-          >
+          <View style={styles.fullPageButtonHidden}>
             <Text style={styles.fullPageButtonIcon}>▶</Text>
             <Text style={styles.fullPageButtonText}>觀看平台：YouTube</Text>
-          </TouchableOpacity>
+          </View>
         )}
         <Animated.View
           style={[
@@ -511,16 +516,21 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
           bounces={fullPageMode}
           scrollEnabled={fullPageMode}
         />
+        {!fullPageMode && enableFullPageMode && (
+          <TouchableOpacity 
+            style={styles.transparentOverlayButton}
+            onPress={() => setFullPageMode(true)}
+            activeOpacity={1}
+          >
+            <View style={styles.transparentOverlay} />
+          </TouchableOpacity>
+        )}
       </View>
       {!fullPageMode && enableFullPageMode && (
-        <TouchableOpacity 
-          style={styles.fullPageButton}
-          onPress={() => setFullPageMode(true)}
-          activeOpacity={0.8}
-        >
+        <View style={styles.fullPageButtonHidden}>
           <Text style={styles.fullPageButtonIcon}>▶</Text>
           <Text style={styles.fullPageButtonText}>觀看平台：YouTube</Text>
-        </TouchableOpacity>
+        </View>
       )}
       <Animated.View
         style={[
@@ -671,6 +681,46 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.15)',
     zIndex: 999,
   } as any,
+  fullPageButtonHidden: {
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(30, 30, 30, 0.85)',
+    backdropFilter: 'blur(12px)',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginHorizontal: 20,
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    zIndex: 999,
+    opacity: 0,
+    pointerEvents: 'none',
+  } as any,
+  transparentOverlayButton: {
+    position: 'absolute',
+    right: 16,
+    bottom: 16,
+    width: 220,
+    height: 48,
+    zIndex: 1000,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  transparentOverlay: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'transparent',
+  },
   fullPageButtonIcon: {
     color: '#ffffff',
     fontSize: 14,

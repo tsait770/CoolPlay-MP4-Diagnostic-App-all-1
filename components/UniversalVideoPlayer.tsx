@@ -40,6 +40,7 @@ export interface UniversalVideoPlayerProps {
   onAgeVerificationRequired?: () => void;
   loadTimeout?: number;
   maxRetries?: number;
+  onBackPress?: () => void;
 }
 
 export default function UniversalVideoPlayer({
@@ -52,6 +53,7 @@ export default function UniversalVideoPlayer({
   onAgeVerificationRequired,
   loadTimeout = 30000,
   maxRetries = 4,
+  onBackPress,
 }: UniversalVideoPlayerProps) {
   const { tier } = useMembership();
   const router = useRouter();
@@ -132,20 +134,11 @@ export default function UniversalVideoPlayer({
   }, []);
 
   const handleBackPress = useCallback(() => {
-    // Always navigate directly to the player tab (Voice Control main screen)
-    // This is the final destination - no intermediate pages
-    try {
-      router.replace('/(tabs)/player');
-    } catch (error) {
-      console.error('[UniversalVideoPlayer] Navigation error:', error);
-      // Fallback: Try push if replace fails
-      try {
-        router.push('/(tabs)/player');
-      } catch (fallbackError) {
-        console.error('[UniversalVideoPlayer] Fallback navigation also failed:', fallbackError);
-      }
+    // Call parent's back handler to clear the video
+    if (onBackPress) {
+      onBackPress();
     }
-  }, [router]);
+  }, [onBackPress]);
 
   useEffect(() => {
     console.log('[UniversalVideoPlayer] Initialized with:', {

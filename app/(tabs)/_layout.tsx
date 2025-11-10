@@ -17,11 +17,21 @@ function BackButton(): React.ReactElement {
     Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 6 }).start();
   };
 
+  const handleBackPress = () => {
+    try {
+      if (router.canGoBack()) {
+        router.back();
+      }
+    } catch (error) {
+      console.log('[BackButton] Cannot go back:', error);
+    }
+  };
+
   return (
     <Animated.View style={{ transform: [{ scale }], marginLeft: 8 }}>
       <TouchableOpacity
         accessibilityRole="button"
-        onPress={() => router.back()}
+        onPress={handleBackPress}
         onPressIn={pressIn}
         onPressOut={pressOut}
         activeOpacity={0.8}

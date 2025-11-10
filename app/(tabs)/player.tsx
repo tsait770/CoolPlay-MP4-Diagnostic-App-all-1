@@ -1053,6 +1053,12 @@ export default function PlayerScreen() {
               console.log('[PlayerScreen] Video playback ended');
               setIsPlaying(false);
             }}
+            onBackPress={() => {
+              // Clear video source to return to main Voice Control screen
+              console.log('[PlayerScreen] Back button pressed, clearing video');
+              setVideoSource(null);
+              setIsContentLoaded(false);
+            }}
             autoPlay={false}
             style={styles.video}
           />

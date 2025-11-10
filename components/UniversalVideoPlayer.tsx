@@ -24,9 +24,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { detectVideoSource, canPlayVideo } from '@/utils/videoSourceDetector';
 import { getSocialMediaConfig } from '@/utils/socialMediaPlayer';
+import { detectYoutubePlaybackMode } from '@/utils/youtubePlaybackManager';
 import { useMembership } from '@/providers/MembershipProvider';
 import SocialMediaPlayer from '@/components/SocialMediaPlayer';
 import YouTubePlayerStandalone from '@/components/YouTubePlayerStandalone';
+import YouTubeWebViewPlayer from '@/components/YouTubeWebViewPlayer';
 import Colors from '@/constants/colors';
 
 export interface UniversalVideoPlayerProps {
@@ -329,7 +331,66 @@ export default function UniversalVideoPlayer({
 
   const renderWebViewPlayer = () => {
     if (sourceInfo.type === 'youtube') {
-      console.log('[UniversalVideoPlayer] Using standalone YouTube player');
+      // Task 2: Determine YouTube playback mode
+      const youtubeInfo = detectYoutubePlaybackMode(url);
+      console.log('[UniversalVideoPlayer] YouTube playback mode:', youtubeInfo.mode, '- Reason:', youtubeInfo.reason);
+      
+      // Task 3: Use WebView player for standard YouTube URLs (watch, youtu.be, shorts)
+      if (youtubeInfo.mode === 'webview' && youtubeInfo.videoId && youtubeInfo.embedUrl) {
+        console.log('[UniversalVideoPlayer] Using YouTubeWebViewPlayer for:', youtubeInfo.videoId);
+        return (
+          <YouTubeWebViewPlayer
+            url={url}
+            videoId={youtubeInfo.videoId}
+            embedUrl={youtubeInfo.embedUrl}
+            onError={(error) => {
+              console.error('[UniversalVideoPlayer] YouTubeWebViewPlayer error:', error);
+              setPlaybackError(error);
+              onError?.(error);
+            }}
+            onLoad={() => {
+              console.log('[UniversalVideoPlayer] YouTubeWebViewPlayer loaded');
+              setIsLoading(false);
+              setRetryCount(0);
+            }}
+            onPlaybackStart={() => {
+              console.log('[UniversalVideoPlayer] YouTubeWebViewPlayer playback started');
+              onPlaybackStart?.();
+            }}
+            onPlaybackEnd={() => {
+              console.log('[UniversalVideoPlayer] YouTubeWebViewPlayer playback ended');
+              onPlaybackEnd?.();
+            }}
+            onBackPress={onBackPress}
+            onYoutubeWebReady={() => {
+              console.log('[UniversalVideoPlayer] YouTube WebView player ready for voice control');
+            }}
+            autoPlay={autoPlay}
+            style={style}
+          />
+        );
+      }
+      
+      // Task 4: Use standalone player for embed URLs
+      if (youtubeInfo.mode === 'native' && youtubeInfo.videoId) {
+        console.log('[UniversalVideoPlayer] Using YouTubePlayerStandalone for embed URL:', youtubeInfo.videoId);
+        return (
+          <YouTubePlayerStandalone
+            url={url}
+            onError={onError}
+            onLoad={() => {
+              setIsLoading(false);
+              setRetryCount(0);
+            }}
+            isFullscreen={isFullscreen}
+            toggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+            onBackPress={onBackPress}
+          />
+        );
+      }
+      
+      // Fallback to standalone player if mode detection fails
+      console.log('[UniversalVideoPlayer] YouTube mode detection inconclusive, using standalone player');
       return (
         <YouTubePlayerStandalone
           url={url}

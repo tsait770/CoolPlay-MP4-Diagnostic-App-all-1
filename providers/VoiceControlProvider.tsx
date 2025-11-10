@@ -241,6 +241,81 @@ export const [VoiceControlProvider, useVoiceControl] = createContextHook(() => {
         await saveSettings({ usageCount: newCount });
       }
 
+      // First, try to execute on YouTube WebView player if active
+      if (typeof global !== 'undefined' && (global as any).youtubeWebViewControls) {
+        const controls = (global as any).youtubeWebViewControls;
+        console.log('[VoiceControl] Executing command on YouTube WebView player:', command.intent);
+        
+        try {
+          switch (command.intent) {
+            case 'PlayVideoIntent':
+              controls.play();
+              return;
+            case 'PauseVideoIntent':
+              controls.pause();
+              return;
+            case 'StopVideoIntent':
+              controls.stop();
+              return;
+            case 'Forward10Intent':
+              controls.seekForward(10);
+              return;
+            case 'Forward20Intent':
+              controls.seekForward(20);
+              return;
+            case 'Forward30Intent':
+              controls.seekForward(30);
+              return;
+            case 'Rewind10Intent':
+              controls.seekBackward(10);
+              return;
+            case 'Rewind20Intent':
+              controls.seekBackward(20);
+              return;
+            case 'Rewind30Intent':
+              controls.seekBackward(30);
+              return;
+            case 'VolumeMaxIntent':
+              controls.setVolume(1.0);
+              return;
+            case 'VolumeUpIntent':
+              controls.setVolume(1.0);
+              return;
+            case 'VolumeDownIntent':
+              controls.setVolume(0.5);
+              return;
+            case 'MuteIntent':
+              controls.mute();
+              return;
+            case 'UnmuteIntent':
+              controls.unmute();
+              return;
+            case 'SpeedHalfIntent':
+              controls.setPlaybackRate(0.5);
+              return;
+            case 'SpeedNormalIntent':
+              controls.setPlaybackRate(1.0);
+              return;
+            case 'Speed125Intent':
+              controls.setPlaybackRate(1.25);
+              return;
+            case 'Speed150Intent':
+              controls.setPlaybackRate(1.5);
+              return;
+            case 'Speed200Intent':
+              controls.setPlaybackRate(2.0);
+              return;
+            case 'ReplayVideoIntent':
+              controls.seekTo(0);
+              controls.play();
+              return;
+          }
+        } catch (youtubeError) {
+          console.error('[VoiceControl] Error executing on YouTube WebView:', youtubeError);
+        }
+      }
+
+      // Fallback to standard event dispatch for other players
       const event = new CustomEvent('voiceCommand', {
         detail: {
           intent: command.intent,

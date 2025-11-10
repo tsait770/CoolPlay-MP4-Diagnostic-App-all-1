@@ -220,6 +220,11 @@ export default function UniversalVideoPlayer({
 
   useEffect(() => {
     if (!player) return;
+    
+    // Only listen to native player events if we're actually using the native player
+    if (!shouldUseNativePlayer) {
+      return;
+    }
 
     const subscription = player.addListener('playingChange', (event) => {
       setIsPlaying(event.isPlaying);
@@ -253,14 +258,6 @@ export default function UniversalVideoPlayer({
           shouldUseNativePlayer,
           shouldUseWebView: sourceInfo.requiresWebView,
         });
-        
-        // If this is a URL that should use WebView, provide helpful error
-        if (sourceInfo.requiresWebView || sourceInfo.type === 'youtube' || sourceInfo.type === 'adult') {
-          errorMsg = `This ${sourceInfo.platform} video cannot be played with the native player. The video will be loaded in a web player instead.`;
-          console.log('[UniversalVideoPlayer] Switching to WebView for:', sourceInfo.platform);
-          // Don't set error, let WebView handle it
-          return;
-        }
         
         const fullErrorMsg = `Playback error: ${errorMsg}`;
         setPlaybackError(fullErrorMsg);

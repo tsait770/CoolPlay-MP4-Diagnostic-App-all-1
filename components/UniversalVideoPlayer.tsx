@@ -488,7 +488,15 @@ export default function UniversalVideoPlayer({
         }}
         onError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
-          console.error('[UniversalVideoPlayer] WebView error:', nativeEvent);
+          console.error('[UniversalVideoPlayer] WebView error:', JSON.stringify({
+            code: nativeEvent.code,
+            description: nativeEvent.description,
+            domain: nativeEvent.domain,
+            url: nativeEvent.url,
+            canGoBack: nativeEvent.canGoBack,
+            canGoForward: nativeEvent.canGoForward,
+            loading: nativeEvent.loading,
+          }, null, 2));
           clearLoadTimeout();
           
           if (sourceInfo.type === 'youtube') {

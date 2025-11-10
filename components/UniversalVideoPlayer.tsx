@@ -411,13 +411,27 @@ export default function UniversalVideoPlayer({
         style={styles.webView}
         originWhitelist={['http://*', 'https://*', 'about:*']}
         onShouldStartLoadWithRequest={(request) => {
-          // Prevent loading non-HTTP(S) scheme URLs
-          const url = request.url;
-          if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('about:')) {
-            console.log('[UniversalVideoPlayer] Blocked non-HTTP(S) URL scheme:', url);
-            return false;
+          const reqUrl = request.url;
+          
+          // Allow loading for HTTP(S), about:, and data: schemes
+          if (reqUrl.startsWith('http://') || reqUrl.startsWith('https://') || 
+              reqUrl.startsWith('about:') || reqUrl.startsWith('data:')) {
+            return true;
           }
-          return true;
+          
+          // Block and log other schemes (intent://, tel://, mailto://, etc.)
+          const schemeMatch = reqUrl.match(/^([a-z][a-z0-9+.-]*):/);
+          const scheme = schemeMatch ? schemeMatch[1] : 'unknown';
+          
+          console.log('[UniversalVideoPlayer] Blocked non-HTTP(S) URL scheme:', {
+            scheme,
+            url: reqUrl,
+            sourceType: sourceInfo.type,
+            platform: sourceInfo.platform,
+          });
+          
+          // Silently block without showing error
+          return false;
         }}
         allowsFullscreenVideo
         allowsInlineMediaPlayback
@@ -505,21 +519,37 @@ export default function UniversalVideoPlayer({
           const { nativeEvent } = syntheticEvent;
           
           // Ignore errors from non-HTTP(S) scheme redirects
-          if (nativeEvent.code === 0 && nativeEvent.description && 
-              nativeEvent.description.toLowerCase().includes('scheme that is not http')) {
-            console.log('[UniversalVideoPlayer] Ignored non-HTTP(S) scheme redirect attempt');
-            return;
+          if (nativeEvent.code === 0) {
+            const desc = String(nativeEvent.description || '').toLowerCase();
+            if (desc.includes('scheme that is not http') || 
+                desc.includes('redirection to url with a scheme')) {
+              console.log('[UniversalVideoPlayer] Ignored non-HTTP(S) scheme redirect');
+              return;
+            }
           }
           
-          console.error('[UniversalVideoPlayer] WebView error:', JSON.stringify({
-            code: nativeEvent.code,
-            description: nativeEvent.description,
-            domain: nativeEvent.domain,
-            url: nativeEvent.url,
-            canGoBack: nativeEvent.canGoBack,
-            canGoForward: nativeEvent.canGoForward,
-            loading: nativeEvent.loading,
-          }, null, 2));
+          // Ignore NSURLErrorDomain -1002 (unsupported URL)
+          if (nativeEvent.code === -1002) {
+            const desc = String(nativeEvent.description || '').toLowerCase();
+            if (desc.includes('unsupported url') || desc.includes('不支援的url')) {
+              console.log('[UniversalVideoPlayer] Ignored unsupported URL scheme error');
+              return;
+            }
+          }
+          
+          // Only log significant errors
+          const isSignificantError = nativeEvent.code !== 0 && nativeEvent.code !== -1002;
+          if (isSignificantError) {
+            console.error('[UniversalVideoPlayer] WebView error:', JSON.stringify({
+              code: nativeEvent.code,
+              description: nativeEvent.description,
+              domain: nativeEvent.domain,
+              url: nativeEvent.url,
+              sourceType: sourceInfo.type,
+              platform: sourceInfo.platform,
+            }, null, 2));
+          }
+          
           clearLoadTimeout();
           
           if (sourceInfo.type === 'youtube') {

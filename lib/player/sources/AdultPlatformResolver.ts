@@ -14,12 +14,6 @@ export class AdultPlatformResolver extends SourceResolver {
     'xhamster.com',
     'tube8.com',
     'beeg.com',
-    'airav.io',
-    'avgle.com',
-    'missav.com',
-    'jable.tv',
-    'netflav.com',
-    '91porn.com',
   ];
 
   canResolve(url: string): boolean {

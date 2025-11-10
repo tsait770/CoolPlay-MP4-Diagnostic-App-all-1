@@ -383,12 +383,25 @@ export default function UniversalVideoPlayer({
             'Sec-Fetch-Dest': 'iframe',
             'Sec-Fetch-Mode': 'navigate',
             'Sec-Fetch-Site': 'cross-site',
-          } : sourceInfo.type === 'adult' ? {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
+          } : (sourceInfo.type === 'adult' || sourceInfo.type === 'webview') ? {
+            'User-Agent': retryCount === 0
+              ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+              : retryCount === 1
+              ? 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+              : retryCount === 2
+              ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+              : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7,ja;q=0.6',
             'Accept-Encoding': 'gzip, deflate, br',
-            'DNT': '1',
+            'Cache-Control': 'max-age=0',
+            'Sec-Ch-Ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+            'Sec-Ch-Ua-Mobile': retryCount === 2 ? '?1' : '?0',
+            'Sec-Ch-Ua-Platform': retryCount === 0 ? '"Windows"' : retryCount === 1 ? '"macOS"' : retryCount === 2 ? '"iOS"' : '"Linux"',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
             'Upgrade-Insecure-Requests': '1',
           } : {
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
@@ -583,6 +596,10 @@ export default function UniversalVideoPlayer({
                 isYouTubeError4Related = sourceInfo.type === 'youtube';
                 if (isYouTubeError4Related) {
                   errorMessage = `YouTube 錯誤碼 4 檢測\n\n此視頻無法播放，常見原因：\n• 視頻被設為「私人」或「不公開」\n• 視頻已被刪除或下架\n• 視頻禁止嵌入播放\n• 地區限制（您所在地區無法觀看）\n• 年齡限制內容\n• 版權限制\n\n來源: ${sourceInfo.platform}\nVideo ID: ${sourceInfo.videoId}\n當前嘗試: ${retryCount + 1}/${maxRetries + 1}\n\n建議解決方案：\n1. 在 YouTube 網站直接測試該連結\n2. 確認視頻設定允許嵌入\n3. 檢查視頻是否在您的地區可用\n4. 使用 VPN 嘗試不同地區\n5. ��繫視頻上傳者確認權限設定`;
+                  shouldRetry = retryCount < maxRetries;
+                } else if (sourceInfo.type === 'adult' || sourceInfo.type === 'webview') {
+                  console.log(`[UniversalVideoPlayer] 403 for ${sourceInfo.platform}, attempting retry with different User-Agent`);
+                  errorMessage = `${sourceInfo.platform} 存取被拒絕 (403)\n\n此網站阻止了應用程式的存取請求。\n\n🔍 可能原因：\n• 網站啟用了防爬蟲保護\n• 需要特定的瀏覽器標識\n• 地區或IP限制\n• 需要登入或身份驗證\n\n來源: ${sourceInfo.platform}\n當前嘗試: ${retryCount + 1}/${maxRetries + 1}\n\n💡 正在嘗試：\n${retryCount < maxRetries ? `• 使用不同的瀏覽器標識重試...\n• 切換請求策略...` : '• 已嘗試所有可用方法'}\n\n📋 建議：\n1. 在瀏覽器中直接測試該連結\n2. 確認網站允許第三方訪問\n3. 嘗試使用 VPN 切換地區\n4. 如果需要登入，請先在瀏覽器中登入該網站`;
                   shouldRetry = retryCount < maxRetries;
                 } else {
                   errorMessage = `視頻訪問被拒絕 (403 Forbidden)\n\n無法播放此視頻，可能原因：\n• 視頻來源阻止嵌入播放\n• 需要特定的權限或訂閱\n• 地區限制\n• 防盜鏈保護\n\n來源: ${sourceInfo.platform || '未知'}\n\n建議：\n1. 嘗試在瀏覽器中直接開啟連結\n2. 確認視頻允許嵌入播放\n3. 檢查是否需要登入或訂閱\n4. 使用 VPN 嘗試不同地區`;

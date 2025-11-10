@@ -14,6 +14,8 @@ export class AdultPlatformResolver extends SourceResolver {
     'xhamster.com',
     'tube8.com',
     'beeg.com',
+    'airav.io',
+    'airav.cc',
   ];
 
   canResolve(url: string): boolean {

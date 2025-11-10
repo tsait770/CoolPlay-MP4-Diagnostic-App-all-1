@@ -409,7 +409,16 @@ export default function UniversalVideoPlayer({
           }
         }}
         style={styles.webView}
-        originWhitelist={['*']}
+        originWhitelist={['http://*', 'https://*', 'about:*']}
+        onShouldStartLoadWithRequest={(request) => {
+          // Prevent loading non-HTTP(S) scheme URLs
+          const url = request.url;
+          if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('about:')) {
+            console.log('[UniversalVideoPlayer] Blocked non-HTTP(S) URL scheme:', url);
+            return false;
+          }
+          return true;
+        }}
         allowsFullscreenVideo
         allowsInlineMediaPlayback
         mediaPlaybackRequiresUserAction={false}
@@ -494,6 +503,14 @@ export default function UniversalVideoPlayer({
         }}
         onError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
+          
+          // Ignore errors from non-HTTP(S) scheme redirects
+          if (nativeEvent.code === 0 && nativeEvent.description && 
+              nativeEvent.description.toLowerCase().includes('scheme that is not http')) {
+            console.log('[UniversalVideoPlayer] Ignored non-HTTP(S) scheme redirect attempt');
+            return;
+          }
+          
           console.error('[UniversalVideoPlayer] WebView error:', JSON.stringify({
             code: nativeEvent.code,
             description: nativeEvent.description,

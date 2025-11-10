@@ -450,14 +450,15 @@ export default function UniversalVideoPlayer({
             'Sec-Fetch-Mode': 'navigate',
             'Sec-Fetch-Site': 'cross-site',
           } : sourceInfo.type === 'adult' ? {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7,ja;q=0.6',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Cache-Control': 'max-age=0',
-            'Sec-Ch-Ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+            'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7,ja;q=0.6,ko;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Sec-Ch-Ua': '"Chromium";v="130", "Google Chrome";v="130", "Not?A_Brand";v="99"',
             'Sec-Ch-Ua-Mobile': '?0',
             'Sec-Ch-Ua-Platform': '"Windows"',
+            'Sec-Ch-Ua-Full-Version-List': '"Chromium";v="130.0.6723.117", "Google Chrome";v="130.0.6723.117", "Not?A_Brand";v="99.0.0.0"',
             'Sec-Fetch-Dest': 'document',
             'Sec-Fetch-Mode': 'navigate',
             'Sec-Fetch-Site': 'none',
@@ -499,11 +500,19 @@ export default function UniversalVideoPlayer({
         mediaPlaybackRequiresUserAction={false}
         javaScriptEnabled
         domStorageEnabled
-        sharedCookiesEnabled={sourceInfo.type !== 'adult'}
-        thirdPartyCookiesEnabled={sourceInfo.type !== 'adult'}
+        sharedCookiesEnabled={true}
+        thirdPartyCookiesEnabled={true}
         mixedContentMode="always"
-        cacheEnabled={sourceInfo.type !== 'adult'}
-        incognito={sourceInfo.type === 'adult'}
+        cacheEnabled={true}
+        incognito={false}
+        userAgent={sourceInfo.type === 'adult' 
+          ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
+          : sourceInfo.type === 'youtube'
+          ? (retryCount >= 3 
+            ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+            : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36')
+          : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+        }
         // YouTube 特定配置
         allowsProtectedMedia={true}
         allowFileAccess={true}
@@ -538,9 +547,30 @@ export default function UniversalVideoPlayer({
                 }, 100);
               }, { passive: true });
               
-              console.log('[WebView] Page styles and scroll detection injected successfully');
+              if (typeof window.chrome === 'undefined') {
+                window.chrome = {
+                  runtime: {},
+                  loadTimes: function() {},
+                  csi: function() {},
+                  app: {}
+                };
+              }
+              
+              Object.defineProperty(navigator, 'webdriver', {
+                get: () => false,
+              });
+              
+              Object.defineProperty(navigator, 'platform', {
+                get: () => 'Win32',
+              });
+              
+              Object.defineProperty(navigator, 'vendor', {
+                get: () => 'Google Inc.',
+              });
+              
+              console.log('[WebView] Page initialization complete - Browser fingerprint normalized');
             } catch(e) {
-              console.error('[WebView] Failed to inject styles:', e);
+              console.error('[WebView] Failed to inject scripts:', e);
             }
           })();
         `}

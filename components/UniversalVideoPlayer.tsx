@@ -83,13 +83,16 @@ export default function UniversalVideoPlayer({
     sourceInfo.type === 'dash';
 
   // Only initialize native player if we're actually using it
-  // For WebView-required URLs, use a dummy URL for the native player to avoid errors
-  const safeUrl = shouldUseNativePlayer && url && url.trim() !== '' ? url : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+  // For WebView-required URLs, skip native player initialization
+  const shouldInitializeNativePlayer = shouldUseNativePlayer && url && url.trim() !== '';
   
-  const player = useVideoPlayer(safeUrl, (player) => {
+  // Use null URL when we don't need the native player to prevent loading errors
+  const nativePlayerUrl = shouldInitializeNativePlayer ? url : 'about:blank';
+  
+  const player = useVideoPlayer(nativePlayerUrl, (player) => {
     player.loop = false;
     player.muted = isMuted;
-    if (autoPlay && shouldUseNativePlayer) {
+    if (autoPlay && shouldInitializeNativePlayer) {
       player.play();
     }
   });
@@ -222,7 +225,7 @@ export default function UniversalVideoPlayer({
     if (!player) return;
     
     // Only listen to native player events if we're actually using the native player
-    if (!shouldUseNativePlayer) {
+    if (!shouldUseNativePlayer || !shouldInitializeNativePlayer) {
       return;
     }
 
@@ -237,6 +240,11 @@ export default function UniversalVideoPlayer({
           onPlaybackStart?.();
         }
       } else if (status.status === 'error') {
+        // Only report errors if we're actually using the native player
+        if (!shouldInitializeNativePlayer) {
+          return;
+        }
+        
         // Extract readable error message
         let errorMsg = 'Unknown playback error';
         if (status.error) {
@@ -256,6 +264,7 @@ export default function UniversalVideoPlayer({
           sourceType: sourceInfo.type,
           platform: sourceInfo.platform,
           shouldUseNativePlayer,
+          shouldInitializeNativePlayer,
           shouldUseWebView: sourceInfo.requiresWebView,
         });
         
@@ -269,7 +278,7 @@ export default function UniversalVideoPlayer({
       subscription.remove();
       statusSubscription.remove();
     };
-  }, [player, autoPlay, onPlaybackStart, onError, url, sourceInfo.type, sourceInfo.platform, shouldUseNativePlayer, sourceInfo.requiresWebView]);
+  }, [player, autoPlay, onPlaybackStart, onError, url, sourceInfo.type, sourceInfo.platform, shouldUseNativePlayer, shouldInitializeNativePlayer, sourceInfo.requiresWebView]);
 
   const getVimeoEmbedUrl = (videoId: string): string => {
     return `https://player.vimeo.com/video/${videoId}?autoplay=${autoPlay ? 1 : 0}`;

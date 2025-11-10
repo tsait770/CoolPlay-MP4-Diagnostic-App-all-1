@@ -22,7 +22,6 @@ import {
   ArrowLeft,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { detectVideoSource, canPlayVideo } from '@/utils/videoSourceDetector';
 import { getSocialMediaConfig } from '@/utils/socialMediaPlayer';
 import { useMembership } from '@/providers/MembershipProvider';
@@ -56,7 +55,6 @@ export default function UniversalVideoPlayer({
   onBackPress,
 }: UniversalVideoPlayerProps) {
   const { tier } = useMembership();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(true);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
@@ -336,6 +334,7 @@ export default function UniversalVideoPlayer({
           }}
           isFullscreen={isFullscreen}
           toggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+          onBackPress={onBackPress}
         />
       );
     }
@@ -815,6 +814,7 @@ export default function UniversalVideoPlayer({
           autoRetry={true}
           maxRetries={3}
           style={style}
+          onBackPress={onBackPress}
         />
       ) : shouldUseWebView ? (
         renderWebViewPlayer()

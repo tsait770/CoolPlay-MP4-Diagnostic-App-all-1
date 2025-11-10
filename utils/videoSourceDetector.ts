@@ -128,7 +128,6 @@ const SUPPORTED_PLATFORMS = [
 ];
 
 const ADULT_PLATFORMS = [
-  { pattern: /airav\.io/i, platform: 'AIRAV' },
   { pattern: /pornhub\.com/i, platform: 'Pornhub' },
   { pattern: /xvideos\.com/i, platform: 'Xvideos' },
   { pattern: /xnxx\.com/i, platform: 'Xnxx' },

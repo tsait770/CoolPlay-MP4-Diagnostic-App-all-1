@@ -178,7 +178,7 @@ export default function SocialMediaPlayer({
   const handleError = useCallback(
     (syntheticEvent: any) => {
       const { nativeEvent } = syntheticEvent;
-      console.error('[SocialMediaPlayer] WebView error:', JSON.stringify(nativeEvent, null, 2));
+      console.error('[SocialMediaPlayer] WebView error:', nativeEvent);
 
       if (!config) return;
 
@@ -209,7 +209,7 @@ export default function SocialMediaPlayer({
   const handleHttpError = useCallback(
     (syntheticEvent: any) => {
       const { nativeEvent } = syntheticEvent;
-      console.error('[SocialMediaPlayer] WebView HTTP error:', JSON.stringify(nativeEvent, null, 2));
+      console.error('[SocialMediaPlayer] WebView HTTP error:', nativeEvent);
 
       if (nativeEvent.statusCode >= 400 && config) {
         const strategy = config.embedStrategies[currentStrategyIndex];

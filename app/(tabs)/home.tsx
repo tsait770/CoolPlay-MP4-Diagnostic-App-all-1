@@ -12,6 +12,7 @@ import {
   Dimensions,
   Platform,
   ActivityIndicator,
+  Image,
   FlatList,
   KeyboardAvoidingView,
   RefreshControl,

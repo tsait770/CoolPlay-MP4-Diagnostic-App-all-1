@@ -265,24 +265,23 @@ export default function RootLayout() {
         console.log('[App] Starting initialization...');
         const startTime = Date.now();
         
-        // Set ready states immediately to prevent hydration timeout
         setIsInitialized(true);
         setProvidersReady(true);
         
         const duration = Date.now() - startTime;
         console.log(`[App] Initialization completed in ${duration}ms`);
         
-        // Hide splash screen immediately
-        SplashScreen.hideAsync().catch(console.warn);
+        setTimeout(() => {
+          SplashScreen.hideAsync();
+        }, 100);
         
-        // Defer storage cleanup to not block hydration
-        Promise.resolve().then(async () => {
+        setTimeout(async () => {
           try {
             console.log('[App] Running deferred storage cleanup...');
             const allKeys = await AsyncStorage.getAllKeys();
             const corruptedKeys: string[] = [];
             
-            const maxCheck = Math.min(allKeys.length, 20);
+            const maxCheck = Math.min(allKeys.length, 30);
             for (let i = 0; i < maxCheck; i++) {
               const key = allKeys[i];
               try {
@@ -314,7 +313,7 @@ export default function RootLayout() {
           } catch (cleanupError) {
             console.warn('[App] Deferred cleanup failed:', cleanupError);
           }
-        });
+        }, 2000);
       } catch (error) {
         console.error('[App] Initialization error:', error);
         setInitError(error instanceof Error ? error.message : 'Unknown error');
@@ -322,11 +321,7 @@ export default function RootLayout() {
       }
     };
 
-    initialize().catch((err) => {
-      console.error('[App] Initialize failed:', err);
-      setInitError(err instanceof Error ? err.message : 'Unknown error');
-      SplashScreen.hideAsync().catch(console.warn);
-    });
+    initialize();
   }, []);
 
   if (initError) {
@@ -338,12 +333,16 @@ export default function RootLayout() {
     );
   }
 
-  // Don't block rendering - let providers handle their own loading states
-  if (!isInitialized) {
+  if (!isInitialized || !providersReady) {
     return (
       <View style={styles.loadingContainer} testID="app-loading">
         <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Initializing App...</Text>
+        <Text style={styles.loadingText}>
+          {!isInitialized ? 'Initializing App...' : 'Loading Providers...'}
+        </Text>
+        <Text style={[styles.loadingText, { fontSize: 12, marginTop: 10, opacity: 0.6 }]}>
+          Please wait... This should only take a moment
+        </Text>
       </View>
     );
   }

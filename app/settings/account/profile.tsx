@@ -9,7 +9,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import SafeImage from "@/components/SafeImage";
+import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Mail, Lock, LogOut } from "lucide-react-native";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -165,7 +165,7 @@ export default function ProfileScreen() {
               <ActivityIndicator size="small" color={Colors.primary.text} />
             ) : (
               <>
-                <SafeImage 
+                <Image 
                   source={{ uri: "https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" }}
                   style={styles.socialIcon}
                   contentFit="contain"
@@ -186,7 +186,7 @@ export default function ProfileScreen() {
               <ActivityIndicator size="small" color={Colors.primary.text} />
             ) : (
               <>
-                <SafeImage 
+                <Image 
                   source={{ uri: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" }}
                   style={styles.socialIcon}
                   contentFit="contain"

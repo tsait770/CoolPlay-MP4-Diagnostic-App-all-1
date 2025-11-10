@@ -26,11 +26,15 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   const [initializing, setInitializing] = useState<boolean>(true);
 
   useEffect(() => {
+    // Don't block initial render - defer session check
+    setInitializing(false);
+    setLoading(false);
+    
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
-      setInitializing(false);
-      setLoading(false);
+    }).catch((err) => {
+      console.error('[AuthProvider] Failed to get session:', err);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {

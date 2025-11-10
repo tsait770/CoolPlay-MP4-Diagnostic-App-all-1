@@ -9,25 +9,20 @@ export default function Index() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const initApp = async () => {
+    const initApp = () => {
       try {
-        console.log('[Index] Starting app initialization...');
-        
-        // Give providers time to initialize
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        console.log('[Index] Initialization complete, navigating to home...');
+        console.log('[Index] Navigating to home...');
         setIsReady(true);
         
-        // Navigate to home
-        setTimeout(() => {
+        // Navigate immediately to prevent hydration timeout
+        requestAnimationFrame(() => {
           try {
             router.replace('/(tabs)/home');
           } catch (navError) {
             console.error('[Index] Navigation error:', navError);
             setError(navError instanceof Error ? navError.message : 'Navigation failed');
           }
-        }, 100);
+        });
       } catch (err) {
         console.error('[Index] Initialization error:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');

@@ -1104,28 +1104,27 @@ export default function PlayerScreen() {
                   <Text style={styles.loadUrlButtonText}>{t('load_from_url')}</Text>
                 </TouchableOpacity>
 
-                <View style={styles.youtubePlatformBadge}>
+                <TouchableOpacity 
+                  style={styles.youtubePlatformBadge}
+                  onPress={() => {
+                    console.log('[PlayerScreen] YouTube platform badge clicked');
+                    const testYoutubeUrl = TEST_STREAM_URL;
+                    const source = processVideoUrl(testYoutubeUrl);
+                    if (source && source.uri && source.uri.trim() !== '') {
+                      setVideoSource(source);
+                      setIsContentLoaded(true);
+                      setIsFullscreen(true);
+                      setVoiceStatus(t('video_loaded_successfully'));
+                      setTimeout(() => setVoiceStatus(''), 3000);
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
                   <View style={styles.youtubeLogo}>
                     <Play size={16} color="#fff" fill="#fff" />
                   </View>
                   <Text style={styles.youtubePlatformText}>觀看平台：YouTube</Text>
-                  <TouchableOpacity 
-                    style={styles.youtubeOverlayButton}
-                    onPress={() => {
-                      const testYoutubeUrl = TEST_STREAM_URL;
-                      const source = processVideoUrl(testYoutubeUrl);
-                      if (source && source.uri && source.uri.trim() !== '') {
-                        setVideoSource(source);
-                        setIsContentLoaded(true);
-                        setVoiceStatus(t('video_loaded_successfully'));
-                        setTimeout(() => setVoiceStatus(''), 3000);
-                      }
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.invisibleOverlay} />
-                  </TouchableOpacity>
-                </View>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -3146,7 +3145,13 @@ const createStyles = () => {
     borderRadius: 20,
     marginTop: DesignTokens.spacing.md,
     alignSelf: 'center',
-    position: 'relative',
+    borderWidth: 2,
+    borderColor: '#FF0000',
+    shadowColor: '#FF0000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 8,
   },
   youtubeLogo: {
     width: 24,
@@ -3161,20 +3166,6 @@ const createStyles = () => {
     fontSize: 14,
     fontWeight: '600' as const,
     color: '#fff',
-  },
-  youtubeOverlayButton: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 10,
-  },
-  invisibleOverlay: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-    opacity: 0,
   },
   
   heroSection: {

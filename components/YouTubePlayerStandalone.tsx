@@ -23,7 +23,7 @@ function getYouTubeVideoId(url: string): string | null {
 
   let videoId: string | null = null;
 
-  const standardMatch = url.match(/(?:youtube\.com\/watch\?.*[&?]v=|youtube\.com\/watch\?v=)([\w-]+)/i);
+  const standardMatch = url.match(/(?:(?:www\.)?youtube\.com|m\.youtube\.com)\/watch\?.*[&?]v=([\w-]+)/i);
   if (standardMatch) {
     videoId = standardMatch[1];
   }
@@ -33,17 +33,17 @@ function getYouTubeVideoId(url: string): string | null {
     videoId = shortMatch[1];
   }
 
-  const embedMatch = url.match(/youtube\.com\/embed\/([\w-]+)(?:[?&][^\s]*)?/i);
+  const embedMatch = url.match(/(?:www\.)?youtube(?:-nocookie)?\.com\/embed\/([\w-]+)(?:[?&][^\s]*)?/i);
   if (embedMatch) {
     videoId = embedMatch[1];
   }
 
-  const vMatch = url.match(/youtube\.com\/v\/([\w-]+)(?:[?&][^\s]*)?/i);
+  const vMatch = url.match(/(?:www\.)?youtube\.com\/v\/([\w-]+)(?:[?&][^\s]*)?/i);
   if (vMatch) {
     videoId = vMatch[1];
   }
 
-  const shortsMatch = url.match(/youtube\.com\/shorts\/([\w-]+)(?:[?&][^\s]*)?/i);
+  const shortsMatch = url.match(/(?:www\.)?youtube\.com\/shorts\/([\w-]+)(?:[?&][^\s]*)?/i);
   if (shortsMatch) {
     videoId = shortsMatch[1];
   }
@@ -57,7 +57,7 @@ function getYouTubeVideoId(url: string): string | null {
 }
 
 function detectVideoSource(url: string): VideoSourceDetectionResult {
-  const youtubeRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([\w-]+)(?:[&?][^\s]*)?/i;
+  const youtubeRegex = /(?:(?:www\.)?youtube\.com|m\.youtube\.com)\/watch\?.*v=|youtu\.be\/|(?:www\.)?youtube(?:-nocookie)?\.com\/embed\/|(?:www\.)?youtube\.com\/v\/|(?:www\.)?youtube\.com\/shorts\//i;
 
   if (youtubeRegex.test(url)) {
     const videoId = getYouTubeVideoId(url);
@@ -97,7 +97,6 @@ interface YouTubePlayerProps {
   isFullscreen?: boolean;
   toggleFullscreen?: () => void;
   onBackPress?: () => void;
-  enableFullPageMode?: boolean;
 }
 
 const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
@@ -108,13 +107,11 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
   registerControls,
   isFullscreen = false,
   toggleFullscreen,
-  onBackPress,
-  enableFullPageMode = true
+  onBackPress
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
-  const [fullPageMode, setFullPageMode] = useState(false);
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
   const backButtonOpacity = useRef(new Animated.Value(1)).current;
@@ -160,18 +157,13 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
 
   const getEmbedUrl = useCallback(() => {
     if (sourceInfo.sourceInfo.platform === 'YouTube' && sourceInfo.sourceInfo.videoId) {
-      if (fullPageMode) {
-        // Full page mode: Load complete YouTube webpage
-        return `https://www.youtube.com/watch?v=${sourceInfo.sourceInfo.videoId}`;
-      }
-      // Embed mode: Load YouTube player iframe
       const origin = Platform.OS === 'web' 
         ? (typeof window !== 'undefined' ? window.location.origin : 'https://localhost')
         : 'https://localhost';
       return `https://www.youtube.com/embed/${sourceInfo.sourceInfo.videoId}?enablejsapi=1&autoplay=0&controls=1&rel=0&modestbranding=1&playsinline=1&origin=${origin}`;
     }
     return null;
-  }, [sourceInfo, fullPageMode]);
+  }, [sourceInfo]);
 
   const handleLoadStart = useCallback(() => {
     setIsLoading(true);
@@ -406,7 +398,7 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
   if (Platform.OS === 'web') {
     return (
       <View style={styles.outerContainer}>
-        <View style={fullPageMode ? styles.fullPageContainer : styles.container} onScroll={handleScroll}>
+        <View style={styles.container} onScroll={handleScroll}>
           {isLoading && (
             <View style={styles.loadingOverlay}>
               <Text style={styles.loadingText}>載入中...</Text>
@@ -414,28 +406,13 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
           )}
           <iframe
             src={embedUrl}
-            style={fullPageMode ? styles.fullPageIframe : styles.iframe}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+            style={styles.iframe}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             onLoad={handleLoadEnd}
             onError={handleError}
           />
-          {!fullPageMode && enableFullPageMode && (
-            <TouchableOpacity 
-              style={styles.transparentOverlayButton}
-              onPress={() => setFullPageMode(true)}
-              activeOpacity={1}
-            >
-              <View style={styles.transparentOverlay} />
-            </TouchableOpacity>
-          )}
         </View>
-        {!fullPageMode && enableFullPageMode && (
-          <View style={styles.fullPageButtonHidden}>
-            <Text style={styles.fullPageButtonIcon}>▶</Text>
-            <Text style={styles.fullPageButtonText}>觀看平台：YouTube</Text>
-          </View>
-        )}
         <Animated.View
           style={[
             styles.backButtonContainer,
@@ -445,10 +422,7 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
         >
           <TouchableOpacity
             onPress={() => {
-              if (fullPageMode) {
-                // Exit full page mode first
-                setFullPageMode(false);
-              } else if (onBackPress) {
+              if (onBackPress) {
                 onBackPress();
               } else {
                 console.log('[YouTubePlayerStandalone] Back pressed, parent should handle navigation');
@@ -468,7 +442,7 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
 
   return (
     <View style={styles.outerContainer}>
-      <View style={fullPageMode ? styles.fullPageContainer : styles.container}>
+      <View style={styles.container}>
         {isLoading && (
           <View style={styles.loadingOverlay}>
             <Text style={styles.loadingText}>載入中...</Text>
@@ -478,15 +452,11 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
           ref={webViewRef}
           source={{
             uri: embedUrl,
-            headers: fullPageMode ? {
-              'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-              'Accept-Language': 'en-US,en;q=0.9',
-            } : {
+            headers: {
               'Referer': 'https://localhost'
             }
           }}
-          style={fullPageMode ? styles.fullPageWebView : styles.webview}
+          style={styles.webview}
           onLoadStart={handleLoadStart}
           onLoadEnd={handleLoadEnd}
           onError={handleError}
@@ -506,32 +476,13 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
           onMessage={handleMessage}
           onScroll={handleScroll}
           allowsInlineMediaPlayback
-          allowsFullscreenVideo
           mediaPlaybackRequiresUserAction={false}
           javaScriptEnabled
           domStorageEnabled
           startInLoadingState={false}
           originWhitelist={['*']}
-          scalesPageToFit={fullPageMode}
-          bounces={fullPageMode}
-          scrollEnabled={fullPageMode}
         />
-        {!fullPageMode && enableFullPageMode && (
-          <TouchableOpacity 
-            style={styles.transparentOverlayButton}
-            onPress={() => setFullPageMode(true)}
-            activeOpacity={1}
-          >
-            <View style={styles.transparentOverlay} />
-          </TouchableOpacity>
-        )}
       </View>
-      {!fullPageMode && enableFullPageMode && (
-        <View style={styles.fullPageButtonHidden}>
-          <Text style={styles.fullPageButtonIcon}>▶</Text>
-          <Text style={styles.fullPageButtonText}>觀看平台：YouTube</Text>
-        </View>
-      )}
       <Animated.View
         style={[
           styles.backButtonContainer,
@@ -541,10 +492,7 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
       >
         <TouchableOpacity
           onPress={() => {
-            if (fullPageMode) {
-              // Exit full page mode first
-              setFullPageMode(false);
-            } else if (onBackPress) {
+            if (onBackPress) {
               onBackPress();
             } else {
               console.log('[YouTubePlayerStandalone] Back pressed, parent should handle navigation');
@@ -581,26 +529,8 @@ const styles = StyleSheet.create({
     position: 'relative',
     alignSelf: 'center',
   },
-  fullPageContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#000',
-    borderRadius: 0,
-    overflow: 'hidden',
-  },
   webview: {
     flex: 1,
-    backgroundColor: '#000',
-  },
-  fullPageWebView: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
     backgroundColor: '#000',
   },
   errorContainer: {
@@ -649,88 +579,6 @@ const styles = StyleSheet.create({
     border: 'none',
     borderRadius: 20,
   } as any,
-  fullPageIframe: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    border: 'none',
-    borderRadius: 0,
-  } as any,
-  fullPageButton: {
-    position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(30, 30, 30, 0.85)',
-    backdropFilter: 'blur(12px)',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginHorizontal: 20,
-    borderRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    zIndex: 999,
-  } as any,
-  fullPageButtonHidden: {
-    position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(30, 30, 30, 0.85)',
-    backdropFilter: 'blur(12px)',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginHorizontal: 20,
-    borderRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    zIndex: 999,
-    opacity: 0,
-    pointerEvents: 'none',
-  } as any,
-  transparentOverlayButton: {
-    position: 'absolute',
-    right: 16,
-    bottom: 16,
-    width: 220,
-    height: 48,
-    zIndex: 1000,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  transparentOverlay: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'transparent',
-  },
-  fullPageButtonIcon: {
-    color: '#ffffff',
-    fontSize: 14,
-    marginRight: 8,
-  },
-  fullPageButtonText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
   backButtonContainer: {
     position: 'absolute',
     left: 16,

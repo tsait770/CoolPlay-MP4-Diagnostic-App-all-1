@@ -46,7 +46,7 @@ const STREAM_PROTOCOLS = {
 
 const SUPPORTED_PLATFORMS = [
   {
-    pattern: /(?:youtube\.com\/watch\?v=|youtube\.com\/embed\/|youtu\.be\/|youtube-nocookie\.com\/embed\/)([\w-]+)/i,
+    pattern: /(?:(?:www\.)?youtube\.com|m\.youtube\.com)\/watch\?.*v=([\w-]+)|(?:www\.)?youtube(?:-nocookie)?\.com\/embed\/([\w-]+)|youtu\.be\/([\w-]+)|(?:www\.)?youtube\.com\/shorts\/([\w-]+)/i,
     type: 'youtube' as VideoSourceType,
     platform: 'YouTube',
     requiresPremium: false,
@@ -306,12 +306,11 @@ export function detectVideoSource(url: string): VideoSourceInfo {
       if (source.extractVideoId) {
         if (source.type === 'youtube') {
           const patterns = [
-            /(?:youtube\.com\/watch\?.*v=)([\w-]{11})/i,
+            /(?:(?:www\.)?youtube\.com|m\.youtube\.com)\/watch\?.*v=([\w-]{11})/i,
             /(?:youtu\.be\/)([\w-]{11})/i,
-            /(?:youtube\.com\/embed\/)([\w-]{11})/i,
-            /(?:youtube\.com\/v\/)([\w-]{11})/i,
-            /(?:youtube\.com\/shorts\/)([\w-]{11})/i,
-            /(?:youtube-nocookie\.com\/embed\/)([\w-]{11})/i,
+            /(?:(?:www\.)?youtube(?:-nocookie)?\.com\/embed\/)([\w-]{11})/i,
+            /(?:(?:www\.)?youtube\.com\/v\/)([\w-]{11})/i,
+            /(?:(?:www\.)?youtube\.com\/shorts\/)([\w-]{11})/i,
           ];
           
           for (const pattern of patterns) {

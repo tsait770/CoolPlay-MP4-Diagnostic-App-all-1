@@ -11,6 +11,7 @@ import {
   Animated,
   Modal,
   Switch,
+  Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { VideoView, useVideoPlayer } from "expo-video";
@@ -1106,16 +1107,32 @@ export default function PlayerScreen() {
 
                 <TouchableOpacity 
                   style={styles.youtubePlatformBadge}
-                  onPress={() => {
+                  onPress={async () => {
                     console.log('[PlayerScreen] YouTube platform badge clicked');
                     const testYoutubeUrl = TEST_STREAM_URL;
-                    const source = processVideoUrl(testYoutubeUrl);
-                    if (source && source.uri && source.uri.trim() !== '') {
-                      setVideoSource(source);
-                      setIsContentLoaded(true);
-                      setIsFullscreen(true);
-                      setVoiceStatus(t('video_loaded_successfully'));
-                      setTimeout(() => setVoiceStatus(''), 3000);
+                    
+                    try {
+                      const canOpen = await Linking.canOpenURL(testYoutubeUrl);
+                      if (canOpen) {
+                        await Linking.openURL(testYoutubeUrl);
+                        console.log('[PlayerScreen] Opened YouTube URL in external app/browser');
+                      } else {
+                        console.log('[PlayerScreen] Cannot open URL externally, fallback to in-app player');
+                        const source = processVideoUrl(testYoutubeUrl);
+                        if (source && source.uri && source.uri.trim() !== '') {
+                          setVideoSource(source);
+                          setIsContentLoaded(true);
+                          setIsFullscreen(true);
+                          setVoiceStatus(t('video_loaded_successfully'));
+                          setTimeout(() => setVoiceStatus(''), 3000);
+                        }
+                      }
+                    } catch (error) {
+                      console.error('[PlayerScreen] Error opening YouTube URL:', error);
+                      Alert.alert(
+                        t('error'),
+                        'Failed to open YouTube. Please check your connection and try again.'
+                      );
                     }
                   }}
                   activeOpacity={0.7}

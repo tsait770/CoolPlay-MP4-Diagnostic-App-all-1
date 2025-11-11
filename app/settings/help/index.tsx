@@ -27,6 +27,21 @@ export default function HelpIndexScreen() {
     },
     {
       icon: Info,
+      label: t("privacy_policy"),
+      route: "/settings/help/privacy-policy",
+    },
+    {
+      icon: Info,
+      label: t("terms_of_service"),
+      route: "/settings/help/terms-of-service",
+    },
+    {
+      icon: Info,
+      label: t("third_party_services"),
+      route: "/settings/help/third-party",
+    },
+    {
+      icon: Info,
       label: t("about"),
       route: "/settings/help/about",
     },

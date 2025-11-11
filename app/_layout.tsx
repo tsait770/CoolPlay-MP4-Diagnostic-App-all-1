@@ -313,8 +313,6 @@ function InteractionProviders({ children }: { children: ReactNode }) {
 }
 
 export default function RootLayout() {
-  const [isInitialized, setIsInitialized] = useState<boolean>(false);
-  const [providersReady, setProvidersReady] = useState<boolean>(false);
   const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -323,17 +321,14 @@ export default function RootLayout() {
         console.log('[App] Starting initialization...');
         const startTime = Date.now();
         
-        // Immediately set both to true to prevent hydration timeout
-        setIsInitialized(true);
-        setProvidersReady(true);
-        
         const duration = Date.now() - startTime;
         console.log(`[App] Initialization completed in ${duration}ms`);
         
-        // Hide splash screen immediately
+        // Hide splash screen quickly on web to prevent timeout
+        const delay = Platform.OS === 'web' ? 50 : 100;
         setTimeout(() => {
-          SplashScreen.hideAsync();
-        }, 100);
+          SplashScreen.hideAsync().catch(e => console.warn('[App] Splash hide error:', e));
+        }, delay);
         
         // 延遲執行儲存清理,不影響初始化
         setTimeout(async () => {
@@ -393,11 +388,6 @@ export default function RootLayout() {
       </View>
     );
   }
-
-  // Remove loading state to prevent hydration timeout
-  // Providers will initialize asynchronously
-
-  console.log('[RootLayout] Rendering providers, isInitialized:', isInitialized, 'providersReady:', providersReady);
 
   try {
     return (

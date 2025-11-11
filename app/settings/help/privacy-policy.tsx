@@ -45,18 +45,18 @@ export default function PrivacyPolicyScreen() {
           <Text style={styles.paragraph}>
             {t("third_party_services_desc")}
           </Text>
-          <Text style={styles.highlightBox}>
-            <Text style={styles.highlightTitle}>YouTube API Services{'\n'}</Text>
+          <View style={styles.highlightBox}>
+            <Text style={styles.highlightTitle}>YouTube API Services</Text>
             <Text style={styles.highlightText}>
               {t("youtube_api_notice")}
             </Text>
             <Text style={styles.highlightText}>
-              {'\n\n'}• Google Privacy Policy: https://policies.google.com/privacy
+              • Google Privacy Policy: https://policies.google.com/privacy
             </Text>
             <Text style={styles.highlightText}>
-              {'\n'}• YouTube Terms of Service: https://www.youtube.com/t/terms
+              • YouTube Terms of Service: https://www.youtube.com/t/terms
             </Text>
-          </Text>
+          </View>
 
           <Text style={styles.sectionTitle}>{t("data_storage")}</Text>
           <Text style={styles.paragraph}>

@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Platform, TouchableOpacity, Animated, Linking, Image } from 'react-native';
+import { View, Text, StyleSheet, Platform, TouchableOpacity, Animated } from 'react-native';
 import { AlertCircle, ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
@@ -506,38 +506,6 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
           </View>
         </TouchableOpacity>
       </Animated.View>
-      <View style={styles.youtubePlatformIndicatorContainer}>
-        <View style={styles.youtubePlatformIndicator}>
-          <Text style={styles.youtubePlatformLabel}>觀看平台：</Text>
-          <Image
-            source={{ uri: 'https://www.youtube.com/s/desktop/3a7e3b6a/img/favicon_144x144.png' }}
-            style={styles.youtubeLogo}
-          />
-          <Text style={styles.youtubePlatformName}>YouTube</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.youtubePlatformOverlay}
-          activeOpacity={0.95}
-          onPress={async () => {
-            try {
-              const videoId = sourceInfo.sourceInfo.videoId;
-              if (videoId) {
-                const youtubeAppUrl = `vnd.youtube://${videoId}`;
-                const youtubeWebUrl = `https://www.youtube.com/watch?v=${videoId}`;
-                
-                const canOpen = await Linking.canOpenURL(youtubeAppUrl);
-                if (canOpen) {
-                  await Linking.openURL(youtubeAppUrl);
-                } else {
-                  await Linking.openURL(youtubeWebUrl);
-                }
-              }
-            } catch (error) {
-              console.error('Error opening YouTube:', error);
-            }
-          }}
-        />
-      </View>
     </View>
   );
 };
@@ -635,49 +603,6 @@ const styles = StyleSheet.create({
   backButtonInner: {
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  youtubePlatformIndicatorContainer: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
-    right: 16,
-    zIndex: 1000,
-  },
-  youtubePlatformIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(30, 30, 30, 0.85)',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    backdropFilter: 'blur(10px)',
-  } as any,
-  youtubePlatformLabel: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '500',
-    marginRight: 8,
-  },
-  youtubeLogo: {
-    width: 24,
-    height: 24,
-    marginRight: 8,
-  },
-  youtubePlatformName: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  youtubePlatformOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    opacity: 0,
-    zIndex: 1,
   },
 });
 

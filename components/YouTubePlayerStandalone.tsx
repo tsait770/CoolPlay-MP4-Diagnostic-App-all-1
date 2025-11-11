@@ -21,55 +21,43 @@ function getYouTubeVideoId(url: string): string | null {
     return null;
   }
 
-  try {
-    let parsedUrl: URL;
-    try {
-      parsedUrl = new URL(url);
-    } catch (e) {
-      return null;
-    }
+  let videoId: string | null = null;
 
-    const hostname = parsedUrl.hostname.toLowerCase();
-    const pathname = parsedUrl.pathname;
-    const searchParams = parsedUrl.searchParams;
-
-    if (hostname.includes('youtube.com') || hostname.includes('m.youtube.com')) {
-      if (pathname === '/watch' && searchParams.has('v')) {
-        return searchParams.get('v') || null;
-      }
-      
-      const embedMatch = pathname.match(/^\/embed\/([\w-]+)/);
-      if (embedMatch) {
-        return embedMatch[1];
-      }
-      
-      const vMatch = pathname.match(/^\/v\/([\w-]+)/);
-      if (vMatch) {
-        return vMatch[1];
-      }
-      
-      const shortsMatch = pathname.match(/^\/shorts\/([\w-]+)/);
-      if (shortsMatch) {
-        return shortsMatch[1];
-      }
-    }
-
-    if (hostname === 'youtu.be') {
-      const match = pathname.match(/^\/([\w-]+)/);
-      if (match) {
-        return match[1];
-      }
-    }
-
-    return null;
-  } catch (error) {
-    console.error('[getYouTubeVideoId] Error parsing URL:', error);
-    return null;
+  const standardMatch = url.match(/(?:youtube\.com\/watch\?.*[&?]v=|youtube\.com\/watch\?v=)([\w-]+)/i);
+  if (standardMatch) {
+    videoId = standardMatch[1];
   }
+
+  const shortMatch = url.match(/youtu\.be\/([\w-]+)(?:[?&][^\s]*)?/i);
+  if (shortMatch) {
+    videoId = shortMatch[1];
+  }
+
+  const embedMatch = url.match(/youtube\.com\/embed\/([\w-]+)(?:[?&][^\s]*)?/i);
+  if (embedMatch) {
+    videoId = embedMatch[1];
+  }
+
+  const vMatch = url.match(/youtube\.com\/v\/([\w-]+)(?:[?&][^\s]*)?/i);
+  if (vMatch) {
+    videoId = vMatch[1];
+  }
+
+  const shortsMatch = url.match(/youtube\.com\/shorts\/([\w-]+)(?:[?&][^\s]*)?/i);
+  if (shortsMatch) {
+    videoId = shortsMatch[1];
+  }
+
+  if (videoId) {
+    videoId = videoId.split('&')[0].split('?')[0];
+    return videoId;
+  }
+
+  return null;
 }
 
 function detectVideoSource(url: string): VideoSourceDetectionResult {
-  const youtubeRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/|m\.youtube\.com\/watch\?v=)([\w-]+)(?:[&?][^\s]*)?/i;
+  const youtubeRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([\w-]+)(?:[&?][^\s]*)?/i;
 
   if (youtubeRegex.test(url)) {
     const videoId = getYouTubeVideoId(url);
@@ -170,9 +158,9 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
   const getEmbedUrl = useCallback(() => {
     if (sourceInfo.sourceInfo.platform === 'YouTube' && sourceInfo.sourceInfo.videoId) {
       const origin = Platform.OS === 'web' 
-        ? (typeof window !== 'undefined' ? window.location.origin : 'https://www.youtube.com')
-        : 'https://www.youtube.com';
-      return `https://www.youtube.com/embed/${sourceInfo.sourceInfo.videoId}?enablejsapi=1&autoplay=0&controls=1&rel=0&modestbranding=1&playsinline=1&origin=${encodeURIComponent(origin)}`;
+        ? (typeof window !== 'undefined' ? window.location.origin : 'https://localhost')
+        : 'https://localhost';
+      return `https://www.youtube.com/embed/${sourceInfo.sourceInfo.videoId}?enablejsapi=1&autoplay=0&controls=1&rel=0&modestbranding=1&playsinline=1&origin=${origin}`;
     }
     return null;
   }, [sourceInfo]);
@@ -465,28 +453,13 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
           source={{
             uri: embedUrl,
             headers: {
-              'Referer': 'https://www.youtube.com',
-              'Origin': 'https://www.youtube.com',
-              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-              'Accept-Language': 'en-US,en;q=0.9',
-              'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+              'Referer': 'https://localhost'
             }
           }}
           style={styles.webview}
           onLoadStart={handleLoadStart}
           onLoadEnd={handleLoadEnd}
-          onError={(syntheticEvent) => {
-            const { nativeEvent } = syntheticEvent;
-            
-            if (nativeEvent.code === -1002 || 
-                (nativeEvent.description && nativeEvent.description.includes('不支援的URL')) ||
-                (nativeEvent.description && nativeEvent.description.toLowerCase().includes('scheme that is not http'))) {
-              console.log('[YouTubePlayerStandalone] Ignored non-HTTP(S) URL error - continuing playback');
-              return;
-            }
-            
-            handleError(syntheticEvent);
-          }}
+          onError={handleError}
           onHttpError={(syntheticEvent) => {
             const { nativeEvent } = syntheticEvent;
             console.error('[YouTubePlayerStandalone] WebView HTTP error:', JSON.stringify({
@@ -500,25 +473,6 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
             }, null, 2));
             handleError(syntheticEvent);
           }}
-          onShouldStartLoadWithRequest={(request) => {
-            const requestUrl = request.url;
-            console.log('[YouTubePlayerStandalone] Should start load?', requestUrl);
-            
-            if (!requestUrl.startsWith('http://') && !requestUrl.startsWith('https://')) {
-              console.log('[YouTubePlayerStandalone] Blocked non-HTTP(S) URL:', requestUrl);
-              return false;
-            }
-            
-            if (requestUrl.includes('youtube.com/embed/') || 
-                requestUrl.includes('www.youtube.com') || 
-                requestUrl.includes('i.ytimg.com') ||
-                requestUrl.includes('googlevideo.com')) {
-              return true;
-            }
-            
-            console.log('[YouTubePlayerStandalone] Allowing YouTube-related request:', requestUrl);
-            return true;
-          }}
           onMessage={handleMessage}
           onScroll={handleScroll}
           allowsInlineMediaPlayback
@@ -526,10 +480,7 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
           javaScriptEnabled
           domStorageEnabled
           startInLoadingState={false}
-          originWhitelist={['https://*']}
-          allowsProtectedMedia
-          sharedCookiesEnabled
-          thirdPartyCookiesEnabled
+          originWhitelist={['*']}
         />
       </View>
       <Animated.View

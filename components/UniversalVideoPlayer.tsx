@@ -27,6 +27,7 @@ import { getSocialMediaConfig } from '@/utils/socialMediaPlayer';
 import { useMembership } from '@/providers/MembershipProvider';
 import SocialMediaPlayer from '@/components/SocialMediaPlayer';
 import YouTubePlayerStandalone from '@/components/YouTubePlayerStandalone';
+import MP4Player from '@/components/MP4Player';
 import Colors from '@/constants/colors';
 
 export interface UniversalVideoPlayerProps {
@@ -76,11 +77,19 @@ export default function UniversalVideoPlayer({
   const playbackEligibility = canPlayVideo(url, tier);
   
   // Determine which player to use based on source info
+  const shouldUseMp4Player =
+    sourceInfo.type === 'direct' &&
+    url && url.trim() !== '' &&
+    (url.toLowerCase().endsWith('.mp4') ||
+     url.toLowerCase().includes('.mp4?') ||
+     url.toLowerCase().includes('/mp4/'));
+
   const shouldUseNativePlayer =
-    sourceInfo.type === 'direct' ||
+    !shouldUseMp4Player &&
+    (sourceInfo.type === 'direct' ||
     sourceInfo.type === 'stream' ||
     sourceInfo.type === 'hls' ||
-    sourceInfo.type === 'dash';
+    sourceInfo.type === 'dash');
 
   // Only initialize native player if we're actually using it
   // For WebView-required URLs, skip native player initialization
@@ -104,6 +113,7 @@ export default function UniversalVideoPlayer({
     requiresWebView: sourceInfo.requiresWebView,
     requiresAgeVerification: sourceInfo.requiresAgeVerification,
     canPlay: playbackEligibility.canPlay,
+    shouldUseMp4Player,
   });
 
   useEffect(() => {
@@ -816,6 +826,7 @@ export default function UniversalVideoPlayer({
   console.log('[UniversalVideoPlayer] Player selection:', {
     useSocialMediaPlayer,
     shouldUseWebView,
+    shouldUseMp4Player,
     shouldUseNativePlayer: shouldUseNativePlayerRender,
     sourceType: sourceInfo.type,
   });
@@ -844,6 +855,20 @@ export default function UniversalVideoPlayer({
           onPlaybackStart={onPlaybackStart}
           autoRetry={true}
           maxRetries={3}
+          style={style}
+          onBackPress={onBackPress}
+        />
+      ) : shouldUseMp4Player ? (
+        <MP4Player
+          uri={url}
+          onError={onError}
+          onLoad={() => {
+            setIsLoading(false);
+            setRetryCount(0);
+          }}
+          onPlaybackStart={onPlaybackStart}
+          onPlaybackEnd={onPlaybackEnd}
+          autoPlay={autoPlay}
           style={style}
           onBackPress={onBackPress}
         />

@@ -119,6 +119,9 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
 
   const sourceInfo = detectVideoSource(url);
 
+  console.log('[YouTubePlayerStandalone] Initializing with URL:', url);
+  console.log('[YouTubePlayerStandalone] Source info:', sourceInfo);
+
   useEffect(() => {
     if (isScrolling) {
       Animated.timing(backButtonOpacity, {
@@ -160,7 +163,9 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
       const origin = Platform.OS === 'web' 
         ? (typeof window !== 'undefined' ? window.location.origin : 'https://localhost')
         : 'https://localhost';
-      return `https://www.youtube.com/embed/${sourceInfo.sourceInfo.videoId}?enablejsapi=1&autoplay=0&controls=1&rel=0&modestbranding=1&playsinline=1&origin=${origin}`;
+      const embedUrl = `https://www.youtube.com/embed/${sourceInfo.sourceInfo.videoId}?enablejsapi=1&autoplay=1&controls=1&rel=0&modestbranding=1&playsinline=0&fs=1&origin=${origin}`;
+      console.log('[YouTubePlayerStandalone] Generated embed URL:', embedUrl);
+      return embedUrl;
     }
     return null;
   }, [sourceInfo]);
@@ -171,10 +176,12 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
   }, []);
 
   const handleLoadEnd = useCallback(() => {
+    console.log('[YouTubePlayerStandalone] Load completed');
     setIsLoading(false);
     onLoad?.();
 
     if (sourceInfo.sourceInfo.platform === 'YouTube' && webViewRef.current) {
+      console.log('[YouTubePlayerStandalone] Injecting YouTube API scripts');
       const initScript = `
         if (!window.YT && !window.ytApiLoading) {
           window.ytApiLoading = true;
@@ -397,42 +404,39 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
 
   if (Platform.OS === 'web') {
     return (
-      <View style={styles.outerContainer}>
-        <View style={styles.container} onScroll={handleScroll}>
-          {isLoading && (
-            <View style={styles.loadingOverlay}>
-              <Text style={styles.loadingText}>載入中...</Text>
-            </View>
-          )}
-          <iframe
-            src={embedUrl}
-            style={styles.iframe}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            onLoad={handleLoadEnd}
-            onError={handleError}
-          />
-        </View>
+      <View style={styles.fullscreenContainer}>
+        {isLoading && (
+          <View style={styles.loadingOverlay}>
+            <Text style={styles.loadingText}>載入中...</Text>
+          </View>
+        )}
+        <iframe
+          src={embedUrl}
+          style={styles.fullscreenIframe}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+          allowFullScreen
+          onLoad={handleLoadEnd}
+          onError={handleError}
+        />
         <Animated.View
           style={[
             styles.backButtonContainer,
-            { top: insets.top - 4, opacity: backButtonOpacity }
+            { top: insets.top + 10, opacity: backButtonOpacity }
           ]}
           pointerEvents={isScrolling ? 'none' : 'auto'}
         >
           <TouchableOpacity
             onPress={() => {
+              console.log('[YouTubePlayerStandalone] Back button pressed');
               if (onBackPress) {
                 onBackPress();
-              } else {
-                console.log('[YouTubePlayerStandalone] Back pressed, parent should handle navigation');
               }
             }}
             style={styles.backButton}
             activeOpacity={0.7}
           >
             <View style={styles.backButtonInner}>
-              <ArrowLeft color="#ffffff" size={20} />
+              <ArrowLeft color="#ffffff" size={24} />
             </View>
           </TouchableOpacity>
         </Animated.View>
@@ -441,68 +445,67 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
   }
 
   return (
-    <View style={styles.outerContainer}>
-      <View style={styles.container}>
-        {isLoading && (
-          <View style={styles.loadingOverlay}>
-            <Text style={styles.loadingText}>載入中...</Text>
-          </View>
-        )}
-        <WebView
-          ref={webViewRef}
-          source={{
-            uri: embedUrl,
-            headers: {
-              'Referer': 'https://localhost'
-            }
-          }}
-          style={styles.webview}
-          onLoadStart={handleLoadStart}
-          onLoadEnd={handleLoadEnd}
-          onError={handleError}
-          onHttpError={(syntheticEvent) => {
-            const { nativeEvent } = syntheticEvent;
-            console.error('[YouTubePlayerStandalone] WebView HTTP error:', JSON.stringify({
-              statusCode: nativeEvent.statusCode,
-              description: nativeEvent.description,
-              url: nativeEvent.url,
-              title: nativeEvent.title,
-              canGoBack: nativeEvent.canGoBack,
-              canGoForward: nativeEvent.canGoForward,
-              loading: nativeEvent.loading,
-            }, null, 2));
-            handleError(syntheticEvent);
-          }}
-          onMessage={handleMessage}
-          onScroll={handleScroll}
-          allowsInlineMediaPlayback
-          mediaPlaybackRequiresUserAction={false}
-          javaScriptEnabled
-          domStorageEnabled
-          startInLoadingState={false}
-          originWhitelist={['*']}
-        />
-      </View>
+    <View style={styles.fullscreenContainer}>
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <Text style={styles.loadingText}>載入 YouTube 中...</Text>
+        </View>
+      )}
+      <WebView
+        ref={webViewRef}
+        source={{
+          uri: embedUrl,
+          headers: {
+            'Referer': 'https://www.youtube.com/',
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+          }
+        }}
+        style={styles.fullscreenWebView}
+        onLoadStart={handleLoadStart}
+        onLoadEnd={handleLoadEnd}
+        onError={handleError}
+        onHttpError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.error('[YouTubePlayerStandalone] WebView HTTP error:', JSON.stringify({
+            statusCode: nativeEvent.statusCode,
+            description: nativeEvent.description,
+            url: nativeEvent.url,
+          }, null, 2));
+          handleError(syntheticEvent);
+        }}
+        onMessage={handleMessage}
+        onScroll={handleScroll}
+        allowsInlineMediaPlayback={false}
+        allowsFullscreenVideo
+        mediaPlaybackRequiresUserAction={false}
+        javaScriptEnabled
+        domStorageEnabled
+        startInLoadingState={false}
+        originWhitelist={['*']}
+        scrollEnabled
+        bounces
+        scalesPageToFit={false}
+        automaticallyAdjustContentInsets={false}
+      />
       <Animated.View
         style={[
           styles.backButtonContainer,
-          { top: insets.top - 4, opacity: backButtonOpacity }
+          { top: insets.top + 10, opacity: backButtonOpacity }
         ]}
         pointerEvents={isScrolling ? 'none' : 'auto'}
       >
         <TouchableOpacity
           onPress={() => {
+            console.log('[YouTubePlayerStandalone] Back button pressed');
             if (onBackPress) {
               onBackPress();
-            } else {
-              console.log('[YouTubePlayerStandalone] Back pressed, parent should handle navigation');
             }
           }}
           style={styles.backButton}
           activeOpacity={0.7}
         >
           <View style={styles.backButtonInner}>
-            <ArrowLeft color="#ffffff" size={20} />
+            <ArrowLeft color="#ffffff" size={24} />
           </View>
         </TouchableOpacity>
       </Animated.View>
@@ -511,28 +514,31 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
 };
 
 const styles = StyleSheet.create({
-  outerContainer: {
+  fullscreenContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#000',
+    zIndex: 9999,
+  },
+  fullscreenWebView: {
     flex: 1,
     width: '100%',
     height: '100%',
     backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  container: {
-    width: '90%',
-    maxWidth: 1200,
-    aspectRatio: 16/9,
-    backgroundColor: '#000',
-    borderRadius: 20,
-    overflow: 'hidden',
-    position: 'relative',
-    alignSelf: 'center',
-  },
-  webview: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
+  fullscreenIframe: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    border: 'none',
+  } as any,
   errorContainer: {
     width: '100%',
     aspectRatio: 16/9,
@@ -573,32 +579,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
-  iframe: {
-    width: '100%',
-    height: '100%',
-    border: 'none',
-    borderRadius: 20,
-  } as any,
+
   backButtonContainer: {
     position: 'absolute',
     left: 16,
-    zIndex: 1001,
+    zIndex: 10000,
   },
   backButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(30, 30, 30, 0.53)',
-    backdropFilter: 'blur(10px)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   } as any,
   backButtonInner: {
     justifyContent: 'center',

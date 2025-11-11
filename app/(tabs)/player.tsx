@@ -1432,29 +1432,67 @@ export default function PlayerScreen() {
         )}
 
         {videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
-          <PlayStationController
-            onCrossPress={async () => {
-              // Main button toggles Always Listen
-              await toggleAlwaysListening();
-            }}
-            onCirclePress={async () => {
-              // Circle button stops listening
-              if (isVoiceActive || isVoiceListening) {
-                await stopVoiceRecording();
-              }
-            }}
-            onTrianglePress={togglePlayPause}
-            onSquarePress={() => {
-              if (videoPlayer) {
-                videoPlayer.currentTime = 0;
-                if (typeof videoPlayer.play === 'function') {
-                  videoPlayer.play();
+          <>
+            <PlayStationController
+              onCrossPress={async () => {
+                // Main button toggles Always Listen
+                await toggleAlwaysListening();
+              }}
+              onCirclePress={async () => {
+                // Circle button stops listening
+                if (isVoiceActive || isVoiceListening) {
+                  await stopVoiceRecording();
                 }
-              }
-            }}
-            containerHeight={Dimensions.get('window').height}
-            isVoiceActive={alwaysListening || isVoiceListening}
-          />
+              }}
+              onTrianglePress={togglePlayPause}
+              onSquarePress={() => {
+                if (videoPlayer) {
+                  videoPlayer.currentTime = 0;
+                  if (typeof videoPlayer.play === 'function') {
+                    videoPlayer.play();
+                  }
+                }
+              }}
+              containerHeight={Dimensions.get('window').height}
+              isVoiceActive={alwaysListening || isVoiceListening}
+            />
+            
+            {videoSource.type === 'youtube' && (
+              <View style={styles.videoYoutubePlatformContainer}>
+                <View style={styles.videoYoutubePlatformBadge}>
+                  <View style={styles.youtubeLogo}>
+                    <Play size={16} color="#fff" fill="#fff" />
+                  </View>
+                  <Text style={styles.youtubePlatformText}>觀看平台：YouTube</Text>
+                  <TouchableOpacity 
+                    style={styles.videoYoutubeOverlayButton}
+                    onPress={() => {
+                      if (videoSource && videoSource.uri) {
+                        const youtubeUrl = videoSource.uri;
+                        console.log('[PlayerScreen] Opening YouTube:', youtubeUrl);
+                        
+                        if (Platform.OS === 'web') {
+                          if (typeof window !== 'undefined') {
+                            window.open(youtubeUrl, '_blank');
+                          }
+                        } else {
+                          import('react-native').then(({ Linking }) => {
+                            Linking.openURL(youtubeUrl).catch(err => {
+                              console.error('[PlayerScreen] Failed to open YouTube:', err);
+                              Alert.alert(t('error'), t('failed_to_open_youtube'));
+                            });
+                          });
+                        }
+                      }
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.invisibleOverlay} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </>
         )}
 
         {voiceStatus && typeof voiceStatus === 'string' && videoSource && videoSource.uri && videoSource.uri.trim() !== '' && (
@@ -3175,6 +3213,39 @@ const createStyles = () => {
     width: '100%',
     height: '100%',
     opacity: 0,
+  },
+  
+  videoYoutubePlatformContainer: {
+    position: 'absolute',
+    bottom: 120,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 999,
+    paddingHorizontal: 20,
+  },
+  videoYoutubePlatformBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  videoYoutubeOverlayButton: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 10,
   },
   
   heroSection: {

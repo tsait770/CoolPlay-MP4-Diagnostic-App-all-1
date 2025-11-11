@@ -48,8 +48,13 @@ function getYouTubeVideoId(url: string): string | null {
     videoId = shortsMatch[1];
   }
 
+  const mobileMatch = url.match(/m\.youtube\.com\/watch\?.*[&?]v=([\w-]+)/i);
+  if (mobileMatch) {
+    videoId = mobileMatch[1];
+  }
+
   if (videoId) {
-    videoId = videoId.split('&')[0].split('?')[0];
+    videoId = videoId.split('&')[0].split('?')[0].split('#')[0];
     return videoId;
   }
 
@@ -57,7 +62,7 @@ function getYouTubeVideoId(url: string): string | null {
 }
 
 function detectVideoSource(url: string): VideoSourceDetectionResult {
-  const youtubeRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([\w-]+)(?:[&?][^\s]*)?/i;
+  const youtubeRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/|m\.youtube\.com\/watch\?v=)([\w-]+)(?:[&?][^\s]*)?/i;
 
   if (youtubeRegex.test(url)) {
     const videoId = getYouTubeVideoId(url);
@@ -158,9 +163,9 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
   const getEmbedUrl = useCallback(() => {
     if (sourceInfo.sourceInfo.platform === 'YouTube' && sourceInfo.sourceInfo.videoId) {
       const origin = Platform.OS === 'web' 
-        ? (typeof window !== 'undefined' ? window.location.origin : 'https://localhost')
-        : 'https://localhost';
-      return `https://www.youtube.com/embed/${sourceInfo.sourceInfo.videoId}?enablejsapi=1&autoplay=0&controls=1&rel=0&modestbranding=1&playsinline=1&origin=${origin}`;
+        ? (typeof window !== 'undefined' ? window.location.origin : 'https://www.youtube.com')
+        : 'https://www.youtube.com';
+      return `https://www.youtube.com/embed/${sourceInfo.sourceInfo.videoId}?enablejsapi=1&autoplay=0&controls=1&rel=0&modestbranding=1&playsinline=1&origin=${encodeURIComponent(origin)}`;
     }
     return null;
   }, [sourceInfo]);
@@ -453,7 +458,11 @@ const YouTubePlayerStandalone: React.FC<YouTubePlayerProps> = ({
           source={{
             uri: embedUrl,
             headers: {
-              'Referer': 'https://localhost'
+              'Referer': 'https://www.youtube.com',
+              'Origin': 'https://www.youtube.com',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+              'Accept-Language': 'en-US,en;q=0.9',
+              'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
             }
           }}
           style={styles.webview}

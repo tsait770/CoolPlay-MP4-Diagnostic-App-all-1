@@ -260,64 +260,25 @@ export default function RootLayout() {
   const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
-    const initialize = async () => {
+    const initialize = () => {
       try {
-        console.log('[App] Starting initialization...');
-        const startTime = Date.now();
+        console.log('[App] Starting immediate initialization...');
         
+        // Immediately set initialized states
         setIsInitialized(true);
         setProvidersReady(true);
         
-        const duration = Date.now() - startTime;
-        console.log(`[App] Initialization completed in ${duration}ms`);
+        console.log('[App] Initialization completed immediately');
         
+        // Hide splash screen very quickly
         setTimeout(() => {
-          SplashScreen.hideAsync();
-        }, 100);
+          SplashScreen.hideAsync().catch(e => console.warn('SplashScreen hide error:', e));
+        }, 50);
         
-        setTimeout(async () => {
-          try {
-            console.log('[App] Running deferred storage cleanup...');
-            const allKeys = await AsyncStorage.getAllKeys();
-            const corruptedKeys: string[] = [];
-            
-            const maxCheck = Math.min(allKeys.length, 30);
-            for (let i = 0; i < maxCheck; i++) {
-              const key = allKeys[i];
-              try {
-                const data = await AsyncStorage.getItem(key);
-                if (data && typeof data === 'string' && data.length > 0) {
-                  const cleaned = data.trim();
-                  if (cleaned.includes('[object Object]') || 
-                      cleaned === 'undefined' || 
-                      cleaned === 'NaN' ||
-                      cleaned === 'null' ||
-                      cleaned.startsWith('object ') ||
-                      cleaned.startsWith('Object ')) {
-                    corruptedKeys.push(key);
-                  } else if (cleaned.startsWith('{') || cleaned.startsWith('[')) {
-                    try {
-                      JSON.parse(cleaned);
-                    } catch {
-                      corruptedKeys.push(key);
-                    }
-                  }
-                }
-              } catch {}
-            }
-            
-            if (corruptedKeys.length > 0) {
-              console.log(`[App] Cleared ${corruptedKeys.length} corrupted storage keys`);
-              await AsyncStorage.multiRemove(corruptedKeys);
-            }
-          } catch (cleanupError) {
-            console.warn('[App] Deferred cleanup failed:', cleanupError);
-          }
-        }, 2000);
       } catch (error) {
         console.error('[App] Initialization error:', error);
         setInitError(error instanceof Error ? error.message : 'Unknown error');
-        SplashScreen.hideAsync();
+        SplashScreen.hideAsync().catch(e => console.warn('SplashScreen hide error:', e));
       }
     };
 

@@ -63,6 +63,7 @@ export const [StorageProvider, useStorage] = createContextHook(() => {
     if (!cleanupRun.current) {
       cleanupRun.current = true;
       
+      // Defer cleanup even further to avoid blocking hydration
       setTimeout(() => {
         (async () => {
           try {
@@ -107,7 +108,7 @@ export const [StorageProvider, useStorage] = createContextHook(() => {
             console.error('[StorageProvider] Deferred cleanup failed:', error?.message || error);
           }
         })();
-      }, 2000);
+      }, 5000);
     }
   }, []);
 

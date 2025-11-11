@@ -1,0 +1,142 @@
+
+> expo-app@1.0.0 start
+> bunx rork start -p 7t0u49swhy8s11nujg3mu --tunnel
+
+Resolving dependencies
+Resolved, downloaded and extracted [12]
+Saved lockfile
+env: load .env
+env: export EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY STRIPE_SECRET_KEY EXPO_PUBLIC_STRIPE_BASIC_MONTHLY_PRICE_ID EXPO_PUBLIC_STRIPE_BASIC_YEARLY_PRICE_ID EXPO_PUBLIC_STRIPE_PLUS_MONTHLY_PRICE_ID EXPO_PUBLIC_STRIPE_PLUS_YEARLY_PRICE_ID EXPO_PUBLIC_API_URL EXPO_PUBLIC_APP_URL EXPO_PUBLIC_RORK_API_BASE_URL EXPO_PUBLIC_TOOLKIT_URL
+Starting project at /home/ubuntu/coolplay-app-all-1-clone
+Starting Metro Bundler
+Tunnel connected.
+Tunnel ready.
+The following packages should be updated for best compatibility with the installed expo version:
+  expo@54.0.21 - expected version: 54.0.23
+  expo-camera@17.0.8 - expected version: ~17.0.9
+  expo-video@3.0.12 - expected version: ~3.0.14
+  expo-web-browser@15.0.8 - expected version: ~15.0.9
+  eslint-config-expo@9.2.0 - expected version: ~10.0.0
+Your project may not work correctly until you install the expected versions of the packages.
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+/home/ubuntu/coolplay-app-all-1-clone/node_modules/@expo/cli/build/src/utils/errors.js:130
+    throw error;
+    ^
+
+Error: ENOENT: no such file or directory, watch '/home/ubuntu/coolplay-app-all-1-clone/node_modules/@tybys/wasm-util/dist'
+    at FSWatcher.<computed> (node:internal/fs/watchers:247:19)
+    at Object.watch (node:fs:2550:36)
+    at FallbackWatcher._watchdir (/home/ubuntu/coolplay-app-all-1-clone/node_modules/metro-file-map/src/watchers/FallbackWatcher.js:119:33)
+    at /home/ubuntu/coolplay-app-all-1-clone/node_modules/metro-file-map/src/watchers/FallbackWatcher.js:219:22
+    at Walker.<anonymous> (/home/ubuntu/coolplay-app-all-1-clone/node_modules/metro-file-map/src/watchers/FallbackWatcher.js:358:5)
+    at Walker.emit (node:events:524:28)
+    at /home/ubuntu/coolplay-app-all-1-clone/node_modules/walker/lib/walker.js:69:16
+    at FSReqCallback.oncomplete (node:fs:188:23) {
+  errno: -2,
+  syscall: 'watch',
+  code: 'ENOENT',
+  path: '/home/ubuntu/coolplay-app-all-1-clone/node_modules/@tybys/wasm-util/dist',
+  filename: '/home/ubuntu/coolplay-app-all-1-clone/node_modules/@tybys/wasm-util/dist'
+}
+
+Node.js v22.13.0
+
+  #  Node.js[2047]: void node::ResetStdio() at ../src/node.cc:760
+  #  Assertion failed: !(err != 0) || (err == -1 && (*__errno_location ()) == 1)
+
+----- Native stack trace -----
+
+ 1: 0xf95cf7 node::Assert(node::AssertionInfo const&) [node]
+ 2: 0xf42264  [node]
+ 3: 0x7fefd4845495  [/lib/x86_64-linux-gnu/libc.so.6]
+ 4: 0x7fefd4845610 on_exit [/lib/x86_64-linux-gnu/libc.so.6]
+ 5: 0xe98a4f node::DefaultProcessExitHandlerInternal(node::Environment*, node::ExitCode) [node]
+ 6: 0xf01e4f node::Environment::Exit(node::ExitCode) [node]
+ 7: 0xf99481 node::errors::TryCatchScope::~TryCatchScope() [node]
+ 8: 0xf99a9e node::errors::TriggerUncaughtException(v8::Isolate*, v8::Local<v8::Value>, v8::Local<v8::Message>, bool) [node]
+ 9: 0x13f347b v8::internal::MessageHandler::ReportMessageNoExceptions(v8::internal::Isolate*, v8::internal::MessageLocation const*, v8::internal::Handle<v8::internal::Object>, v8::Local<v8::Value>) [node]
+10: 0x13f367e v8::internal::MessageHandler::ReportMessage(v8::internal::Isolate*, v8::internal::MessageLocation const*, v8::internal::Handle<v8::internal::JSMessageObject>) [node]
+11: 0x13dfb75 v8::internal::Isolate::ReportPendingMessages(bool) [node]
+12: 0x13c32b1  [node]
+13: 0x13c42e5 v8::internal::Execution::Call(v8::internal::Isolate*, v8::internal::Handle<v8::internal::Object>, v8::internal::Handle<v8::internal::Object>, int, v8::internal::Handle<v8::internal::Object>*) [node]
+14: 0x12747d6 v8::Object::CallAsFunction(v8::Local<v8::Context>, v8::Local<v8::Value>, int, v8::Local<v8::Value>*) [node]
+15: 0xe9192b node::InternalMakeCallback(node::Environment*, v8::Local<v8::Object>, v8::Local<v8::Object>, v8::Local<v8::Function>, int, v8::Local<v8::Value>*, node::async_context, v8::Local<v8::Value>) [node]
+16: 0xeab372 node::AsyncWrap::MakeCallback(v8::Local<v8::Function>, int, v8::Local<v8::Value>*) [node]
+17: 0xf9b83a node::fs::FSReqCallback::Resolve(v8::Local<v8::Value>) [node]
+18: 0xfafb6e node::fs::AfterScanDir(uv_fs_s*) [node]
+19: 0xf89a4b node::MakeLibuvRequestCallback<uv_fs_s, void (*)(uv_fs_s*)>::Wrapper(uv_fs_s*) [node]
+20: 0x1d48e2d  [node]
+21: 0x1d4c803  [node]
+22: 0x1d62374  [node]
+23: 0x1d4d527 uv_run [node]
+24: 0xe926d6 node::SpinEventLoopInternal(node::Environment*) [node]
+25: 0xfe7cc1 node::NodeMainInstance::Run() [node]
+26: 0xf49dcb node::Start(int, char**) [node]
+27: 0x7fefd4829d90  [/lib/x86_64-linux-gnu/libc.so.6]
+28: 0x7fefd4829e40 __libc_start_main [/lib/x86_64-linux-gnu/libc.so.6]
+29: 0xe8e4fe _start [node]
+
+  #  Node.js[2047]: void node::ResetStdio() at ../src/node.cc:760
+  #  Assertion failed: !(err != 0) || (err == -1 && (*__errno_location ()) == 1)
+
+----- Native stack trace -----
+
+ 1: 0xf95cf7 node::Assert(node::AssertionInfo const&) [node]
+ 2: 0xf42264  [node]
+ 3: 0xf42982 node::TrapWebAssemblyOrContinue(int, siginfo_t*, void*) [node]
+ 4: 0x7fefd4842520  [/lib/x86_64-linux-gnu/libc.so.6]
+ 5: 0x1929147 v8::internal::tracing::TraceEventHelper::GetTracingController() [node]
+ 6: 0x13dc745 v8::internal::Isolate::CaptureDetailedStackTrace(int, v8::StackTrace::StackTraceOptions) [node]
+ 7: 0x126a133 v8::StackTrace::CurrentStackTrace(v8::Isolate*, int, v8::StackTrace::StackTraceOptions) [node]
+ 8: 0xf95c46 node::GetCurrentStackTrace(v8::Isolate*, int) [node]
+ 9: 0xee0c8b node::DumpJavaScriptBacktrace(_IO_FILE*) [node]
+10: 0xf95d03 node::Assert(node::AssertionInfo const&) [node]
+11: 0xf42264  [node]
+12: 0x7fefd4845495  [/lib/x86_64-linux-gnu/libc.so.6]
+13: 0x7fefd4845610 on_exit [/lib/x86_64-linux-gnu/libc.so.6]
+14: 0xe98a4f node::DefaultProcessExitHandlerInternal(node::Environment*, node::ExitCode) [node]
+15: 0xf01e4f node::Environment::Exit(node::ExitCode) [node]
+16: 0xf99481 node::errors::TryCatchScope::~TryCatchScope() [node]
+17: 0xf99a9e node::errors::TriggerUncaughtException(v8::Isolate*, v8::Local<v8::Value>, v8::Local<v8::Message>, bool) [node]
+18: 0x13f347b v8::internal::MessageHandler::ReportMessageNoExceptions(v8::internal::Isolate*, v8::internal::MessageLocation const*, v8::internal::Handle<v8::internal::Object>, v8::Local<v8::Value>) [node]
+19: 0x13f367e v8::internal::MessageHandler::ReportMessage(v8::internal::Isolate*, v8::internal::MessageLocation const*, v8::internal::Handle<v8::internal::JSMessageObject>) [node]
+20: 0x13dfb75 v8::internal::Isolate::ReportPendingMessages(bool) [node]
+21: 0x13c32b1  [node]
+22: 0x13c42e5 v8::internal::Execution::Call(v8::internal::Isolate*, v8::internal::Handle<v8::internal::Object>, v8::internal::Handle<v8::internal::Object>, int, v8::internal::Handle<v8::internal::Object>*) [node]
+23: 0x12747d6 v8::Object::CallAsFunction(v8::Local<v8::Context>, v8::Local<v8::Value>, int, v8::Local<v8::Value>*) [node]
+24: 0xe9192b node::InternalMakeCallback(node::Environment*, v8::Local<v8::Object>, v8::Local<v8::Object>, v8::Local<v8::Function>, int, v8::Local<v8::Value>*, node::async_context, v8::Local<v8::Value>) [node]
+25: 0xeab372 node::AsyncWrap::MakeCallback(v8::Local<v8::Function>, int, v8::Local<v8::Value>*) [node]
+26: 0xf9b83a node::fs::FSReqCallback::Resolve(v8::Local<v8::Value>) [node]
+27: 0xfafb6e node::fs::AfterScanDir(uv_fs_s*) [node]
+28: 0xf89a4b node::MakeLibuvRequestCallback<uv_fs_s, void (*)(uv_fs_s*)>::Wrapper(uv_fs_s*) [node]
+29: 0x1d48e2d  [node]
+30: 0x1d4c803  [node]
+31: 0x1d62374  [node]
+32: 0x1d4d527 uv_run [node]
+33: 0xe926d6 node::SpinEventLoopInternal(node::Environment*) [node]
+34: 0xfe7cc1 node::NodeMainInstance::Run() [node]
+35: 0xf49dcb node::Start(int, char**) [node]
+36: 0x7fefd4829d90  [/lib/x86_64-linux-gnu/libc.so.6]
+37: 0x7fefd4829e40 __libc_start_main [/lib/x86_64-linux-gnu/libc.so.6]
+38: 0xe8e4fe _start [node]
+Aborted
+
+  #  Node.js[2027]: void node::ResetStdio() at ../src/node.cc:760
+  #  Assertion failed: !(err != 0) || (err == -1 && (*__errno_location ()) == 1)
+
+----- Native stack trace -----
+
+ 1: 0xf95cf7 node::Assert(node::AssertionInfo const&) [npm start]
+ 2: 0xf42264  [npm start]
+ 3: 0x7fb22ac45495  [/lib/x86_64-linux-gnu/libc.so.6]
+ 4: 0x7fb22ac45610 on_exit [/lib/x86_64-linux-gnu/libc.so.6]
+ 5: 0xe98a4f node::DefaultProcessExitHandlerInternal(node::Environment*, node::ExitCode) [npm start]
+ 6: 0xf01e4f node::Environment::Exit(node::ExitCode) [npm start]
+ 7: 0x1d755e2  [npm start]
+
+  #  Node.js[2027]: void node::ResetStdio() at ../src/node.cc:760
+  #  Assertion failed: !(err != 0) || (err == -1 && (*__errno_location ()) == 1)
+
+----- Native stack trace -----
+

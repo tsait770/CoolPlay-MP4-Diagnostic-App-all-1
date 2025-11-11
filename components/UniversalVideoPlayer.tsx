@@ -677,27 +677,6 @@ export default function UniversalVideoPlayer({
             </View>
           </TouchableOpacity>
         </Animated.View>
-        
-        {sourceInfo.type === 'youtube' && (
-          <TouchableOpacity
-            style={styles.youtubeFullscreenOverlay}
-            onPress={() => {
-              console.log('[UniversalVideoPlayer] YouTube overlay clicked - triggering fullscreen');
-              setIsFullscreen(true);
-              if (onPlaybackStart) {
-                onPlaybackStart();
-              }
-            }}
-            activeOpacity={0.7}
-          >
-            <View style={styles.youtubeOverlayBadge}>
-              <View style={styles.youtubeLogo}>
-                <Play size={16} color="#fff" fill="#fff" />
-              </View>
-              <Text style={styles.youtubeOverlayText}>觀看平台：YouTube</Text>
-            </View>
-          </TouchableOpacity>
-        )}
       </View>
     );
   };
@@ -1014,41 +993,5 @@ const styles = StyleSheet.create({
   backButtonInner: {
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  youtubeFullscreenOverlay: {
-    position: 'absolute',
-    bottom: 80,
-    right: 16,
-    zIndex: 1002,
-  },
-  youtubeOverlayBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#FF0000',
-    shadowColor: '#FF0000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  youtubeLogo: {
-    width: 24,
-    height: 24,
-    borderRadius: 4,
-    backgroundColor: '#FF0000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  youtubeOverlayText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#fff',
   },
 });

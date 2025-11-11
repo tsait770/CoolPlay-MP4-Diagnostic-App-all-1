@@ -323,21 +323,17 @@ export default function RootLayout() {
         console.log('[App] Starting initialization...');
         const startTime = Date.now();
         
-        // 快速初始化,不阻塞渲染
+        // Immediately set both to true to prevent hydration timeout
         setIsInitialized(true);
-        
-        // 延遲 Provider 準備,讓基礎結構先渲染
-        setTimeout(() => {
-          setProvidersReady(true);
-        }, 50);
+        setProvidersReady(true);
         
         const duration = Date.now() - startTime;
         console.log(`[App] Initialization completed in ${duration}ms`);
         
-        // 延遲隱藏啟動畫面
+        // Hide splash screen immediately
         setTimeout(() => {
           SplashScreen.hideAsync();
-        }, 200);
+        }, 100);
         
         // 延遲執行儲存清理,不影響初始化
         setTimeout(async () => {
@@ -398,19 +394,8 @@ export default function RootLayout() {
     );
   }
 
-  if (!isInitialized || !providersReady) {
-    return (
-      <View style={styles.loadingContainer} testID="app-loading">
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>
-          {!isInitialized ? 'Initializing App...' : 'Loading Providers...'}
-        </Text>
-        <Text style={[styles.loadingText, { fontSize: 12, marginTop: 10, opacity: 0.6 }]}>
-          Please wait... This should only take a moment
-        </Text>
-      </View>
-    );
-  }
+  // Remove loading state to prevent hydration timeout
+  // Providers will initialize asynchronously
 
   console.log('[RootLayout] Rendering providers, isInitialized:', isInitialized, 'providersReady:', providersReady);
 

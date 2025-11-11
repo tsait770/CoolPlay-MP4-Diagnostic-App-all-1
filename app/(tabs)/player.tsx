@@ -1103,6 +1103,29 @@ export default function PlayerScreen() {
                   <LinkIcon size={getResponsiveSize(20, 22, 24)} color={Colors.accent.primary} />
                   <Text style={styles.loadUrlButtonText}>{t('load_from_url')}</Text>
                 </TouchableOpacity>
+
+                <View style={styles.youtubePlatformBadge}>
+                  <View style={styles.youtubeLogo}>
+                    <Play size={16} color="#fff" fill="#fff" />
+                  </View>
+                  <Text style={styles.youtubePlatformText}>觀看平台：YouTube</Text>
+                  <TouchableOpacity 
+                    style={styles.youtubeOverlayButton}
+                    onPress={() => {
+                      const testYoutubeUrl = TEST_STREAM_URL;
+                      const source = processVideoUrl(testYoutubeUrl);
+                      if (source && source.uri && source.uri.trim() !== '') {
+                        setVideoSource(source);
+                        setIsContentLoaded(true);
+                        setVoiceStatus(t('video_loaded_successfully'));
+                        setTimeout(() => setVoiceStatus(''), 3000);
+                      }
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.invisibleOverlay} />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
 
@@ -3111,6 +3134,47 @@ const createStyles = () => {
     ...DesignTokens.typography.body.large,
     fontWeight: "600" as const,
     color: Colors.accent.primary,
+  },
+  
+  youtubePlatformBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginTop: DesignTokens.spacing.md,
+    alignSelf: 'center',
+    position: 'relative',
+  },
+  youtubeLogo: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    backgroundColor: '#FF0000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  youtubePlatformText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#fff',
+  },
+  youtubeOverlayButton: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 10,
+  },
+  invisibleOverlay: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    opacity: 0,
   },
   
   heroSection: {

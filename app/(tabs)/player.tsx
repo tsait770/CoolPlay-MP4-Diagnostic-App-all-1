@@ -38,7 +38,6 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useVoiceControl } from "@/providers/VoiceControlProvider";
 import { useMembership } from "@/providers/MembershipProvider";
-import YouTubeRegionOverlay from "@/components/YouTubeRegionOverlay";
 
 interface VoiceCommand {
   id: string;
@@ -1105,26 +1104,27 @@ export default function PlayerScreen() {
                   <Text style={styles.loadUrlButtonText}>{t('load_from_url')}</Text>
                 </TouchableOpacity>
 
-                <View style={styles.youtubePlatformBadgeWrapper}>
-                  <View style={styles.youtubePlatformBadge}>
-                    <View style={styles.youtubeLogo}>
-                      <Play size={16} color="#fff" fill="#fff" />
-                    </View>
-                    <Text style={styles.youtubePlatformText}>觀看平台：YouTube</Text>
+                <TouchableOpacity 
+                  style={styles.youtubePlatformBadge}
+                  onPress={() => {
+                    console.log('[PlayerScreen] YouTube platform badge clicked');
+                    const testYoutubeUrl = TEST_STREAM_URL;
+                    const source = processVideoUrl(testYoutubeUrl);
+                    if (source && source.uri && source.uri.trim() !== '') {
+                      setVideoSource(source);
+                      setIsContentLoaded(true);
+                      setIsFullscreen(true);
+                      setVoiceStatus(t('video_loaded_successfully'));
+                      setTimeout(() => setVoiceStatus(''), 3000);
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.youtubeLogo}>
+                    <Play size={16} color="#fff" fill="#fff" />
                   </View>
-                  <YouTubeRegionOverlay 
-                    onPress={(youtubeURL) => {
-                      console.log('[PlayerScreen] YouTube region overlay clicked, loading URL:', youtubeURL);
-                      const source = processVideoUrl(youtubeURL);
-                      if (source && source.uri && source.uri.trim() !== '') {
-                        setVideoSource(source);
-                        setIsContentLoaded(true);
-                        setVoiceStatus(t('video_loaded_successfully'));
-                        setTimeout(() => setVoiceStatus(''), 3000);
-                      }
-                    }}
-                  />
-                </View>
+                  <Text style={styles.youtubePlatformText}>觀看平台：YouTube</Text>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -3135,11 +3135,6 @@ const createStyles = () => {
     color: Colors.accent.primary,
   },
   
-  youtubePlatformBadgeWrapper: {
-    position: 'relative',
-    marginTop: DesignTokens.spacing.md,
-    alignSelf: 'center',
-  },
   youtubePlatformBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -3148,6 +3143,8 @@ const createStyles = () => {
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
+    marginTop: DesignTokens.spacing.md,
+    alignSelf: 'center',
     borderWidth: 2,
     borderColor: '#FF0000',
     shadowColor: '#FF0000',

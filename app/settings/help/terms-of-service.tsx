@@ -31,27 +31,27 @@ export default function TermsOfServiceScreen() {
           </Text>
 
           <Text style={styles.sectionTitle}>{t("youtube_content")}</Text>
-          <View style={styles.highlightBox}>
-            <Text style={styles.highlightTitle}>YouTube Compliance</Text>
+          <Text style={styles.highlightBox}>
+            <Text style={styles.highlightTitle}>YouTube Compliance{'\n'}</Text>
             <Text style={styles.highlightText}>
               {t("youtube_compliance_notice")}
             </Text>
             <Text style={styles.highlightText}>
-              • {t("youtube_embed_only")}
+              {'\n\n'}• {t("youtube_embed_only")}
             </Text>
             <Text style={styles.highlightText}>
-              • {t("youtube_no_download")}
+              {'\n'}• {t("youtube_no_download")}
             </Text>
             <Text style={styles.highlightText}>
-              • {t("youtube_respect_restrictions")}
+              {'\n'}• {t("youtube_respect_restrictions")}
             </Text>
             <Text style={styles.highlightText}>
-              • {t("youtube_ads_intact")}
+              {'\n'}• {t("youtube_ads_intact")}
             </Text>
-            <Text style={[styles.highlightText, { marginTop: 8 }]}>
-              {t("youtube_tos_binding")}
+            <Text style={styles.highlightText}>
+              {'\n\n'}{t("youtube_tos_binding")}
             </Text>
-          </View>
+          </Text>
 
           <Text style={styles.sectionTitle}>{t("user_content")}</Text>
           <Text style={styles.paragraph}>

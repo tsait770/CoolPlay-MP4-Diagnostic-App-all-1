@@ -12,10 +12,13 @@ if command -v watchman &> /dev/null; then
     watchman watch-del-all
 fi
 
-# Clear Metro cache
-rm -rf $TMPDIR/metro-* 
-rm -rf $TMPDIR/react-* 
-rm -rf $TMPDIR/haste-*
+# Clear Metro cache and npm cache
+npm cache clean --force || true
+rm -rf $TMPDIR/metro-* || true
+rm -rf $TMPDIR/react-* || true
+rm -rf $TMPDIR/haste-* || true
+rm -rf $HOME/.expo/cache || true
+
 
 # Clear node_modules cache
 rm -rf node_modules/.cache
@@ -23,7 +26,7 @@ rm -rf node_modules/.cache
 # Clear Expo cache
 if command -v npx &> /dev/null; then
     echo "Clearing Expo cache..."
-    npx expo start -c
+    npx expo start --clear || true
 fi
 
 echo "✅ Cache cleared! Now restart your development server."

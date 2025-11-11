@@ -3,7 +3,7 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "bunx rork start -p 7t0u49swhy8s11nujg3mu --tunnel",
+    "start": "bunx rork start -p 7t0u49swhy8s11nujg3mu --tunnel --clear",
     "start-web": "bunx rork start -p 7t0u49swhy8s11nujg3mu --web --tunnel",
     "start-web-dev": "DEBUG=expo* bunx rork start -p 7t0u49swhy8s11nujg3mu --web --tunnel",
     "lint": "expo lint",
@@ -47,6 +47,7 @@
     "expo-image-picker": "~17.0.8",
     "expo-linear-gradient": "~15.0.7",
     "expo-linking": "~8.0.8",
+    "expo-localization": "^17.0.7",
     "expo-location": "~19.0.7",
     "expo-media-library": "~18.2.0",
     "expo-router": "~6.0.14",

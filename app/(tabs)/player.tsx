@@ -31,6 +31,7 @@ import {
   Gauge,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import * as Linking from 'expo-linking';
 import PlayStationController from "@/components/PlayStationController";
 import Colors from "@/constants/colors";
 import DesignTokens from "@/constants/designTokens";
@@ -120,6 +121,7 @@ export default function PlayerScreen() {
 
   const [videoUrl, setVideoUrl] = useState("");
   const TEST_STREAM_URL = "https://www.youtube.com/live/H3KnMyojEQU?si=JCkwI15nOPXHdaL-" as const;
+  const [showPlatformOverlay, setShowPlatformOverlay] = useState(false);
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1.0);
@@ -504,6 +506,32 @@ export default function PlayerScreen() {
     if (sourceInfo.type === 'adult') return "extended";
     if (sourceInfo.type === 'unknown') return "unknown";
     return "supported";
+  };
+
+  const handleOpenInYouTube = async (url: string) => {
+    try {
+      const sourceInfo = require('@/utils/videoSourceDetector').detectVideoSource(url);
+      
+      // Extract video ID for YouTube
+      if (sourceInfo.type === 'youtube' && sourceInfo.videoId) {
+        // Try to open in YouTube app first, fallback to browser
+        const youtubeAppUrl = `vnd.youtube://${sourceInfo.videoId}`;
+        const youtubeWebUrl = `https://www.youtube.com/watch?v=${sourceInfo.videoId}`;
+        
+        const canOpen = await Linking.canOpenURL(youtubeAppUrl);
+        if (canOpen) {
+          await Linking.openURL(youtubeAppUrl);
+        } else {
+          await Linking.openURL(youtubeWebUrl);
+        }
+      } else {
+        // If not YouTube or no video ID, try opening the original URL
+        await Linking.openURL(url);
+      }
+    } catch (error) {
+      console.error('Error opening YouTube:', error);
+      Alert.alert(t('error'), t('failed_to_open_youtube'));
+    }
   };
 
   const processVideoUrl = (url: string): VideoSource | null => {

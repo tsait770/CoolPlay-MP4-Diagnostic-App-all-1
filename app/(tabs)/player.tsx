@@ -1546,12 +1546,30 @@ export default function PlayerScreen() {
 
               <View style={styles.urlModalExamples}>
                 <Text style={styles.urlModalExamplesTitle}>{t('example_formats')}</Text>
-                <Text style={styles.urlModalExampleItem}>• Direct MP4: video.mp4</Text>
-                <Text style={styles.urlModalExampleItem}>• HLS Stream: stream.m3u8</Text>
-                <Text style={styles.urlModalExampleItem}>• YouTube: youtube.com/watch</Text>
-                <Text style={styles.urlModalExampleItem}>• Vimeo: vimeo.com/video</Text>
-                <Text style={styles.urlModalExampleItem}>• Adult sites (18+)</Text>
-                <Text style={styles.urlModalExampleItem}>• Social media videos</Text>
+                <View style={styles.exampleItem}>
+                  <Text style={styles.exampleBullet}>{'•'}</Text>
+                  <Text style={styles.urlModalExampleItem}>Direct MP4: video.mp4</Text>
+                </View>
+                <View style={styles.exampleItem}>
+                  <Text style={styles.exampleBullet}>{'•'}</Text>
+                  <Text style={styles.urlModalExampleItem}>HLS Stream: stream.m3u8</Text>
+                </View>
+                <View style={styles.exampleItem}>
+                  <Text style={styles.exampleBullet}>{'•'}</Text>
+                  <Text style={styles.urlModalExampleItem}>YouTube: youtube.com/watch</Text>
+                </View>
+                <View style={styles.exampleItem}>
+                  <Text style={styles.exampleBullet}>{'•'}</Text>
+                  <Text style={styles.urlModalExampleItem}>Vimeo: vimeo.com/video</Text>
+                </View>
+                <View style={styles.exampleItem}>
+                  <Text style={styles.exampleBullet}>{'•'}</Text>
+                  <Text style={styles.urlModalExampleItem}>Adult sites (18+)</Text>
+                </View>
+                <View style={styles.exampleItem}>
+                  <Text style={styles.exampleBullet}>{'•'}</Text>
+                  <Text style={styles.urlModalExampleItem}>Social media videos</Text>
+                </View>
               </View>
 
               <View style={styles.urlModalButtons}>
@@ -3257,7 +3275,18 @@ const createStyles = () => {
   urlModalExampleItem: {
     fontSize: 13,
     color: Colors.primary.textSecondary,
+    lineHeight: 20,
+    flex: 1,
+  },
+  exampleItem: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
     marginBottom: 6,
+  },
+  exampleBullet: {
+    fontSize: 13,
+    color: Colors.primary.textSecondary,
+    marginRight: 8,
     lineHeight: 20,
   },
   urlModalButtons: {

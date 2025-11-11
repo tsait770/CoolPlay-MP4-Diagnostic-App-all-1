@@ -22,6 +22,7 @@ PAYPAL_PLAN_ID_PREMIUM_YEARLY=
 # App Configuration
 # =====================================================
 EXPO_PUBLIC_APP_URL=http://localhost:8081
+EXPO_PUBLIC_API_URL=http://localhost:8081
 EXPO_PUBLIC_TOOLKIT_URL=https://toolkit.rork.com
 
 # =====================================================

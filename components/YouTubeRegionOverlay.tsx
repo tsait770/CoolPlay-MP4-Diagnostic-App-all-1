@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import * as Localization from 'expo-localization';
 
@@ -7,17 +7,31 @@ interface YouTubeRegionOverlayProps {
 }
 
 export default function YouTubeRegionOverlay({ onPress }: YouTubeRegionOverlayProps) {
+  const region = useMemo(() => {
+    try {
+      return Localization.region || "US";
+    } catch (error) {
+      console.error('[YouTubeRegionOverlay] Error getting region:', error);
+      return "US";
+    }
+  }, []);
+
+  const youtubeURL = useMemo(() => {
+    return `https://www.youtube.com/?gl=${region}`;
+  }, [region]);
+
   const handlePress = useCallback(() => {
-    const region = Localization.region || "US";
-    const youtubeURL = `https://www.youtube.com/?gl=${region}`;
-    
     console.log('[YouTubeRegionOverlay] Navigating to YouTube:', {
       region,
       url: youtubeURL,
     });
     
-    onPress(youtubeURL);
-  }, [onPress]);
+    try {
+      onPress(youtubeURL);
+    } catch (error) {
+      console.error('[YouTubeRegionOverlay] Error in onPress:', error);
+    }
+  }, [onPress, youtubeURL, region]);
 
   return (
     <Pressable 

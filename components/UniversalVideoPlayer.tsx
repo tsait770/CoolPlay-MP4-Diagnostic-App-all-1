@@ -6,8 +6,6 @@ import {
   TouchableOpacity,
   Text,
   Animated,
-  Linking,
-  Image,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { VideoView, useVideoPlayer } from 'expo-video';
@@ -44,46 +42,6 @@ export interface UniversalVideoPlayerProps {
   onBackPress?: () => void;
 }
 
-function getYouTubeVideoId(url: string): string | null {
-  if (!url || typeof url !== 'string') {
-    return null;
-  }
-
-  let videoId: string | null = null;
-
-  const standardMatch = url.match(/(?:youtube\.com\/watch\?.*[&?]v=|youtube\.com\/watch\?v=)([\w-]+)/i);
-  if (standardMatch) {
-    videoId = standardMatch[1];
-  }
-
-  const shortMatch = url.match(/youtu\.be\/([\w-]+)(?:[?&][^\s]*)?/i);
-  if (shortMatch) {
-    videoId = shortMatch[1];
-  }
-
-  const embedMatch = url.match(/youtube\.com\/embed\/([\w-]+)(?:[?&][^\s]*)?/i);
-  if (embedMatch) {
-    videoId = embedMatch[1];
-  }
-
-  const vMatch = url.match(/youtube\.com\/v\/([\w-]+)(?:[?&][^\s]*)?/i);
-  if (vMatch) {
-    videoId = vMatch[1];
-  }
-
-  const shortsMatch = url.match(/youtube\.com\/shorts\/([\w-]+)(?:[?&][^\s]*)?/i);
-  if (shortsMatch) {
-    videoId = shortsMatch[1];
-  }
-
-  if (videoId) {
-    videoId = videoId.split('&')[0].split('?')[0];
-    return videoId;
-  }
-
-  return null;
-}
-
 export default function UniversalVideoPlayer({
   url,
   onError,
@@ -116,10 +74,6 @@ export default function UniversalVideoPlayer({
   // Detect source info FIRST before anything else
   const sourceInfo = detectVideoSource(url);
   const playbackEligibility = canPlayVideo(url, tier);
-  
-  // Extract video ID for YouTube
-  const youtubeVideoId = sourceInfo.type === 'youtube' ? getYouTubeVideoId(url) : null;
-  const enrichedSourceInfo = { ...sourceInfo, videoId: youtubeVideoId || sourceInfo.videoId };
   
   // Determine which player to use based on source info
   const shouldUseNativePlayer =
@@ -723,39 +677,6 @@ export default function UniversalVideoPlayer({
             </View>
           </TouchableOpacity>
         </Animated.View>
-        {sourceInfo.type === 'youtube' && (
-          <View style={styles.platformIndicatorContainer}>
-            <View style={styles.platformIndicator}>
-              <Text style={styles.platformText}>觀看平台：</Text>
-              <Image
-                source={{ uri: 'https://www.youtube.com/s/desktop/3a7e3b6a/img/favicon_144x144.png' }}
-                style={styles.youtubeLogo}
-              />
-              <Text style={styles.youtubePlatformText}>YouTube</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.platformOverlay}
-              activeOpacity={0.95}
-              onPress={async () => {
-                try {
-                  if (sourceInfo.videoId) {
-                    const youtubeAppUrl = `vnd.youtube://${sourceInfo.videoId}`;
-                    const youtubeWebUrl = `https://www.youtube.com/watch?v=${sourceInfo.videoId}`;
-                    
-                    const canOpen = await Linking.canOpenURL(youtubeAppUrl);
-                    if (canOpen) {
-                      await Linking.openURL(youtubeAppUrl);
-                    } else {
-                      await Linking.openURL(youtubeWebUrl);
-                    }
-                  }
-                } catch (error) {
-                  console.error('Error opening YouTube:', error);
-                }
-              }}
-            />
-          </View>
-        )}
       </View>
     );
   };
@@ -1072,48 +993,5 @@ const styles = StyleSheet.create({
   backButtonInner: {
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  platformIndicatorContainer: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
-    right: 16,
-    zIndex: 1000,
-  },
-  platformIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(30, 30, 30, 0.85)',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    backdropFilter: 'blur(10px)',
-  } as any,
-  platformText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '500',
-    marginRight: 8,
-  },
-  youtubeLogo: {
-    width: 24,
-    height: 24,
-    marginRight: 8,
-  },
-  youtubePlatformText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  platformOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    opacity: 0,
-    zIndex: 1,
   },
 });

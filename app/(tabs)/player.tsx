@@ -1113,12 +1113,19 @@ export default function PlayerScreen() {
                     style={styles.youtubeOverlayButton}
                     onPress={() => {
                       const testYoutubeUrl = TEST_STREAM_URL;
-                      const source = processVideoUrl(testYoutubeUrl);
-                      if (source && source.uri && source.uri.trim() !== '') {
-                        setVideoSource(source);
-                        setIsContentLoaded(true);
-                        setVoiceStatus(t('video_loaded_successfully'));
-                        setTimeout(() => setVoiceStatus(''), 3000);
+                      console.log('[PlayerScreen] Opening YouTube from selection:', testYoutubeUrl);
+                      
+                      if (Platform.OS === 'web') {
+                        if (typeof window !== 'undefined') {
+                          window.open(testYoutubeUrl, '_blank');
+                        }
+                      } else {
+                        import('react-native').then(({ Linking }) => {
+                          Linking.openURL(testYoutubeUrl).catch(err => {
+                            console.error('[PlayerScreen] Failed to open YouTube:', err);
+                            Alert.alert(t('error'), t('failed_to_open_youtube'));
+                          });
+                        });
                       }
                     }}
                     activeOpacity={0.7}

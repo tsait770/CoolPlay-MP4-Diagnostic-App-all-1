@@ -15,11 +15,6 @@ interface Mp4PlayerProps {
   onBack?: () => void;
 }
 
-/**
- * 新的 MP4 播放器組件
- * 基於成功的 expo-video 實作
- * 完全替換舊的 MP4 播放模組
- */
 export default function Mp4Player({
   url,
   onError,
@@ -42,7 +37,6 @@ export default function Mp4Player({
   
   console.log('[Mp4Player] Initializing with URL:', url?.substring(0, 100));
   
-  // 使用 expo-video 的 useVideoPlayer hook
   const player = useExpoVideoPlayer(url && url.trim() !== '' ? url : undefined, (player) => {
     player.loop = false;
     player.muted = isMuted;
@@ -52,7 +46,6 @@ export default function Mp4Player({
     }
   });
 
-  // 控制條自動隱藏
   useEffect(() => {
     if (showControls && isPlaying) {
       if (controlsTimeoutRef.current) {
@@ -69,7 +62,6 @@ export default function Mp4Player({
     };
   }, [showControls, isPlaying]);
 
-  // 跳轉功能
   const handleSeek = useCallback((seconds: number) => {
     if (!player) {
       console.warn('[Mp4Player] Cannot seek: player not available');
@@ -86,7 +78,6 @@ export default function Mp4Player({
     }
   }, [player, duration]);
 
-  // 語音控制整合
   useEffect(() => {
     const handleVoiceCommand = (event: any) => {
       const detail = event?.detail ?? {};
@@ -174,7 +165,6 @@ export default function Mp4Player({
     };
   }, [player, handleSeek, duration]);
 
-  // 播放器狀態監聽
   useEffect(() => {
     if (!player) {
       console.warn('[Mp4Player] Player not initialized');
@@ -236,7 +226,6 @@ export default function Mp4Player({
     };
   }, [player, onLoad, onError, onPlaybackStart, onPlaybackEnd, url, isPlaying]);
 
-  // 播放/暫停控制
   const handlePlayPause = useCallback(() => {
     if (!player) {
       console.warn('[Mp4Player] Player not available');
@@ -258,7 +247,6 @@ export default function Mp4Player({
     }
   }, [player, isPlaying]);
 
-  // 靜音控制
   const handleMute = useCallback(() => {
     if (!player) {
       console.warn('[Mp4Player] Player not available');
@@ -275,20 +263,17 @@ export default function Mp4Player({
     }
   }, [player, isMuted]);
 
-  // 全螢幕控制
   const handleFullscreen = useCallback(() => {
     console.log('[Mp4Player] Toggling fullscreen:', !isFullscreen);
     setIsFullscreen(!isFullscreen);
   }, [isFullscreen]);
 
-  // 時間格式化
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // 無 URL 時顯示提示
   if (!url || url.trim() === '') {
     console.warn('[Mp4Player] No URL provided');
     return (
@@ -303,7 +288,6 @@ export default function Mp4Player({
 
   console.log('[Mp4Player] Rendering with URL:', url.substring(0, 100));
 
-  // 錯誤狀態顯示
   if (error) {
     console.error('[Mp4Player] Showing error:', error);
     return (
@@ -321,7 +305,6 @@ export default function Mp4Player({
     );
   }
 
-  // 主播放器界面
   return (
     <View style={[styles.container, isFullscreen && styles.fullscreen, style]}>
       <TouchableOpacity
@@ -340,72 +323,69 @@ export default function Mp4Player({
 
         {isLoading && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={Colors.primary.accent} />
+            <ActivityIndicator size="large" color={Colors.primary.accent || Colors.accent.primary} />
             <Text style={styles.loadingText}>Loading video...</Text>
           </View>
         )}
 
-        {showControls && !isLoading && (
-          <View style={styles.controlsOverlay}>
-            {onBack && (
-              <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                <ArrowLeft size={24} color="#fff" />
+        {showControls && !error && !isLoading && (
+          <>
+            <View style={styles.topControls}>
+              {onBack && (
+                <TouchableOpacity onPress={onBack} style={styles.backButton}>
+                  <ArrowLeft size={24} color="#fff" />
+                </TouchableOpacity>
+              )}
+              <View style={{ flex: 1 }} />
+              <TouchableOpacity onPress={handleFullscreen} style={styles.controlButton}>
+                {isFullscreen ? (
+                  <Minimize size={24} color="#fff" />
+                ) : (
+                  <Maximize size={24} color="#fff" />
+                )}
               </TouchableOpacity>
-            )}
+            </View>
 
             <View style={styles.centerControls}>
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={() => handleSeek(-10)}
-              >
+              <TouchableOpacity onPress={() => handleSeek(-10)} style={styles.controlButton}>
                 <SkipBack size={32} color="#fff" />
+                <Text style={styles.seekText}>10s</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.playButton}
-                onPress={handlePlayPause}
-              >
+              <TouchableOpacity onPress={handlePlayPause} style={styles.playButton}>
                 {isPlaying ? (
-                  <Pause size={48} color="#fff" fill="#fff" />
+                  <Pause size={40} color="#fff" />
                 ) : (
-                  <Play size={48} color="#fff" fill="#fff" />
+                  <Play size={40} color="#fff" />
                 )}
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={() => handleSeek(10)}
-              >
+              <TouchableOpacity onPress={() => handleSeek(10)} style={styles.controlButton}>
                 <SkipForward size={32} color="#fff" />
+                <Text style={styles.seekText}>10s</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.bottomControls}>
-              <View style={styles.timeContainer}>
-                <Text style={styles.timeText}>
-                  {formatTime(currentTime)} / {formatTime(duration)}
-                </Text>
+              <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+              <View style={styles.progressBar}>
+                <View 
+                  style={[
+                    styles.progressFill, 
+                    { width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }
+                  ]} 
+                />
               </View>
-
-              <View style={styles.bottomButtonsContainer}>
-                <TouchableOpacity style={styles.iconButton} onPress={handleMute}>
-                  {isMuted ? (
-                    <VolumeX size={24} color="#fff" />
-                  ) : (
-                    <Volume2 size={24} color="#fff" />
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.iconButton} onPress={handleFullscreen}>
-                  {isFullscreen ? (
-                    <Minimize size={24} color="#fff" />
-                  ) : (
-                    <Maximize size={24} color="#fff" />
-                  )}
-                </TouchableOpacity>
-              </View>
+              <Text style={styles.timeText}>{formatTime(duration)}</Text>
+              <TouchableOpacity onPress={handleMute} style={styles.controlButton}>
+                {isMuted ? (
+                  <VolumeX size={20} color="#fff" />
+                ) : (
+                  <Volume2 size={20} color="#fff" />
+                )}
+              </TouchableOpacity>
             </View>
-          </View>
+          </>
         )}
       </TouchableOpacity>
     </View>
@@ -414,11 +394,12 @@ export default function Mp4Player({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     width: '100%',
-    height: '100%',
+    aspectRatio: 16 / 9,
     backgroundColor: '#000',
     position: 'relative',
+    borderRadius: 20,
+    overflow: 'hidden',
   },
   fullscreen: {
     position: 'absolute',
@@ -426,20 +407,22 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 9999,
+    width: '100%',
+    height: '100%',
+    aspectRatio: undefined,
+    borderRadius: 0,
+    zIndex: 1000,
   },
   videoContainer: {
     flex: 1,
-    width: '100%',
-    height: '100%',
+    position: 'relative',
   },
   video: {
-    flex: 1,
     width: '100%',
     height: '100%',
   },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFillObject as any,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -455,92 +438,101 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#000',
-    padding: 24,
+    padding: 20,
   },
   errorTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#ef4444',
     marginBottom: 8,
   },
   errorText: {
+    color: '#ef4444',
     fontSize: 14,
-    color: '#ccc',
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: 24,
   },
   retryButton: {
-    backgroundColor: Colors.primary.accent,
-    paddingHorizontal: 24,
+    marginTop: 20,
     paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: '#10b981',
     borderRadius: 12,
   },
   retryButtonText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
   },
-  controlsOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButton: {
+  topControls: {
     position: 'absolute',
-    top: 20,
-    left: 20,
-    padding: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 24,
-  },
-  centerControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 40,
-  },
-  controlButton: {
-    padding: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  playButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bottomControls: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
+    top: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    padding: 20,
   },
-  timeContainer: {
+  centerControls: {
+    position: 'absolute',
+    top: '50%',
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 40,
+    transform: [{ translateY: -40 }],
+  },
+  bottomControls: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    gap: 10,
+  },
+  controlButton: {
+    padding: 8,
+    alignItems: 'center',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  playButton: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  seekText: {
+    color: '#fff',
+    fontSize: 12,
+    marginTop: 4,
   },
   timeText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 12,
   },
-  bottomButtonsContainer: {
-    flexDirection: 'row',
-    gap: 12,
+  progressBar: {
+    flex: 1,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 2,
   },
-  iconButton: {
-    padding: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 24,
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 2,
   },
 });

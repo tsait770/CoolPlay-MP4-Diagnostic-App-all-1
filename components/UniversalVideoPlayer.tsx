@@ -22,6 +22,8 @@ import {
   ArrowLeft,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import YouTubeRegionOverlay from '@/components/YouTubeRegionOverlay';
+import * as Linking from 'expo-linking';
 import { detectVideoSource, canPlayVideo } from '@/utils/videoSourceDetector';
 import { getSocialMediaConfig } from '@/utils/socialMediaPlayer';
 import { useMembership } from '@/providers/MembershipProvider';
@@ -327,6 +329,13 @@ export default function UniversalVideoPlayer({
     console.log(`[UniversalVideoPlayer] Load completed in ${loadTime}ms`);
   };
 
+  const handleYouTubeOverlayPress = (youtubeURL: string) => {
+    console.log('[UniversalVideoPlayer] YouTube Overlay Pressed, navigating to:', youtubeURL);
+    // 根據規格，點擊後應進入 YouTube 網頁觀看模式，全屏顯示
+    // 這裡使用 Linking.openURL 實現外部導航
+    Linking.openURL(youtubeURL).catch(err => console.error('Failed to open URL:', err));
+  };
+
   const renderWebViewPlayer = () => {
     if (sourceInfo.type === 'youtube') {
       console.log('[UniversalVideoPlayer] Using standalone YouTube player');
@@ -371,7 +380,10 @@ export default function UniversalVideoPlayer({
     console.log('[UniversalVideoPlayer] WebView rendering for:', sourceInfo.platform || 'Unknown');
 
     return (
-      <View style={styles.webViewWrapper}>
+        <View style={styles.webViewWrapper}>
+          {sourceInfo.type === 'youtube' && (
+            <YouTubeRegionOverlay onPress={handleYouTubeOverlayPress} />
+          )}
         <WebView
         ref={webViewRef}
         source={{ 

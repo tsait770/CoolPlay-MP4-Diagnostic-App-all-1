@@ -50,6 +50,6 @@ const styles = StyleSheet.create({
     right: 0,
     height: 44,
     opacity: 0,
-    zIndex: 999,
+    zIndex: 9999,
   }
 });

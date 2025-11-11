@@ -576,10 +576,8 @@ const styles = StyleSheet.create({
   iframe: {
     width: '100%',
     height: '100%',
-    ...(Platform.OS === 'web' ? {
-      border: 'none' as any,
-      borderRadius: 20,
-    } : {}),
+    border: 'none',
+    borderRadius: 20,
   } as any,
   backButtonContainer: {
     position: 'absolute',
@@ -591,8 +589,9 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 19,
     backgroundColor: 'rgba(30, 30, 30, 0.53)',
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
+    backdropFilter: 'blur(10px)',
+    justifyContent: 'center',
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -600,9 +599,6 @@ const styles = StyleSheet.create({
     elevation: 5,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
-    ...(Platform.OS === 'web' ? {
-      backdropFilter: 'blur(10px)' as any,
-    } : {}),
   } as any,
   backButtonInner: {
     justifyContent: 'center',

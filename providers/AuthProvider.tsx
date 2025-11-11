@@ -26,45 +26,20 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   const [initializing, setInitializing] = useState<boolean>(true);
 
   useEffect(() => {
-    let mounted = true;
-    
-    const initAuth = async () => {
-      try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        if (mounted) {
-          setSession(currentSession);
-          setUser(currentSession?.user ?? null);
-          setInitializing(false);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('[AuthProvider] Session init error:', error);
-        if (mounted) {
-          setInitializing(false);
-          setLoading(false);
-        }
-      }
-    };
-    
-    const timeoutId = setTimeout(() => {
-      if (mounted) {
-        initAuth();
-      }
-    }, 100);
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      if (mounted) {
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        setLoading(false);
-      }
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      setInitializing(false);
+      setLoading(false);
     });
 
-    return () => {
-      mounted = false;
-      clearTimeout(timeoutId);
-      subscription.unsubscribe();
-    };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const loadProfile = useCallback(async () => {

@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect, useState, useCallback, Component, ReactNode, Suspense } from "react";
+import React, { useEffect, useState, useCallback, Component, ReactNode } from "react";
 import { StyleSheet, Platform, Alert, View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -27,14 +27,7 @@ import { PayPalProvider } from "@/providers/PayPalProvider";
 
 SplashScreen.preventAutoHideAsync();
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 5000,
-    },
-  },
-});
+const queryClient = new QueryClient();
 
 class ErrorBoundary extends Component<
   { children: ReactNode },
@@ -261,58 +254,9 @@ function RootLayoutNav() {
   );
 }
 
-// 將 Provider 組合成更少的層級以優化性能
-function CoreProviders({ children }: { children: ReactNode }) {
-  return (
-    <StorageProvider>
-      <LanguageProvider>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
-      </LanguageProvider>
-    </StorageProvider>
-  );
-}
-
-function PaymentProviders({ children }: { children: ReactNode }) {
-  return (
-    <StripeProvider>
-      <PayPalProvider>
-        <MembershipProvider>
-          {children}
-        </MembershipProvider>
-      </PayPalProvider>
-    </StripeProvider>
-  );
-}
-
-function ContentProviders({ children }: { children: ReactNode }) {
-  return (
-    <CategoryProvider>
-      <BookmarkProvider>
-        <RatingProvider>
-          {children}
-        </RatingProvider>
-      </BookmarkProvider>
-    </CategoryProvider>
-  );
-}
-
-function InteractionProviders({ children }: { children: ReactNode }) {
-  return (
-    <ReferralProvider>
-      <SoundProvider>
-        <VoiceControlProvider>
-          <SiriIntegrationProvider>
-            {children}
-          </SiriIntegrationProvider>
-        </VoiceControlProvider>
-      </SoundProvider>
-    </ReferralProvider>
-  );
-}
-
 export default function RootLayout() {
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const [providersReady, setProvidersReady] = useState<boolean>(false);
   const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -321,16 +265,16 @@ export default function RootLayout() {
         console.log('[App] Starting initialization...');
         const startTime = Date.now();
         
+        setIsInitialized(true);
+        setProvidersReady(true);
+        
         const duration = Date.now() - startTime;
         console.log(`[App] Initialization completed in ${duration}ms`);
         
-        // Hide splash screen quickly on web to prevent timeout
-        const delay = Platform.OS === 'web' ? 50 : 100;
         setTimeout(() => {
-          SplashScreen.hideAsync().catch(e => console.warn('[App] Splash hide error:', e));
-        }, delay);
+          SplashScreen.hideAsync();
+        }, 100);
         
-        // 延遲執行儲存清理,不影響初始化
         setTimeout(async () => {
           try {
             console.log('[App] Running deferred storage cleanup...');
@@ -369,7 +313,7 @@ export default function RootLayout() {
           } catch (cleanupError) {
             console.warn('[App] Deferred cleanup failed:', cleanupError);
           }
-        }, 3000);
+        }, 2000);
       } catch (error) {
         console.error('[App] Initialization error:', error);
         setInitError(error instanceof Error ? error.message : 'Unknown error');
@@ -389,23 +333,57 @@ export default function RootLayout() {
     );
   }
 
+  if (!isInitialized || !providersReady) {
+    return (
+      <View style={styles.loadingContainer} testID="app-loading">
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>
+          {!isInitialized ? 'Initializing App...' : 'Loading Providers...'}
+        </Text>
+        <Text style={[styles.loadingText, { fontSize: 12, marginTop: 10, opacity: 0.6 }]}>
+          Please wait... This should only take a moment
+        </Text>
+      </View>
+    );
+  }
+
+  console.log('[RootLayout] Rendering providers, isInitialized:', isInitialized, 'providersReady:', providersReady);
+
   try {
     return (
       <ErrorBoundary>
         <SafeAreaProvider>
           <trpc.Provider client={trpcClient} queryClient={queryClient}>
             <QueryClientProvider client={queryClient}>
-              <CoreProviders>
-                <PaymentProviders>
-                  <ContentProviders>
-                    <InteractionProviders>
-                      <GestureHandlerRootView style={styles.container}>
-                        <RootLayoutNav />
-                      </GestureHandlerRootView>
-                    </InteractionProviders>
-                  </ContentProviders>
-                </PaymentProviders>
-              </CoreProviders>
+              <StorageProvider>
+                <LanguageProvider>
+                  <AuthProvider>
+                    <StripeProvider>
+                      <PayPalProvider>
+                        <MembershipProvider>
+                          <RatingProvider>
+                            <CategoryProvider>
+                              <BookmarkProvider>
+                                <ReferralProvider>
+                                  <SoundProvider>
+                                    <VoiceControlProvider>
+                                      <SiriIntegrationProvider>
+                                        <GestureHandlerRootView style={styles.container}>
+                                          <RootLayoutNav />
+                                        </GestureHandlerRootView>
+                                      </SiriIntegrationProvider>
+                                    </VoiceControlProvider>
+                                  </SoundProvider>
+                                </ReferralProvider>
+                              </BookmarkProvider>
+                            </CategoryProvider>
+                          </RatingProvider>
+                        </MembershipProvider>
+                      </PayPalProvider>
+                    </StripeProvider>
+                  </AuthProvider>
+                </LanguageProvider>
+              </StorageProvider>
             </QueryClientProvider>
           </trpc.Provider>
         </SafeAreaProvider>

@@ -60,24 +60,7 @@ const [LanguageContext, useLanguageContext] = createContextHook(() => {
   }, [isValidLanguage]);
 
   useEffect(() => {
-    let cancelled = false;
-    
-    const init = async () => {
-      if (!cancelled) {
-        await loadLanguage();
-      }
-    };
-    
-    const timeoutId = setTimeout(() => {
-      if (!cancelled) {
-        init();
-      }
-    }, 150);
-    
-    return () => {
-      cancelled = true;
-      clearTimeout(timeoutId);
-    };
+    loadLanguage();
   }, [loadLanguage]);
 
   const setLanguage = useCallback(async (lang: Language) => {

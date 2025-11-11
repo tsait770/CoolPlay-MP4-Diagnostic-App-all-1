@@ -332,34 +332,25 @@ export const [MembershipProvider, useMembership] = createContextHook(() => {
   }, [state, saveMembershipData]);
 
   useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    let cancelled = false;
-    
-    const init = async () => {
-      try {
-        await loadMembershipData();
-        if (!cancelled) {
-          await loadDevices();
-        }
-        if (!cancelled) {
-          await updateUsageStats();
-        }
-      } catch (error) {
-        console.error('[MembershipProvider] Init error:', error);
-      }
-    };
-    
-    timeoutId = setTimeout(() => {
-      if (!cancelled) {
-        init();
-      }
-    }, 200);
-    
-    return () => {
-      cancelled = true;
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, []);
+    const timeoutId = setTimeout(() => {
+      loadMembershipData();
+    }, 100);
+    return () => clearTimeout(timeoutId);
+  }, [loadMembershipData]);
+  
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadDevices();
+    }, 150);
+    return () => clearTimeout(timeoutId);
+  }, [loadDevices]);
+  
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      updateUsageStats();
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }, [state.dailyUsageCount, state.usageCount, updateUsageStats]);
 
   return useMemo(() => ({
     ...state,

@@ -23,7 +23,7 @@ function getYouTubeVideoId(url: string): string | null {
 
   let videoId: string | null = null;
 
-  const standardMatch = url.match(/(?:(?:www\.)?youtube\.com|m\.youtube\.com)\/watch\?.*[&?]v=([\w-]+)/i);
+  const standardMatch = url.match(/(?:youtube\.com\/watch\?.*[&?]v=|youtube\.com\/watch\?v=)([\w-]+)/i);
   if (standardMatch) {
     videoId = standardMatch[1];
   }
@@ -33,17 +33,17 @@ function getYouTubeVideoId(url: string): string | null {
     videoId = shortMatch[1];
   }
 
-  const embedMatch = url.match(/(?:www\.)?youtube(?:-nocookie)?\.com\/embed\/([\w-]+)(?:[?&][^\s]*)?/i);
+  const embedMatch = url.match(/youtube\.com\/embed\/([\w-]+)(?:[?&][^\s]*)?/i);
   if (embedMatch) {
     videoId = embedMatch[1];
   }
 
-  const vMatch = url.match(/(?:www\.)?youtube\.com\/v\/([\w-]+)(?:[?&][^\s]*)?/i);
+  const vMatch = url.match(/youtube\.com\/v\/([\w-]+)(?:[?&][^\s]*)?/i);
   if (vMatch) {
     videoId = vMatch[1];
   }
 
-  const shortsMatch = url.match(/(?:www\.)?youtube\.com\/shorts\/([\w-]+)(?:[?&][^\s]*)?/i);
+  const shortsMatch = url.match(/youtube\.com\/shorts\/([\w-]+)(?:[?&][^\s]*)?/i);
   if (shortsMatch) {
     videoId = shortsMatch[1];
   }
@@ -57,7 +57,7 @@ function getYouTubeVideoId(url: string): string | null {
 }
 
 function detectVideoSource(url: string): VideoSourceDetectionResult {
-  const youtubeRegex = /(?:(?:www\.)?youtube\.com|m\.youtube\.com)\/watch\?.*v=|youtu\.be\/|(?:www\.)?youtube(?:-nocookie)?\.com\/embed\/|(?:www\.)?youtube\.com\/v\/|(?:www\.)?youtube\.com\/shorts\//i;
+  const youtubeRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([\w-]+)(?:[&?][^\s]*)?/i;
 
   if (youtubeRegex.test(url)) {
     const videoId = getYouTubeVideoId(url);

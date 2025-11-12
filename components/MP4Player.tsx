@@ -3,9 +3,9 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity, Platform } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as FileSystem from 'expo-file-system';
 import { convertToPlayableUrl } from '@/utils/videoSourceDetector';
 import { diagnoseMP4Url, formatDiagnosticsReport, type MP4DiagnosticsResult } from '@/utils/mp4Diagnostics';
+import { prepareLocalVideo, type PrepareLocalVideoResult } from '@/utils/videoHelpers';
 
 export interface MP4PlayerProps {
   uri: string;
@@ -33,7 +33,7 @@ export function MP4Player({
   const [hasInitialized, setHasInitialized] = useState(false);
   const [diagnostics, setDiagnostics] = useState<MP4DiagnosticsResult | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-  const [processedLocalUri, setProcessedLocalUri] = useState<string | null>(null);
+  const [prepareResult, setPrepareResult] = useState<PrepareLocalVideoResult | null>(null);
   const [isCopyingFile, setIsCopyingFile] = useState(false);
   const videoRef = useRef<VideoView>(null);
   const maxRetries = 2;
@@ -46,97 +46,77 @@ export function MP4Player({
            uri.startsWith('assets-library://');
   }, [uri]);
 
-  // iOS: Copy local file to cache directory for playback
+  // Prepare local file for playback (iOS/Android)
   useEffect(() => {
-    if (!isLocalFile || Platform.OS !== 'ios') {
+    if (!isLocalFile) {
+      setPrepareResult(null);
       return;
     }
 
-    const copyLocalFileToCache = async () => {
+    const prepareFile = async () => {
       try {
         setIsCopyingFile(true);
-        console.log('[MP4Player] ========== iOS Local File Processing ==========');
-        console.log('[MP4Player] Original URI:', uri);
-
-        // Extract filename
-        const filename = uri.split('/').pop() || `video_${Date.now()}.mp4`;
-        const cacheDir = FileSystem.cacheDirectory || '';
-        if (!cacheDir) {
-          throw new Error('Cache directory not available');
-        }
-        const cacheUri = `${cacheDir}${filename}`;
+        setPrepareResult(null);
         
-        console.log('[MP4Player] Cache URI:', cacheUri);
+        console.log('[MP4Player] ========== Preparing Local File ==========');
+        console.log('[MP4Player] Original URI:', uri);
+        console.log('[MP4Player] Platform:', Platform.OS);
 
-        // Check if file already exists in cache
-        const cacheFileInfo = await FileSystem.getInfoAsync(cacheUri);
-        if (cacheFileInfo.exists) {
-          console.log('[MP4Player] ✅ File already exists in cache, using cached version');
-          setProcessedLocalUri(cacheUri);
-          setIsCopyingFile(false);
-          return;
-        }
-
-        // Copy file to cache directory
-        console.log('[MP4Player] 📋 Copying file to cache directory...');
-        await FileSystem.copyAsync({
-          from: uri,
-          to: cacheUri,
+        const result = await prepareLocalVideo(uri);
+        
+        console.log('[MP4Player] Prepare result:', {
+          success: result.success,
+          hasUri: !!result.uri,
+          needsCopy: result.needsCopy,
+          isCached: result.isCached,
+          error: result.error,
         });
 
-        // Verify copy success
-        const copiedFileInfo = await FileSystem.getInfoAsync(cacheUri);
-        if (copiedFileInfo.exists) {
-          console.log('[MP4Player] ✅ File successfully copied to cache');
-          console.log('[MP4Player] File size:', copiedFileInfo.size, 'bytes');
-          setProcessedLocalUri(cacheUri);
+        if (result.success && result.uri) {
+          console.log('[MP4Player] ✅ File prepared successfully');
+          console.log('[MP4Player] Playable URI:', result.uri);
+          if (result.size) {
+            console.log('[MP4Player] File size:', (result.size / 1024 / 1024).toFixed(2), 'MB');
+          }
+          setPrepareResult(result);
         } else {
-          throw new Error('Failed to verify copied file');
+          console.error('[MP4Player] ❌ File preparation failed:', result.error);
+          const errorMsg = `無法準備本地檔案播放\n\n錯誤: ${result.error}\n\n可能原因：\n• 檔案無法訪問（權限不足）\n• 檔案不存在或已被刪除\n• 儲存空間不足\n• 檔案格式不支援\n\n建議：\n• 重新選擇檔案\n• 檢查檔案權限\n• 確保有足夠的儲存空間`;
+          setError(errorMsg);
+          onError?.(errorMsg);
         }
       } catch (error) {
-        console.error('[MP4Player] ❌ Failed to copy file to cache:', error);
-        console.error('[MP4Player] Error details:', {
-          message: error instanceof Error ? error.message : String(error),
-          uri,
-          platform: Platform.OS,
-        });
-        
-        // Fallback: try to use original URI
-        console.log('[MP4Player] ⚠️ Attempting fallback to original URI...');
-        setProcessedLocalUri(uri);
+        console.error('[MP4Player] ❌ Unexpected error preparing file:', error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        setError(`檔案準備失敗: ${errorMsg}`);
+        onError?.(`檔案準備失敗: ${errorMsg}`);
       } finally {
         setIsCopyingFile(false);
       }
     };
 
-    copyLocalFileToCache();
-  }, [uri, isLocalFile]);
+    prepareFile();
+  }, [uri, isLocalFile, onError]);
 
   const processedUri = React.useMemo(() => {
     if (!uri || uri.trim() === '') {
       return '';
     }
 
-    // For iOS local files, use processed cache URI
-    if (isLocalFile && Platform.OS === 'ios') {
-      if (processedLocalUri) {
-        console.log('[MP4Player] ========== iOS Local File (Cached) ==========');
-        console.log('[MP4Player] Using cached URI:', processedLocalUri);
-        return processedLocalUri;
+    // For local files, use prepared URI from videoHelpers
+    if (isLocalFile) {
+      if (prepareResult && prepareResult.success && prepareResult.uri) {
+        console.log('[MP4Player] ========== Local File (Prepared) ==========');
+        console.log('[MP4Player] Using prepared URI:', prepareResult.uri);
+        console.log('[MP4Player] Original URI:', prepareResult.originUri);
+        console.log('[MP4Player] Was copied to cache:', prepareResult.needsCopy);
+        console.log('[MP4Player] Was already cached:', prepareResult.isCached);
+        return prepareResult.uri;
       } else if (!isCopyingFile) {
-        console.log('[MP4Player] ⏳ Waiting for file to be copied to cache...');
+        console.log('[MP4Player] ⏳ Waiting for file preparation...');
         return '';
       }
       return '';
-    }
-    
-    // For Android local files or other platforms, use as-is
-    if (isLocalFile) {
-      console.log('[MP4Player] ========== Local File Processing ==========');
-      console.log('[MP4Player] Local file URI:', uri);
-      console.log('[MP4Player] Platform:', Platform.OS);
-      console.log('[MP4Player] Retry attempt:', retryCount);
-      return uri;
     }
     
     // For remote URLs, apply conversion and encoding
@@ -145,14 +125,14 @@ export function MP4Player({
     // MIME correction: Ensure URL spacing is properly encoded
     converted = converted.replace(/[\s]/g, '%20');
     
-    console.log('[MP4Player] ========== URI Processing ==========');
+    console.log('[MP4Player] ========== Remote URI Processing ==========');
     console.log('[MP4Player] Original URI:', uri);
     console.log('[MP4Player] Converted URI:', converted);
     console.log('[MP4Player] Platform:', Platform.OS);
     console.log('[MP4Player] Retry attempt:', retryCount);
     console.log('[MP4Player] MIME correction applied:', converted !== uri);
     return converted;
-  }, [uri, retryCount, isLocalFile, processedLocalUri, isCopyingFile]);
+  }, [uri, retryCount, isLocalFile, prepareResult, isCopyingFile]);
 
   const player = useVideoPlayer(processedUri, (player) => {
     if (!player) return;
@@ -332,6 +312,12 @@ export function MP4Player({
         
         if (isLocalFile) {
           fullErrorMsg += `\n\n📁 Local File Issues:\n• Check if the app has permission to read this file\n• Verify the file is not corrupted\n• Supported formats: MP4 (H.264 + AAC), MOV, M4V\n• Try selecting the file again\n\n📋 File Info:\n${diagnostics?.fileInfo?.name || 'Unknown'}`;
+          if (Platform.OS === 'ios') {
+            fullErrorMsg += '\n\n⚠️ iOS Note: Files should be copied to app cache for playback';
+            if (prepareResult) {
+              fullErrorMsg += `\n\n🔍 Prepare Status:\n• Success: ${prepareResult.success}\n• Error: ${prepareResult.error || 'None'}`;
+            }
+          }
           if (Platform.OS === 'android') {
             fullErrorMsg += '\n\n⚠️ Android Note: Some file paths from external apps may not be accessible';
           }

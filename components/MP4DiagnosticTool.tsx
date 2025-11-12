@@ -25,6 +25,7 @@ import {
   formatDiagnosticsReport, 
   type MP4DiagnosticsResult 
 } from '@/utils/mp4Diagnostics';
+import { prepareLocalVideo, type PrepareLocalVideoResult } from '@/utils/videoHelpers';
 import Colors from '@/constants/colors';
 
 export interface MP4DiagnosticToolProps {
@@ -44,6 +45,7 @@ export function MP4DiagnosticTool({
   const [isTesting, setIsTesting] = useState(false);
   const [result, setResult] = useState<MP4DiagnosticsResult | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [prepareResult, setPrepareResult] = useState<PrepareLocalVideoResult | null>(null);
 
   React.useEffect(() => {
     if (visible && initialUrl && initialUrl !== testUrl) {
@@ -91,12 +93,51 @@ export function MP4DiagnosticTool({
 
     setIsTesting(true);
     setResult(null);
+    setPrepareResult(null);
 
     try {
       console.log('[MP4DiagnosticTool] Testing URL:', testUrl.trim());
-      const diagResult = await diagnoseMP4Url(testUrl.trim());
-      setResult(diagResult);
-      console.log('[MP4DiagnosticTool] Diagnostic complete:', diagResult);
+      const url = testUrl.trim();
+      
+      // Check if this is a local file
+      const isLocalFile = url.startsWith('file://') || 
+                          url.startsWith('content://') || 
+                          url.startsWith('ph://') ||
+                          url.startsWith('assets-library://');
+      
+      if (isLocalFile) {
+        console.log('[MP4DiagnosticTool] Local file detected, preparing...');
+        const prepResult = await prepareLocalVideo(url);
+        setPrepareResult(prepResult);
+        console.log('[MP4DiagnosticTool] Prepare result:', prepResult);
+        
+        if (prepResult.success && prepResult.uri) {
+          // Diagnose the prepared URI
+          const diagResult = await diagnoseMP4Url(prepResult.uri);
+          setResult(diagResult);
+          console.log('[MP4DiagnosticTool] Diagnostic complete:', diagResult);
+        } else {
+          // Show prepare error
+          const diagResult: MP4DiagnosticsResult = {
+            isValid: false,
+            url,
+            isLocalFile: true,
+            errors: [prepResult.error || 'Failed to prepare local file'],
+            warnings: [],
+            recommendations: [
+              '請確保應用有權限讀取該文件',
+              '檢查儲存空間是否充足',
+              '嘗試重新選擇文件',
+            ],
+          };
+          setResult(diagResult);
+        }
+      } else {
+        // Remote URL - diagnose directly
+        const diagResult = await diagnoseMP4Url(url);
+        setResult(diagResult);
+        console.log('[MP4DiagnosticTool] Diagnostic complete:', diagResult);
+      }
     } catch (error) {
       console.error('[MP4DiagnosticTool] Test failed:', error);
       Alert.alert(
@@ -189,6 +230,7 @@ export function MP4DiagnosticTool({
                     setSelectedFile(null);
                     setTestUrl('');
                     setResult(null);
+                    setPrepareResult(null);
                   }}
                 >
                   <Text style={styles.clearFileText}>清除選擇</Text>
@@ -266,12 +308,45 @@ export function MP4DiagnosticTool({
                   </View>
                 )}
 
-                {result.contentLength && (
+                {(result.contentLength || prepareResult?.size) && (
                   <View style={styles.infoCard}>
                     <Text style={styles.infoLabel}>文件大小</Text>
                     <Text style={styles.infoValue}>
-                      {(result.contentLength / 1024 / 1024).toFixed(2)} MB
+                      {result.contentLength 
+                        ? (result.contentLength / 1024 / 1024).toFixed(2)
+                        : prepareResult?.size
+                        ? (prepareResult.size / 1024 / 1024).toFixed(2)
+                        : '0.00'
+                      } MB
                     </Text>
+                  </View>
+                )}
+
+                {prepareResult && (
+                  <View style={[
+                    styles.infoCard,
+                    !prepareResult.success && styles.errorCard
+                  ]}>
+                    <Text style={styles.infoLabel}>本地文件處理</Text>
+                    {prepareResult.success ? (
+                      <>
+                        <Text style={styles.infoValue}>
+                          ✅ {prepareResult.needsCopy ? '已複製到快取' : prepareResult.isCached ? '使用已快取文件' : '直接訪問'}
+                        </Text>
+                        {prepareResult.needsCopy && (
+                          <Text style={styles.warningText}>
+                            💡 文件已複製到應用快取目錄以確保播放相容性
+                          </Text>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Text style={styles.infoValue}>❌ 準備失敗</Text>
+                        <Text style={styles.errorText}>
+                          {prepareResult.error}
+                        </Text>
+                      </>
+                    )}
                   </View>
                 )}
 

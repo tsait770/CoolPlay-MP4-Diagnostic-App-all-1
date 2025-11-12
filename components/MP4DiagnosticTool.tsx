@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
   ActivityIndicator,
   ScrollView,
   Modal,
@@ -12,44 +12,20 @@ import {
   Platform,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import {
-  TestTube2,
-  CheckCircle,
-  AlertTriangle,
-  XCircle,
+import { 
+  TestTube2, 
+  CheckCircle, 
+  AlertTriangle, 
+  XCircle, 
   Info,
   X,
 } from 'lucide-react-native';
-import {
-  diagnoseMP4Url,
-  type MP4DiagnosticsResult,
-} from '../utils/mp4Diagnostics';
-import { prepareLocalVideo, type PrepareLocalVideoResult } from '../utils/videoHelpers';
-import Colors from '../constants/colors';
-
-type DiagnosticSource = 'local' | 'remote';
-
-type DiagnosticTarget = {
-  uri: string;
-  source: DiagnosticSource;
-  originalUri?: string;
-  displayName?: string;
-};
-
-type ActiveMediaState = {
-  source: DiagnosticSource;
-  originalUri: string;
-  resolvedUri?: string;
-  displayName?: string;
-  size?: number;
-};
-
-type SelectedFileInfo = {
-  name: string;
-  uri: string;
-  size?: number;
-  mimeType?: string | null;
-};
+import { 
+  diagnoseMP4Url, 
+  type MP4DiagnosticsResult 
+} from '@/utils/mp4Diagnostics';
+import { prepareLocalVideo, type PrepareLocalVideoResult } from '@/utils/videoHelpers';
+import Colors from '@/constants/colors';
 
 export interface MP4DiagnosticToolProps {
   visible: boolean;
@@ -58,121 +34,94 @@ export interface MP4DiagnosticToolProps {
   onLoadVideo?: (url: string) => void;
 }
 
-export function MP4DiagnosticTool({
-  visible,
-  onClose,
+export function MP4DiagnosticTool({ 
+  visible, 
+  onClose, 
   initialUrl = '',
-  onLoadVideo,
+  onLoadVideo 
 }: MP4DiagnosticToolProps) {
   const [testUrl, setTestUrl] = useState(initialUrl);
   const [isTesting, setIsTesting] = useState(false);
   const [result, setResult] = useState<MP4DiagnosticsResult | null>(null);
-  const [selectedFile, setSelectedFile] = useState<SelectedFileInfo | null>(null);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [prepareResult, setPrepareResult] = useState<PrepareLocalVideoResult | null>(null);
-  const [activeMedia, setActiveMedia] = useState<ActiveMediaState | null>(null);
-  const [diagnosticPayload, setDiagnosticPayload] = useState<Record<string, unknown> | null>(null);
-  const diagnosticLines = React.useMemo(() => {
-    if (!diagnosticPayload) {
-      return [] as string[];
-    }
-    return JSON.stringify(diagnosticPayload, null, 2).split('\n');
-  }, [diagnosticPayload]);
 
   React.useEffect(() => {
-    if (!visible) {
-      return;
+    if (visible && initialUrl && initialUrl !== testUrl) {
+      setTestUrl(initialUrl);
     }
+  }, [visible, initialUrl, testUrl]);
 
-    const trimmedInitial = initialUrl.trim();
+  const handlePickFile = async () => {
+    try {
+      console.log('[MP4DiagnosticTool] Opening document picker...');
+      
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['video/mp4', 'video/*'],
+        copyToCacheDirectory: Platform.OS === 'ios',
+      });
+      
+      console.log('[MP4DiagnosticTool] Document picker result:', {
+        canceled: result.canceled,
+        assets: result.assets?.length || 0
+      });
 
-    if (trimmedInitial.length === 0) {
-      return;
+      if (result.canceled) {
+        return;
+      }
+
+      const file = result.assets[0];
+      if (file) {
+        console.log('[MP4DiagnosticTool] ========== File Selected ==========');
+        console.log('[MP4DiagnosticTool] Name:', file.name);
+        console.log('[MP4DiagnosticTool] URI:', file.uri);
+        console.log('[MP4DiagnosticTool] Size:', file.size, 'bytes');
+        console.log('[MP4DiagnosticTool] MIME type:', file.mimeType);
+        console.log('[MP4DiagnosticTool] Platform:', Platform.OS);
+        
+        setSelectedFile(file.name);
+        setTestUrl(file.uri);
+        
+        // Auto-run diagnostics for local files
+        setTimeout(() => handleTest(), 100);
+      }
+    } catch (error) {
+      console.error('[MP4DiagnosticTool] File picker error:', error);
+      console.error('[MP4DiagnosticTool] ❌ 無法選擇文件:', error instanceof Error ? error.message : String(error));
     }
+  };
 
-    setSelectedFile(null);
-    setPrepareResult(null);
-    setActiveMedia((prev) => {
-      if (prev?.originalUri === trimmedInitial && prev.source === 'remote') {
-        return prev;
-      }
-      return {
-        source: 'remote',
-        originalUri: trimmedInitial,
-        resolvedUri: trimmedInitial,
-      };
-    });
-
-    setTestUrl((current) => {
-      if (current.trim() === trimmedInitial) {
-        return current;
-      }
-      return trimmedInitial;
-    });
-  }, [visible, initialUrl]);
-
-  const handleTest = React.useCallback(async (override?: DiagnosticTarget) => {
-    const rawInput = override?.uri ?? selectedFile?.uri ?? testUrl;
-    const trimmedInput = typeof rawInput === 'string' ? rawInput.trim() : '';
-    const source: DiagnosticSource = override?.source ?? (selectedFile ? 'local' : 'remote');
-    const displayName = override?.displayName ?? selectedFile?.name;
-    const originalUri = override?.originalUri ?? selectedFile?.uri ?? testUrl;
-    const hasValidInput = trimmedInput.length > 0;
-
-    console.log('[MP4DiagnosticTool] ========== Starting Test ==========');
-    console.log('[MP4DiagnosticTool] override:', override);
-    console.log('[MP4DiagnosticTool] rawInput:', rawInput);
-    console.log('[MP4DiagnosticTool] trimmedInput:', trimmedInput);
-    console.log('[MP4DiagnosticTool] selectedFile:', selectedFile);
-    console.log('[MP4DiagnosticTool] source:', source);
-
-    if (!hasValidInput) {
+  const handleTest = async () => {
+    if (!testUrl.trim() && !selectedFile) {
       console.error('[MP4DiagnosticTool] ❌ No URL or file selected');
-      console.error('[MP4DiagnosticTool] testUrl:', testUrl);
-      console.error('[MP4DiagnosticTool] selectedFile:', selectedFile);
-      Alert.alert('錯誤', '請先選擇影片文件或輸入視頻 URL');
       return;
     }
 
     setIsTesting(true);
     setResult(null);
     setPrepareResult(null);
-    setDiagnosticPayload(null);
-    setActiveMedia({
-      source,
-      originalUri: typeof originalUri === 'string' ? originalUri.trim() : trimmedInput,
-      resolvedUri: trimmedInput,
-      displayName,
-      size: selectedFile?.size,
-    });
 
     try {
-      const isLocalFile =
-        source === 'local' ||
-        trimmedInput.startsWith('file://') ||
-        trimmedInput.startsWith('content://') ||
-        trimmedInput.startsWith('ph://') ||
-        trimmedInput.startsWith('assets-library://');
-
+      console.log('[MP4DiagnosticTool] Testing URL:', testUrl.trim());
+      const url = testUrl.trim();
+      
+      // Check if this is a local file
+      const isLocalFile = url.startsWith('file://') || 
+                          url.startsWith('content://') || 
+                          url.startsWith('ph://') ||
+                          url.startsWith('assets-library://');
+      
       if (isLocalFile) {
         console.log('[MP4DiagnosticTool] Local file detected, preparing...');
-        const prepResult = await prepareLocalVideo(trimmedInput);
+        const prepResult = await prepareLocalVideo(url);
         setPrepareResult(prepResult);
         console.log('[MP4DiagnosticTool] Prepare result:', prepResult);
-
+        
         if (prepResult.success && prepResult.uri) {
-          const resolvedUri = prepResult.uri;
-          setTestUrl(resolvedUri);
-          setActiveMedia({
-            source: 'local',
-            originalUri: prepResult.originUri,
-            resolvedUri,
-            displayName: prepResult.displayName ?? displayName ?? selectedFile?.name,
-            size: prepResult.size,
-          });
-
+          // For local files, create simplified diagnostic result
           const diagResult: MP4DiagnosticsResult = {
             isValid: true,
-            url: resolvedUri,
+            url: prepResult.uri,
             isLocalFile: true,
             httpStatus: 200,
             contentType: 'video/mp4',
@@ -185,37 +134,19 @@ export function MP4DiagnosticTool({
               prepResult.needsCopy ? '文件已複製到應用快取目錄' : '文件可直接訪問',
             ],
             fileInfo: {
-              name: prepResult.displayName ?? displayName ?? trimmedInput.split('/').pop() ?? 'Unknown',
-              size: prepResult.size,
-              uri: resolvedUri,
+              name: url.split('/').pop() || 'Unknown',
+              size: prepResult.size || 0,
             },
           };
-
           setResult(diagResult);
-          const payload = {
-            event: 'diagnostic.finish',
-            timestamp: new Date().toISOString(),
-            source: 'local',
-            fileName: diagResult.fileInfo?.name,
-            path: prepResult.originUri,
-            resolvedUri,
-            size: prepResult.size,
-            platform: prepResult.platform,
-            needsCopy: prepResult.needsCopy,
-            isCached: prepResult.isCached,
-            status: 'playable',
-          };
-          setDiagnosticPayload(payload);
-          console.log('[MP4DiagnosticTool] Diagnostic payload:', payload);
-
           console.log('[MP4DiagnosticTool] Local file diagnostic complete:', diagResult);
         } else {
-          const errorMessage = prepResult.error ?? 'Failed to prepare local file';
+          // Show prepare error
           const diagResult: MP4DiagnosticsResult = {
             isValid: false,
-            url: trimmedInput,
+            url,
             isLocalFile: true,
-            errors: [errorMessage],
+            errors: [prepResult.error || 'Failed to prepare local file'],
             warnings: [],
             recommendations: [
               '請確保應用有權限讀取該文件',
@@ -223,46 +154,12 @@ export function MP4DiagnosticTool({
               '嘗試重新選擇文件',
             ],
           };
-
           setResult(diagResult);
-          const payload = {
-            event: 'diagnostic.finish',
-            timestamp: new Date().toISOString(),
-            source: 'local',
-            path: trimmedInput,
-            status: 'failed',
-            error: errorMessage,
-          };
-          setDiagnosticPayload(payload);
-          console.log('[MP4DiagnosticTool] Diagnostic payload:', payload);
         }
       } else {
-        const diagResult = await diagnoseMP4Url(trimmedInput);
+        // Remote URL - diagnose directly
+        const diagResult = await diagnoseMP4Url(url);
         setResult(diagResult);
-        setActiveMedia({
-          source: 'remote',
-          originalUri: typeof originalUri === 'string' ? originalUri.trim() : trimmedInput,
-          resolvedUri: diagResult.url?.trim() ?? trimmedInput,
-          displayName,
-        });
-
-        const payload = {
-          event: 'diagnostic.finish',
-          timestamp: new Date().toISOString(),
-          source: 'remote',
-          url: diagResult.url,
-          httpStatus: diagResult.httpStatus,
-          contentType: diagResult.contentType,
-          acceptRanges: diagResult.acceptRanges,
-          corsEnabled: diagResult.corsEnabled,
-          warnings: diagResult.warnings,
-          errors: diagResult.errors,
-          recommendations: diagResult.recommendations,
-          status: diagResult.isValid && diagResult.errors.length === 0 ? 'playable' : 'failed',
-        };
-        setDiagnosticPayload(payload);
-        console.log('[MP4DiagnosticTool] Diagnostic payload:', payload);
-
         console.log('[MP4DiagnosticTool] Diagnostic complete:', diagResult);
       }
     } catch (error) {
@@ -270,126 +167,22 @@ export function MP4DiagnosticTool({
       const errorMsg = error instanceof Error ? error.message : String(error);
       const diagResult: MP4DiagnosticsResult = {
         isValid: false,
-        url: trimmedInput,
+        url: testUrl,
         errors: [errorMsg],
         warnings: [],
         recommendations: ['請檢查網絡連接', '驗證 URL 格式是否正確'],
-        isLocalFile: source === 'local',
       };
       setResult(diagResult);
-      const payload = {
-        event: 'diagnostic.finish',
-        timestamp: new Date().toISOString(),
-        source,
-        status: 'failed',
-        error: errorMsg,
-        uri: trimmedInput,
-      };
-      setDiagnosticPayload(payload);
-      console.log('[MP4DiagnosticTool] Diagnostic payload:', payload);
     } finally {
       setIsTesting(false);
-    }
-  }, [selectedFile, testUrl]);
-
-  const handlePickFile = async () => {
-    try {
-      console.log('[MP4DiagnosticTool] Opening document picker...');
-
-      const pickerResult = await DocumentPicker.getDocumentAsync({
-        type: ['video/mp4', 'video/*'],
-        copyToCacheDirectory: Platform.OS === 'ios',
-      });
-
-      console.log('[MP4DiagnosticTool] Document picker result:', {
-        canceled: pickerResult.canceled,
-        assets: pickerResult.assets?.length || 0,
-      });
-
-      if (pickerResult.canceled) {
-        return;
-      }
-
-      const file = pickerResult.assets?.[0];
-
-      if (file && typeof file.uri === 'string' && file.uri.trim().length > 0) {
-        const fileInfo: SelectedFileInfo = {
-          name: file.name ?? 'Local Video',
-          uri: file.uri,
-          size: file.size,
-          mimeType: file.mimeType ?? null,
-        };
-
-        console.log('[MP4DiagnosticTool] ========== File Selected ==========');
-        console.log('[MP4DiagnosticTool] Name:', fileInfo.name);
-        console.log('[MP4DiagnosticTool] URI:', fileInfo.uri);
-        console.log('[MP4DiagnosticTool] Size:', fileInfo.size, 'bytes');
-        console.log('[MP4DiagnosticTool] MIME type:', fileInfo.mimeType);
-        console.log('[MP4DiagnosticTool] Platform:', Platform.OS);
-
-        setSelectedFile(fileInfo);
-        setTestUrl(fileInfo.uri);
-        setActiveMedia({
-          source: 'local',
-          originalUri: fileInfo.uri,
-          resolvedUri: fileInfo.uri,
-          displayName: fileInfo.name,
-          size: fileInfo.size,
-        });
-
-        console.log('[MP4DiagnosticTool] ✅ File info stored:', fileInfo);
-
-        setTimeout(() => {
-          void handleTest({
-            uri: fileInfo.uri,
-            source: 'local',
-            originalUri: fileInfo.uri,
-            displayName: fileInfo.name,
-          });
-        }, 120);
-      } else {
-        console.error('[MP4DiagnosticTool] ❌ Invalid file selection payload');
-        Alert.alert('錯誤', '無法讀取所選文件');
-      }
-    } catch (error) {
-      console.error('[MP4DiagnosticTool] File picker error:', error);
-      console.error('[MP4DiagnosticTool] ❌ 無法選擇文件:', error instanceof Error ? error.message : String(error));
-      Alert.alert('錯誤', '選取影片時發生錯誤');
     }
   };
 
   const handleLoadVideo = () => {
     if (result && result.isValid && onLoadVideo) {
-      const resolvedFromState = typeof activeMedia?.resolvedUri === 'string' ? activeMedia.resolvedUri.trim() : '';
-      const preparedUri = prepareResult?.success && typeof prepareResult.uri === 'string' ? prepareResult.uri.trim() : '';
-      const fallbackRaw = selectedFile?.uri ?? testUrl;
-      const fallbackUri = typeof fallbackRaw === 'string' ? fallbackRaw.trim() : '';
-      const uriToLoad = resolvedFromState.length > 0 ? resolvedFromState : preparedUri.length > 0 ? preparedUri : fallbackUri;
-
-      console.log('[MP4DiagnosticTool] ========== Loading Video ==========');
-      console.log('[MP4DiagnosticTool] activeMedia:', activeMedia);
-      console.log('[MP4DiagnosticTool] prepareResult:', prepareResult);
-      console.log('[MP4DiagnosticTool] diagnosticPayload:', diagnosticPayload);
-      console.log('[MP4DiagnosticTool] fallbackUri:', fallbackUri);
-      console.log('[MP4DiagnosticTool] uriToLoad:', uriToLoad);
-
-      if (uriToLoad.length === 0) {
-        console.error('[MP4DiagnosticTool] ❌ Empty URI - cannot load video');
-        Alert.alert('錯誤', '無法載入影片：URI 為空');
-        return;
-      }
-
-      console.log('[MP4DiagnosticTool] ✅ Calling onLoadVideo with URI:', uriToLoad);
-      onLoadVideo(uriToLoad);
+      onLoadVideo(testUrl.trim());
       onClose();
-      return;
     }
-
-    console.error('[MP4DiagnosticTool] ❌ Cannot load video:', {
-      hasResult: !!result,
-      isValid: result?.isValid,
-      hasCallback: !!onLoadVideo,
-    });
   };
 
   const getStatusIcon = () => {
@@ -397,11 +190,11 @@ export function MP4DiagnosticTool({
 
     if (result.isValid && result.errors.length === 0) {
       return <CheckCircle size={48} color="#10b981" />;
-    }
-    if (result.warnings.length > 0 && result.errors.length === 0) {
+    } else if (result.warnings.length > 0 && result.errors.length === 0) {
       return <AlertTriangle size={48} color="#f59e0b" />;
+    } else {
+      return <XCircle size={48} color="#ef4444" />;
     }
-    return <XCircle size={48} color="#ef4444" />;
   };
 
   const getStatusText = () => {
@@ -412,8 +205,9 @@ export function MP4DiagnosticTool({
         return '✅ 完美！視頻完全兼容';
       }
       return '⚠️ 可播放，但有建議改進項';
+    } else {
+      return '❌ 無法播放';
     }
-    return '❌ 無法播放';
   };
 
   return (
@@ -435,7 +229,7 @@ export function MP4DiagnosticTool({
             </TouchableOpacity>
           </View>
 
-          <ScrollView
+          <ScrollView 
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
@@ -444,15 +238,13 @@ export function MP4DiagnosticTool({
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>視頻 URL</Text>
               <TextInput
-                testID="mp4-diagnostic-url-input"
                 style={styles.input}
                 placeholder="輸入 MP4 視頻 URL"
                 placeholderTextColor={Colors.primary.textSecondary}
-                value={selectedFile ? `本地文件: ${selectedFile.name}` : testUrl}
+                value={selectedFile ? `本地文件: ${selectedFile}` : testUrl}
                 onChangeText={(text) => {
                   setTestUrl(text);
                   setSelectedFile(null);
-                  setActiveMedia((prev) => (prev?.source === 'remote' ? prev : null));
                 }}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -468,8 +260,6 @@ export function MP4DiagnosticTool({
                     setTestUrl('');
                     setResult(null);
                     setPrepareResult(null);
-                    setActiveMedia(null);
-                    setDiagnosticPayload(null);
                   }}
                 >
                   <Text style={styles.clearFileText}>清除選擇</Text>
@@ -479,23 +269,16 @@ export function MP4DiagnosticTool({
 
             <View style={styles.buttonRow}>
               <TouchableOpacity
-                testID="mp4-diagnostic-select-file-button"
                 style={[styles.selectFileButton]}
                 onPress={handlePickFile}
               >
                 <Text style={styles.selectFileButtonText}>📁 選擇影片</Text>
               </TouchableOpacity>
-
+              
               <TouchableOpacity
-                testID="mp4-diagnostic-start-button"
-                style={[
-                  styles.testButton,
-                  (isTesting || (!selectedFile && !testUrl.trim())) && styles.buttonDisabled,
-                ]}
-                onPress={() => {
-                  void handleTest();
-                }}
-                disabled={isTesting || (!selectedFile && !testUrl.trim())}
+                style={[styles.testButton, isTesting && styles.buttonDisabled]}
+                onPress={handleTest}
+                disabled={isTesting || !testUrl.trim()}
               >
                 {isTesting ? (
                   <ActivityIndicator size="small" color="#fff" />
@@ -523,12 +306,10 @@ export function MP4DiagnosticTool({
                 )}
 
                 {result.contentType && (
-                  <View
-                    style={[
-                      styles.infoCard,
-                      result.mimeTypeIssue && styles.warningCard,
-                    ]}
-                  >
+                  <View style={[
+                    styles.infoCard,
+                    result.mimeTypeIssue && styles.warningCard
+                  ]}>
                     <Text style={styles.infoLabel}>Content-Type</Text>
                     <Text style={styles.infoValue}>{result.contentType}</Text>
                     {result.mimeTypeIssue && (
@@ -540,12 +321,10 @@ export function MP4DiagnosticTool({
                 )}
 
                 {result.acceptRanges !== undefined && (
-                  <View
-                    style={[
-                      styles.infoCard,
-                      !result.acceptRanges && styles.warningCard,
-                    ]}
-                  >
+                  <View style={[
+                    styles.infoCard,
+                    !result.acceptRanges && styles.warningCard
+                  ]}>
                     <Text style={styles.infoLabel}>Accept-Ranges</Text>
                     <Text style={styles.infoValue}>
                       {result.acceptRanges ? '✅ bytes' : '❌ 不支持'}
@@ -562,55 +341,27 @@ export function MP4DiagnosticTool({
                   <View style={styles.infoCard}>
                     <Text style={styles.infoLabel}>文件大小</Text>
                     <Text style={styles.infoValue}>
-                      {result.contentLength
+                      {result.contentLength 
                         ? (result.contentLength / 1024 / 1024).toFixed(2)
                         : prepareResult?.size
                         ? (prepareResult.size / 1024 / 1024).toFixed(2)
-                        : '0.00'} MB
+                        : '0.00'
+                      } MB
                     </Text>
                   </View>
                 )}
 
-                {diagnosticLines.length > 0 && (
-                  <View style={styles.infoCard}>
-                    <Text style={styles.infoLabel}>診斷摘要</Text>
-                    <View style={styles.jsonContainer}>
-                      {diagnosticLines.map((line, index) => (
-                        <Text key={`diagnostic-line-${index}`} style={styles.jsonLineText}>
-                          {line}
-                        </Text>
-                      ))}
-                    </View>
-                  </View>
-                )}
-
                 {prepareResult && (
-                  <View
-                    style={[
-                      styles.infoCard,
-                      !prepareResult.success && styles.errorCard,
-                    ]}
-                  >
+                  <View style={[
+                    styles.infoCard,
+                    !prepareResult.success && styles.errorCard
+                  ]}>
                     <Text style={styles.infoLabel}>本地文件處理</Text>
                     {prepareResult.success ? (
                       <>
                         <Text style={styles.infoValue}>
-                          ✅ {prepareResult.needsCopy
-                            ? '已複製到快取'
-                            : prepareResult.isCached
-                            ? '使用已快取文件'
-                            : '直接訪問'}
+                          ✅ {prepareResult.needsCopy ? '已複製到快取' : prepareResult.isCached ? '使用已快取文件' : '直接訪問'}
                         </Text>
-                        {prepareResult.displayName && (
-                          <Text style={styles.infoDetail}>
-                            🎞️ {prepareResult.displayName}
-                          </Text>
-                        )}
-                        {prepareResult.uri && (
-                          <Text style={styles.infoDetail} numberOfLines={2}>
-                            📁 {prepareResult.uri}
-                          </Text>
-                        )}
                         {prepareResult.needsCopy && (
                           <Text style={styles.warningText}>
                             💡 文件已複製到應用快取目錄以確保播放相容性
@@ -620,19 +371,19 @@ export function MP4DiagnosticTool({
                     ) : (
                       <>
                         <Text style={styles.infoValue}>❌ 準備失敗</Text>
-                        <Text style={styles.errorText}>{prepareResult.error}</Text>
+                        <Text style={styles.errorText}>
+                          {prepareResult.error}
+                        </Text>
                       </>
                     )}
                   </View>
                 )}
 
                 {result.corsEnabled !== undefined && (
-                  <View
-                    style={[
-                      styles.infoCard,
-                      !result.corsEnabled && styles.errorCard,
-                    ]}
-                  >
+                  <View style={[
+                    styles.infoCard,
+                    !result.corsEnabled && styles.errorCard
+                  ]}>
                     <Text style={styles.infoLabel}>CORS</Text>
                     <Text style={styles.infoValue}>
                       {result.corsEnabled ? '✅ 已啟用' : '❌ 未配置'}
@@ -648,7 +399,9 @@ export function MP4DiagnosticTool({
                 {result.corsFallbackTested && (
                   <View style={styles.infoCard}>
                     <Info size={16} color={Colors.warning} />
-                    <Text style={styles.warningText}>使用了 no-cors 模式進行測試</Text>
+                    <Text style={styles.warningText}>
+                      使用了 no-cors 模式進行測試
+                    </Text>
                   </View>
                 )}
 
@@ -676,7 +429,9 @@ export function MP4DiagnosticTool({
 
                 {result.recommendations.length > 0 && (
                   <View style={styles.recommendationSection}>
-                    <Text style={styles.recommendationSectionTitle}>💡 建議</Text>
+                    <Text style={styles.recommendationSectionTitle}>
+                      💡 建議
+                    </Text>
                     {result.recommendations.map((rec, index) => (
                       <Text key={index} style={styles.recommendationItem}>
                         • {rec}
@@ -687,7 +442,6 @@ export function MP4DiagnosticTool({
 
                 {result.isValid && result.errors.length === 0 && onLoadVideo && (
                   <TouchableOpacity
-                    testID="mp4-diagnostic-load-button"
                     style={styles.loadButton}
                     onPress={handleLoadVideo}
                   >
@@ -699,7 +453,9 @@ export function MP4DiagnosticTool({
 
             <View style={styles.helpSection}>
               <Text style={styles.helpTitle}>診斷說明</Text>
-              <Text style={styles.helpText}>此工具會檢查 MP4 視頻的可播放性，包括：</Text>
+              <Text style={styles.helpText}>
+                此工具會檢查 MP4 視頻的可播放性，包括：
+              </Text>
               <Text style={styles.helpItem}>• HTTP 狀態碼</Text>
               <Text style={styles.helpItem}>• Content-Type (MIME 類型)</Text>
               <Text style={styles.helpItem}>• Accept-Ranges (支持快進)</Text>
@@ -865,11 +621,6 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: Colors.primary.text,
   },
-  infoDetail: {
-    fontSize: 12,
-    color: Colors.primary.textSecondary,
-    marginTop: 6,
-  },
   warningText: {
     fontSize: 12,
     color: '#f59e0b',
@@ -972,20 +723,6 @@ const styles = StyleSheet.create({
     color: Colors.primary.textSecondary,
     marginLeft: 8,
     lineHeight: 18,
-  },
-  jsonContainer: {
-    backgroundColor: 'rgba(148, 163, 184, 0.12)',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.3)',
-    gap: 4,
-  },
-  jsonLineText: {
-    fontSize: 12,
-    color: Colors.primary.textSecondary,
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
   },
 });
 

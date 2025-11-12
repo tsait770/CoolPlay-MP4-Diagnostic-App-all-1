@@ -325,10 +325,27 @@ export default function RootLayout() {
   }, []);
 
   if (initError) {
+    console.error('[RootLayout] Init error displayed:', initError);
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>Failed to initialize app</Text>
         <Text style={styles.errorSubtext}>{initError}</Text>
+        <TouchableOpacity 
+          style={{
+            marginTop: 20,
+            padding: 15,
+            backgroundColor: Colors.primary.accent,
+            borderRadius: 8,
+          }}
+          onPress={() => {
+            console.log('[RootLayout] User requested retry');
+            setInitError(null);
+            setIsInitialized(false);
+            setProvidersReady(false);
+          }}
+        >
+          <Text style={{ color: Colors.primary.text, textAlign: 'center' as const, fontWeight: '600' as const }}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }

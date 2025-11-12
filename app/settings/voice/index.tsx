@@ -26,7 +26,7 @@ export default function VoiceIndexScreen() {
 
   const diagnosticItem = {
     icon: TestTube2,
-    label: "🔍 MP4 錯誤診斷器",
+    label: "MP4 錯誤診斷器",
     subtitle: "診斷和修復 MP4 播放問題",
     action: () => setShowDiagnostic(true),
   };

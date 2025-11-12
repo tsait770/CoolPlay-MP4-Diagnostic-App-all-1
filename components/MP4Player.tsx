@@ -40,49 +40,89 @@ export function MP4Player({
   });
 
   useEffect(() => {
-    if (!player) return;
+    if (!player) {
+      console.warn('[MP4Player] Player instance is null or undefined');
+      return;
+    }
 
-    console.log('[MP4Player] Initializing player for:', uri);
+    console.log('[MP4Player] ========== Initializing Player ==========');
+    console.log('[MP4Player] Original URI:', uri);
     console.log('[MP4Player] Processed URI:', processedUri);
+    console.log('[MP4Player] Player instance:', player);
+    console.log('[MP4Player] Auto-play:', autoPlay);
 
     const statusSubscription = player.addListener('statusChange', (status) => {
-      console.log('[MP4Player] Status change:', status.status);
+      console.log('[MP4Player] Status change:', {
+        status: status.status,
+        oldStatus: status.oldStatus,
+        timestamp: new Date().toISOString(),
+      });
       
       if (status.status === 'readyToPlay') {
+        console.log('[MP4Player] ✅ Video ready to play');
+        console.log('[MP4Player] Duration:', player.duration);
         setIsLoading(false);
         setError(null);
         if (autoPlay) {
+          console.log('[MP4Player] Auto-playing video...');
           onPlaybackStart?.();
         }
+      } else if (status.status === 'loading') {
+        console.log('[MP4Player] 📥 Loading video...');
+        setIsLoading(true);
       } else if (status.status === 'error') {
         let errorMsg = 'Unknown playback error';
+        let errorDetails: any = {};
+        
         if (status.error) {
           if (typeof status.error === 'object' && 'message' in status.error) {
             errorMsg = String((status.error as any).message || 'Unknown error');
+            errorDetails = status.error;
           } else if (typeof status.error === 'string') {
             errorMsg = status.error;
           } else {
             errorMsg = JSON.stringify(status.error);
+            errorDetails = status.error;
           }
         }
         
-        console.error('[MP4Player] Playback error:', errorMsg);
+        console.error('[MP4Player] ❌ Playback error:', {
+          message: errorMsg,
+          details: errorDetails,
+          uri: processedUri,
+          timestamp: new Date().toISOString(),
+        });
         setIsLoading(false);
         setError(errorMsg);
         onError?.(errorMsg);
+      } else if (status.status === 'idle') {
+        console.log('[MP4Player] 💤 Player idle');
       }
     });
 
     const playingSubscription = player.addListener('playingChange', (event) => {
-      console.log('[MP4Player] Playing state:', event.isPlaying);
+      console.log('[MP4Player] Playing state changed:', {
+        isPlaying: event.isPlaying,
+        currentTime: player.currentTime,
+        duration: player.duration,
+      });
       if (event.isPlaying) {
         onPlaybackStart?.();
       }
     });
 
+    const volumeSubscription = player.addListener('volumeChange', (event) => {
+      console.log('[MP4Player] Volume changed:', {
+        volume: event.volume,
+        isMuted: event.isMuted,
+      });
+    });
+
     return () => {
+      console.log('[MP4Player] Cleaning up subscriptions');
       statusSubscription.remove();
       playingSubscription.remove();
+      volumeSubscription.remove();
     };
   }, [player, uri, processedUri, autoPlay, onPlaybackStart, onError]);
 
@@ -92,8 +132,38 @@ export function MP4Player({
     }
   }, [onBackPress]);
 
+  useEffect(() => {
+    if (!uri || uri.trim() === '') {
+      console.error('[MP4Player] ❌ No URI provided');
+      return;
+    }
+
+    console.log('[MP4Player] ========== URL Validation ==========');
+    try {
+      const url = new URL(processedUri);
+      console.log('[MP4Player] ✅ URL validation passed:', {
+        protocol: url.protocol,
+        hostname: url.hostname,
+        pathname: url.pathname,
+        search: url.search,
+      });
+
+      if (url.protocol !== 'http:' && url.protocol !== 'https:' && url.protocol !== 'file:') {
+        const warning = `Unsupported protocol: ${url.protocol}`;
+        console.warn('[MP4Player] ⚠️', warning);
+      }
+    } catch (error) {
+      console.error('[MP4Player] ❌ Invalid URL:', {
+        originalUri: uri,
+        processedUri: processedUri,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      setError('Invalid video URL format');
+    }
+  }, [uri, processedUri]);
+
   if (!uri || uri.trim() === '') {
-    console.warn('[MP4Player] No URI provided');
+    console.warn('[MP4Player] No URI provided, returning null');
     return null;
   }
 

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MP4Player from '@/components/MP4Player';
-import { Play } from 'lucide-react-native';
+import { Play, TestTube2 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { testVideoUrl, formatTestResult, type VideoUrlTestResult } from '@/utils/videoUrlTester';
 
 const TEST_VIDEOS = [
   {
@@ -28,10 +29,51 @@ const TEST_VIDEOS = [
 export default function MP4TestScreen() {
   const [currentVideo, setCurrentVideo] = useState<string>('');
   const [customUrl, setCustomUrl] = useState<string>('');
+  const [testResult, setTestResult] = useState<VideoUrlTestResult | null>(null);
+  const [isTesting, setIsTesting] = useState(false);
 
   const handleLoadVideo = (url: string) => {
     console.log('[MP4Test] Loading video:', url);
     setCurrentVideo(url);
+  };
+
+  const handleTestUrl = async () => {
+    if (!customUrl.trim()) {
+      Alert.alert('錯誤', '請輸入影片URL');
+      return;
+    }
+
+    setIsTesting(true);
+    setTestResult(null);
+
+    try {
+      const result = await testVideoUrl(customUrl.trim());
+      setTestResult(result);
+
+      if (!result.accessible) {
+        Alert.alert(
+          '無法訪問視頻',
+          `${result.error}\n\n請檢查：\n1. URL是否正確\n2. 網絡連接\n3. 視頻是否存在`,
+          [{ text: '確定' }]
+        );
+      } else {
+        Alert.alert(
+          '測試成功',
+          formatTestResult(result),
+          [
+            { text: '取消', style: 'cancel' },
+            { 
+              text: '載入視頻', 
+              onPress: () => handleLoadVideo(customUrl.trim())
+            }
+          ]
+        );
+      }
+    } catch (error) {
+      Alert.alert('測試失敗', error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsTesting(false);
+    }
   };
 
   const handleCustomLoad = () => {
@@ -117,13 +159,41 @@ export default function MP4TestScreen() {
             autoCorrect={false}
             keyboardType="url"
           />
-          <TouchableOpacity
-            style={[styles.loadButton, !customUrl.trim() && styles.loadButtonDisabled]}
-            onPress={handleCustomLoad}
-            disabled={!customUrl.trim()}
-          >
-            <Text style={styles.loadButtonText}>載入影片</Text>
-          </TouchableOpacity>
+          
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={[styles.testButton, !customUrl.trim() && styles.buttonDisabled]}
+              onPress={handleTestUrl}
+              disabled={!customUrl.trim() || isTesting}
+            >
+              {isTesting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <TestTube2 size={20} color="#fff" />
+              )}
+              <Text style={styles.buttonText}>測試</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.loadButton, !customUrl.trim() && styles.buttonDisabled]}
+              onPress={handleCustomLoad}
+              disabled={!customUrl.trim()}
+            >
+              <Play size={20} color="#fff" />
+              <Text style={styles.buttonText}>載入影片</Text>
+            </TouchableOpacity>
+          </View>
+
+          {testResult && (
+            <View style={[
+              styles.testResultCard,
+              testResult.accessible ? styles.testResultSuccess : styles.testResultError
+            ]}>
+              <Text style={styles.testResultText}>
+                {formatTestResult(testResult)}
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.infoSection}>
@@ -234,21 +304,59 @@ const styles = StyleSheet.create({
     borderColor: Colors.card.border,
     marginBottom: 12,
   },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  testButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#3b82f6',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
   loadButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     backgroundColor: Colors.accent.primary,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,
-    alignItems: 'center',
   },
-  loadButtonDisabled: {
+  buttonDisabled: {
     backgroundColor: Colors.primary.textSecondary,
     opacity: 0.5,
   },
-  loadButtonText: {
+  buttonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  testResultCard: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  testResultSuccess: {
+    backgroundColor: '#10b98120',
+    borderColor: '#10b981',
+  },
+  testResultError: {
+    backgroundColor: '#ef444420',
+    borderColor: '#ef4444',
+  },
+  testResultText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.primary.text,
   },
   infoSection: {
     backgroundColor: Colors.secondary.bg,

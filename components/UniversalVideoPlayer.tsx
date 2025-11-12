@@ -53,6 +53,7 @@ export default function UniversalVideoPlayer({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
+  const [useFallbackWebView, setUseFallbackWebView] = useState(false);
   const [loadStartTime, setLoadStartTime] = useState<number>(0);
   const [isScrolling, setIsScrolling] = useState(false);
   const webViewRef = useRef<WebView>(null);
@@ -633,21 +634,48 @@ export default function UniversalVideoPlayer({
     );
   };
 
+  const handleMP4Error = useCallback((error: string) => {
+    console.error('[UniversalVideoPlayer] ========== MP4 PLAYER ERROR ==========');
+    console.error('[UniversalVideoPlayer] Error:', error);
+    console.error('[UniversalVideoPlayer] Retry count:', retryCount);
+    console.error('[UniversalVideoPlayer] Max retries:', maxRetries);
+    
+    if (retryCount < maxRetries - 1) {
+      console.log(`[UniversalVideoPlayer] 🔄 Retrying with native player (${retryCount + 1}/${maxRetries})...`);
+      setTimeout(() => {
+        setRetryCount(prev => prev + 1);
+        setPlaybackError(null);
+      }, 1500);
+      return;
+    }
+    
+    if (!useFallbackWebView) {
+      console.log('[UniversalVideoPlayer] 🔄 Native player failed, switching to WebView fallback...');
+      setUseFallbackWebView(true);
+      setPlaybackError(null);
+      setRetryCount(0);
+      return;
+    }
+    
+    console.error('[UniversalVideoPlayer] ❌ All attempts failed (native + WebView)');
+    setPlaybackError(error);
+    onError?.(error);
+  }, [retryCount, maxRetries, useFallbackWebView, onError]);
+
   const renderNativePlayer = () => {
     console.log('[UniversalVideoPlayer] Rendering MP4 player for:', {
       url,
       sourceType: sourceInfo.type,
       platform: sourceInfo.platform,
       autoPlay,
+      useFallbackWebView,
+      retryCount,
     });
 
     return (
       <MP4Player
         uri={url}
-        onError={(error) => {
-          console.error('[UniversalVideoPlayer] MP4Player error:', error);
-          onError?.(error);
-        }}
+        onError={handleMP4Error}
         onPlaybackStart={() => {
           console.log('[UniversalVideoPlayer] MP4 playback started');
           onPlaybackStart?.();
@@ -713,12 +741,15 @@ export default function UniversalVideoPlayer({
     sourceInfo.type === 'hls' ||
     sourceInfo.type === 'dash');
 
-  console.log('[UniversalVideoPlayer] Player selection:', {
-    useSocialMediaPlayer,
-    shouldUseWebView,
-    shouldUseNativePlayer: shouldUseNativePlayerRender,
-    sourceType: sourceInfo.type,
-  });
+  console.log('[UniversalVideoPlayer] ========== PLAYER SELECTION ==========');
+  console.log('[UniversalVideoPlayer] URL:', url);
+  console.log('[UniversalVideoPlayer] Source type:', sourceInfo.type);
+  console.log('[UniversalVideoPlayer] Platform:', sourceInfo.platform);
+  console.log('[UniversalVideoPlayer] Use social media player:', useSocialMediaPlayer);
+  console.log('[UniversalVideoPlayer] Should use WebView:', shouldUseWebView);
+  console.log('[UniversalVideoPlayer] Should use native player:', shouldUseNativePlayerRender);
+  console.log('[UniversalVideoPlayer] Use fallback WebView:', useFallbackWebView);
+  console.log('[UniversalVideoPlayer] Retry count:', retryCount);
 
   // Validate URL after hooks
   if (!url || url.trim() === '') {
@@ -747,6 +778,26 @@ export default function UniversalVideoPlayer({
           style={style}
           onBackPress={onBackPress}
         />
+      ) : useFallbackWebView ? (
+        <View style={styles.fallbackContainer}>
+          <Text style={styles.fallbackText}>Native player failed, using WebView fallback...</Text>
+          <WebView
+            source={{ uri: url }}
+            style={styles.webView}
+            allowsFullscreenVideo
+            allowsInlineMediaPlayback
+            mediaPlaybackRequiresUserAction={false}
+            javaScriptEnabled
+            domStorageEnabled
+            onError={(syntheticEvent) => {
+              const { nativeEvent } = syntheticEvent;
+              console.error('[UniversalVideoPlayer] WebView fallback error:', nativeEvent);
+              const error = `WebView fallback failed: ${nativeEvent.description || 'Unknown error'}`;
+              setPlaybackError(error);
+              onError?.(error);
+            }}
+          />
+        </View>
       ) : shouldUseWebView ? (
         renderWebViewPlayer()
       ) : shouldUseNativePlayerRender ? (
@@ -893,5 +944,18 @@ const styles = StyleSheet.create({
   backButtonInner: {
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  fallbackContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  fallbackText: {
+    color: '#10b981',
+    fontSize: 14,
+    textAlign: 'center',
+    padding: 12,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(16, 185, 129, 0.2)',
   },
 });

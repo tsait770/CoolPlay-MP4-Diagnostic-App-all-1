@@ -10,7 +10,7 @@
  * 4. Player compatibility with different URI schemes
  */
 
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 
 export interface PrepareLocalVideoResult {

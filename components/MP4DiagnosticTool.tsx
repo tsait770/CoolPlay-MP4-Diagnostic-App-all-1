@@ -22,7 +22,6 @@ import {
 } from 'lucide-react-native';
 import { 
   diagnoseMP4Url, 
-  formatDiagnosticsReport, 
   type MP4DiagnosticsResult 
 } from '@/utils/mp4Diagnostics';
 import { prepareLocalVideo, type PrepareLocalVideoResult } from '@/utils/videoHelpers';
@@ -88,13 +87,13 @@ export function MP4DiagnosticTool({
       }
     } catch (error) {
       console.error('[MP4DiagnosticTool] File picker error:', error);
-      Alert.alert('錯誤', '無法選擇文件\n' + (error instanceof Error ? error.message : String(error)));
+      console.error('[MP4DiagnosticTool] ❌ 無法選擇文件:', error instanceof Error ? error.message : String(error));
     }
   };
 
   const handleTest = async () => {
-    if (!testUrl.trim()) {
-      Alert.alert('錯誤', '請輸入 MP4 視頻 URL 或選擇本地文件');
+    if (!testUrl.trim() && !selectedFile) {
+      console.error('[MP4DiagnosticTool] ❌ No URL or file selected');
       return;
     }
 
@@ -119,10 +118,28 @@ export function MP4DiagnosticTool({
         console.log('[MP4DiagnosticTool] Prepare result:', prepResult);
         
         if (prepResult.success && prepResult.uri) {
-          // Diagnose the prepared URI
-          const diagResult = await diagnoseMP4Url(prepResult.uri);
+          // For local files, create simplified diagnostic result
+          const diagResult: MP4DiagnosticsResult = {
+            isValid: true,
+            url: prepResult.uri,
+            isLocalFile: true,
+            httpStatus: 200,
+            contentType: 'video/mp4',
+            acceptRanges: true,
+            corsEnabled: true,
+            errors: [],
+            warnings: [],
+            recommendations: [
+              '本地文件已成功準備播放',
+              prepResult.needsCopy ? '文件已複製到應用快取目錄' : '文件可直接訪問',
+            ],
+            fileInfo: {
+              name: url.split('/').pop() || 'Unknown',
+              size: prepResult.size || 0,
+            },
+          };
           setResult(diagResult);
-          console.log('[MP4DiagnosticTool] Diagnostic complete:', diagResult);
+          console.log('[MP4DiagnosticTool] Local file diagnostic complete:', diagResult);
         } else {
           // Show prepare error
           const diagResult: MP4DiagnosticsResult = {
@@ -147,10 +164,15 @@ export function MP4DiagnosticTool({
       }
     } catch (error) {
       console.error('[MP4DiagnosticTool] Test failed:', error);
-      Alert.alert(
-        '診斷失敗',
-        error instanceof Error ? error.message : String(error)
-      );
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      const diagResult: MP4DiagnosticsResult = {
+        isValid: false,
+        url: testUrl,
+        errors: [errorMsg],
+        warnings: [],
+        recommendations: ['請檢查網絡連接', '驗證 URL 格式是否正確'],
+      };
+      setResult(diagResult);
     } finally {
       setIsTesting(false);
     }

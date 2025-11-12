@@ -1,13 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
-import { Mic, ChevronRight } from "lucide-react-native";
+import { Mic, ChevronRight, TestTube2 } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { useTranslation } from "@/hooks/useTranslation";
+import MP4DiagnosticTool from "@/components/MP4DiagnosticTool";
 
 export default function VoiceIndexScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
 
   const voiceItems = [
     {
@@ -21,6 +23,13 @@ export default function VoiceIndexScreen() {
       route: "/settings/voice/assistant",
     },
   ];
+
+  const diagnosticItem = {
+    icon: TestTube2,
+    label: "🔍 MP4 錯誤診斷器",
+    subtitle: "診斷和修復 MP4 播放問題",
+    action: () => setShowDiagnostic(true),
+  };
 
   return (
     <View style={styles.container}>
@@ -51,7 +60,36 @@ export default function VoiceIndexScreen() {
             </Pressable>
           );
         })}
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>開發者工具</Text>
+        </View>
+
+        <Pressable
+          style={[styles.item, styles.diagnosticItem]}
+          onPress={diagnosticItem.action}
+        >
+          <View style={styles.itemContent}>
+            <View style={styles.diagnosticIconContainer}>
+              <TestTube2 size={20} color="#fff" />
+            </View>
+            <View style={styles.diagnosticTextContainer}>
+              <Text style={styles.itemText}>{diagnosticItem.label}</Text>
+              <Text style={styles.itemSubtitle}>{diagnosticItem.subtitle}</Text>
+            </View>
+          </View>
+          <ChevronRight size={20} color={Colors.primary.textSecondary} />
+        </Pressable>
       </ScrollView>
+
+      <MP4DiagnosticTool
+        visible={showDiagnostic}
+        onClose={() => setShowDiagnostic(false)}
+        onLoadVideo={(url) => {
+          console.log('[VoiceSettings] Load video from diagnostic:', url);
+          router.push(`/mp4-test?url=${encodeURIComponent(url)}`);
+        }}
+      />
     </View>
   );
 }
@@ -112,5 +150,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.primary.text,
     fontWeight: "500" as const,
+  },
+  sectionHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 24,
+    paddingBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "600" as const,
+    color: Colors.primary.textSecondary,
+    textTransform: "uppercase" as const,
+    letterSpacing: 0.5,
+  },
+  diagnosticItem: {
+    borderColor: Colors.primary.accent + "40",
+    borderWidth: 1.5,
+  },
+  diagnosticIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.primary.accent,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  diagnosticTextContainer: {
+    flex: 1,
+    gap: 2,
+  },
+  itemSubtitle: {
+    fontSize: 13,
+    color: Colors.primary.textSecondary,
   },
 });

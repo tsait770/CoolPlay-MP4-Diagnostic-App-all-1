@@ -180,9 +180,13 @@ async function copyToCache(
 
   try {
     // Get cache directory using new API
-    const cacheDir = new Directory('file:///' + Directory.cacheDirectory);
+    const cacheDirPath = Directory.cacheDirectory;
+    if (!cacheDirPath) {
+      throw new Error('CACHE_UNAVAILABLE: Cache directory not available on this platform');
+    }
+    const cacheDir = new Directory(cacheDirPath);
     
-    console.log('[VideoHelpers] Cache directory path:', cacheDir.uri);
+    console.log('[VideoHelpers] Cache directory path:', cacheDirPath);
     
     // Ensure cache directory exists
     try {
@@ -227,8 +231,11 @@ async function copyToCache(
       }
     }
 
-    // Extract filename from URI
+    // For iOS DocumentPicker files, extract just the filename
     let filename = sourceUri.split('/').pop() || `video_${Date.now()}.mp4`;
+    
+    // iOS DocumentPicker may provide files with UUID names in cache
+    // We need to work with the actual file in that location
     
     // Clean up filename (remove query parameters, decode URL encoding)
     filename = decodeURIComponent(filename.split('?')[0]);
@@ -243,7 +250,8 @@ async function copyToCache(
     // Generate unique filename to avoid conflicts
     const timestamp = Date.now();
     const uniqueFilename = `${timestamp}_${filename}`;
-    const destFile = new File(cacheDir.uri + uniqueFilename);
+    const destFilePath = cacheDirPath.endsWith('/') ? cacheDirPath + uniqueFilename : cacheDirPath + '/' + uniqueFilename;
+    const destFile = new File(destFilePath);
 
     console.log('[VideoHelpers] Destination filename:', uniqueFilename);
     console.log('[VideoHelpers] Destination URI:', destFile.uri);
@@ -369,7 +377,12 @@ export async function cleanupCachedVideos(olderThanDays: number = 7): Promise<{
   let freedSpace = 0;
 
   try {
-    const cacheDir = new Directory('file:///' + Directory.cacheDirectory);
+    const cacheDirPath = Directory.cacheDirectory;
+    if (!cacheDirPath) {
+      console.error('[VideoHelpers] Cache directory not available');
+      return { removed, errors: 1, freedSpace };
+    }
+    const cacheDir = new Directory(cacheDirPath);
     const dirExists = await cacheDir.exists();
     
     if (!dirExists) {
@@ -389,7 +402,8 @@ export async function cleanupCachedVideos(olderThanDays: number = 7): Promise<{
       }
 
       try {
-        const file = new File(cacheDir.uri + fileName);
+        const filePath = cacheDirPath.endsWith('/') ? cacheDirPath + fileName : cacheDirPath + '/' + fileName;
+        const file = new File(filePath);
         const fileExists = await file.exists();
 
         if (fileExists) {
@@ -445,7 +459,11 @@ export async function getCacheStats(): Promise<{
   oldestFileAge?: string;
 }> {
   try {
-    const cacheDir = new Directory('file:///' + Directory.cacheDirectory);
+    const cacheDirPath = Directory.cacheDirectory;
+    if (!cacheDirPath) {
+      return { totalFiles: 0, totalSize: 0, totalSizeMB: '0.00' };
+    }
+    const cacheDir = new Directory(cacheDirPath);
     const dirExists = await cacheDir.exists();
     
     if (!dirExists) {
@@ -464,7 +482,8 @@ export async function getCacheStats(): Promise<{
       }
 
       try {
-        const file = new File(cacheDir.uri + fileName);
+        const filePath = cacheDirPath.endsWith('/') ? cacheDirPath + fileName : cacheDirPath + '/' + fileName;
+        const file = new File(filePath);
         const fileExists = await file.exists();
 
         if (fileExists) {

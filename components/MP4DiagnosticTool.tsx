@@ -92,7 +92,7 @@ export function MP4DiagnosticTool({
   };
 
   const handleTest = async () => {
-    if (!testUrl.trim() && !selectedFile) {
+    if (!testUrl || !testUrl.trim()) {
       console.error('[MP4DiagnosticTool] ❌ No URL or file selected');
       return;
     }

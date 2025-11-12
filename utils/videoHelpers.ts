@@ -9,6 +9,8 @@
  */
 
 import { Platform } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import { cacheDirectory as expoCacheDirectory, documentDirectory as expoDocumentDirectory } from 'expo-file-system';
 
 export interface PrepareLocalVideoResult {
   success: boolean;
@@ -20,20 +22,88 @@ export interface PrepareLocalVideoResult {
   needsCopy?: boolean;
   isCached?: boolean;
   platform: string;
+  fileName?: string;
+  displayName?: string;
 }
 
-/**
- * Prepare local video file for playback
- * 
- * This function handles the complexities of iOS file access by:
- * 1. Detecting URI type (file://, ph://, content://, etc.)
- * 2. Copying files to app cache directory if needed
- * 3. Verifying file accessibility
- * 4. Providing detailed error information
- * 
- * @param originalUri - The original URI from file picker or other sources
- * @returns Promise<PrepareLocalVideoResult> - Result with playable URI or error
- */
+type FileNameParts = {
+  baseName: string;
+  extension: string;
+  originalName: string;
+};
+
+const baseCacheDirectory = expoCacheDirectory ?? expoDocumentDirectory ?? ''; 
+const videoCacheDirectory = baseCacheDirectory ? `${baseCacheDirectory}local-videos/` : null;
+let cacheDirectoryEnsured = false;
+
+function hashString(value: string): string {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(16);
+}
+
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function sanitizeSegment(value: string): string {
+  return value.replace(/[^a-zA-Z0-9-_]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').toLowerCase();
+}
+
+function extractFileNameParts(uri: string): FileNameParts {
+  const withoutQuery = uri.split('?')[0].split('#')[0];
+  const segments = withoutQuery.split('/');
+  const rawName = segments.pop() || `video-${Date.now()}`;
+  const decoded = safeDecode(rawName);
+  const extensionMatch = decoded.match(/\.([a-zA-Z0-9]+)$/);
+  const extension = extensionMatch ? extensionMatch[1].toLowerCase() : 'mp4';
+  const base = extensionMatch ? decoded.slice(0, decoded.length - extensionMatch[0].length) : decoded;
+  const sanitizedBase = sanitizeSegment(base) || 'video';
+  return {
+    baseName: sanitizedBase,
+    extension,
+    originalName: decoded,
+  };
+}
+
+async function ensureCacheDirectory(): Promise<void> {
+  if (cacheDirectoryEnsured || !videoCacheDirectory) {
+    return;
+  }
+  try {
+    const info = await FileSystem.getInfoAsync(videoCacheDirectory);
+    if (!info.exists) {
+      await FileSystem.makeDirectoryAsync(videoCacheDirectory, { intermediates: true });
+    }
+    cacheDirectoryEnsured = true;
+  } catch (error) {
+    console.error('[VideoHelpers] Failed to ensure cache directory:', error);
+    throw new Error('CACHE_DIRECTORY_ERROR');
+  }
+}
+
+function buildCacheUri(originalUri: string): { uri: string; fileName: string; displayName: string } {
+  if (!videoCacheDirectory) {
+    throw new Error('CACHE_DIRECTORY_UNAVAILABLE');
+  }
+  const parts = extractFileNameParts(originalUri);
+  const hash = hashString(originalUri);
+  const fileName = `${parts.baseName}-${hash}.${parts.extension}`;
+  const cacheUri = `${videoCacheDirectory}${fileName}`;
+  return { uri: cacheUri, fileName, displayName: parts.originalName }; 
+}
+
+function normalizeUriSpacing(uri: string): string {
+  return uri.includes(' ') ? uri.replace(/\s/g, '%20') : uri;
+}
+
 export async function prepareLocalVideo(originalUri: string): Promise<PrepareLocalVideoResult> {
   const startTime = Date.now();
   const platform = Platform.OS;
@@ -44,14 +114,13 @@ export async function prepareLocalVideo(originalUri: string): Promise<PrepareLoc
   console.log('[VideoHelpers] Timestamp:', new Date().toISOString());
 
   try {
-    // Validate input
     if (!originalUri || originalUri.trim() === '') {
       throw new Error('NO_URI: Empty or invalid URI provided');
     }
 
     const cleanUri = originalUri.trim();
+    const normalizedOriginalUri = normalizeUriSpacing(cleanUri);
 
-    // Detect URI type
     const isFileUri = cleanUri.startsWith('file://');
     const isContentUri = cleanUri.startsWith('content://');
     const isPhotoUri = cleanUri.startsWith('ph://') || cleanUri.startsWith('assets-library://');
@@ -64,46 +133,75 @@ export async function prepareLocalVideo(originalUri: string): Promise<PrepareLoc
       isPhotoUri,
       isHttpUri,
       isLocalFile,
-      uri: cleanUri.substring(0, 100) + '...',
+      uriPreview: cleanUri.substring(0, 100),
     });
 
-    // Remote URLs don't need processing
     if (isHttpUri) {
-      console.log('[VideoHelpers] ✅ Remote URL detected, no processing needed');
       return {
         success: true,
-        uri: cleanUri,
+        uri: normalizedOriginalUri,
         originUri: cleanUri,
         platform,
         needsCopy: false,
       };
     }
 
-    // SIMPLIFIED APPROACH: For all local files, use them directly
-    // expo-video and VideoView can handle file:// URIs directly
-    // Files from DocumentPicker are already in accessible cache locations
+    if (isFileUri) {
+      const info = await FileSystem.getInfoAsync(normalizedOriginalUri, { size: true });
+      if (!info.exists) {
+        throw new Error('FILE_NOT_FOUND: Unable to access local file');
+      }
+      const parts = extractFileNameParts(cleanUri);
+      return {
+        success: true,
+        uri: normalizedOriginalUri,
+        originUri: cleanUri,
+        platform,
+        size: typeof info.size === 'number' ? info.size : undefined,
+        needsCopy: false,
+        isCached: true,
+        fileName: `${parts.baseName}.${parts.extension}`,
+        displayName: parts.originalName,
+      };
+    }
+
     if (isLocalFile) {
-      console.log('[VideoHelpers] ✅ Local file detected - using directly');
-      console.log('[VideoHelpers] URI type:', {
-        isFileUri,
-        isContentUri,
-        isPhotoUri,
-      });
-      
+      await ensureCacheDirectory();
+      const cacheEntry = buildCacheUri(cleanUri);
+      let info = await FileSystem.getInfoAsync(cacheEntry.uri, { size: true });
+      const alreadyCached = info.exists;
+
+      if (!alreadyCached) {
+        console.log('[VideoHelpers] Copying local content URI to cache:', cacheEntry.uri);
+        try {
+          await FileSystem.copyAsync({ from: cleanUri, to: cacheEntry.uri });
+        } catch (copyError) {
+          console.error('[VideoHelpers] Copy failed:', copyError);
+          throw new Error(`COPY_FAILED: ${(copyError instanceof Error ? copyError.message : String(copyError))}`);
+        }
+        info = await FileSystem.getInfoAsync(cacheEntry.uri, { size: true });
+      } else {
+        console.log('[VideoHelpers] Using cached local video:', cacheEntry.uri);
+      }
+
+      const normalizedCacheUri = normalizeUriSpacing(cacheEntry.uri);
       return {
         success: true,
-        uri: cleanUri,
+        uri: normalizedCacheUri,
         originUri: cleanUri,
         platform,
-        needsCopy: false,
+        size: typeof info.size === 'number' ? info.size : undefined,
+        needsCopy: !alreadyCached,
+        isCached: alreadyCached,
+        fileName: cacheEntry.fileName,
+        displayName: cacheEntry.displayName,
       };
     }
 
-    // Default: Unknown URI type
-    console.log('[VideoHelpers] ℹ️ Unknown URI type, attempting direct use');
+    const fallbackUri = normalizeUriSpacing(cleanUri);
     return {
       success: true,
-      uri: cleanUri,
+      uri: fallbackUri,
       originUri: cleanUri,
       platform,
       needsCopy: false,
@@ -129,5 +227,3 @@ export async function prepareLocalVideo(originalUri: string): Promise<PrepareLoc
     console.log('[VideoHelpers] Duration:', duration, 'ms');
   }
 }
-
-

@@ -7,6 +7,12 @@ import { convertToPlayableUrl } from '@/utils/videoSourceDetector';
 import { diagnoseMP4Url, formatDiagnosticsReport, type MP4DiagnosticsResult } from '@/utils/mp4Diagnostics';
 import { prepareLocalVideo, type PrepareLocalVideoResult } from '@/utils/videoHelpers';
 
+const LOCAL_URI_PREFIXES = ['file://', 'content://', 'ph://', 'assets-library://'];
+
+const normalizeUriSpacing = (value: string): string => (value.includes(' ') ? value.replace(/\s/g, '%20') : value);
+
+const isLocalUri = (value: string): boolean => LOCAL_URI_PREFIXES.some((prefix) => value.startsWith(prefix));
+
 export interface MP4PlayerProps {
   uri: string;
   onError?: (error: string) => void;
@@ -39,12 +45,7 @@ export function MP4Player({
   const maxRetries = 2;
 
   // Check if this is a local file
-  const isLocalFile = React.useMemo(() => {
-    return uri.startsWith('file://') || 
-           uri.startsWith('content://') || 
-           uri.startsWith('ph://') ||
-           uri.startsWith('assets-library://');
-  }, [uri]);
+  const isLocalFile = React.useMemo(() => isLocalUri(uri), [uri]);
 
   // Prepare local file for playback (iOS/Android)
   useEffect(() => {
@@ -103,28 +104,24 @@ export function MP4Player({
       return '';
     }
 
-    // For local files, use prepared URI from videoHelpers
     if (isLocalFile) {
-      if (prepareResult && prepareResult.success && prepareResult.uri) {
+      if (prepareResult?.success && prepareResult.uri) {
+        const normalizedPreparedUri = normalizeUriSpacing(prepareResult.uri);
         console.log('[MP4Player] ========== Local File (Prepared) ==========');
-        console.log('[MP4Player] Using prepared URI:', prepareResult.uri);
+        console.log('[MP4Player] Using prepared URI:', normalizedPreparedUri);
         console.log('[MP4Player] Original URI:', prepareResult.originUri);
         console.log('[MP4Player] Was copied to cache:', prepareResult.needsCopy);
         console.log('[MP4Player] Was already cached:', prepareResult.isCached);
-        return prepareResult.uri;
-      } else if (!isCopyingFile) {
+        return normalizedPreparedUri;
+      }
+      if (!isCopyingFile) {
         console.log('[MP4Player] ⏳ Waiting for file preparation...');
-        return '';
       }
       return '';
     }
-    
-    // For remote URLs, apply conversion and encoding
-    let converted = convertToPlayableUrl(uri);
-    
-    // MIME correction: Ensure URL spacing is properly encoded
-    converted = converted.replace(/[\s]/g, '%20');
-    
+
+    const converted = normalizeUriSpacing(convertToPlayableUrl(uri));
+
     console.log('[MP4Player] ========== Remote URI Processing ==========');
     console.log('[MP4Player] Original URI:', uri);
     console.log('[MP4Player] Converted URI:', converted);
@@ -134,27 +131,31 @@ export function MP4Player({
     return converted;
   }, [uri, retryCount, isLocalFile, prepareResult, isCopyingFile]);
 
-  const player = useVideoPlayer(processedUri, (player) => {
-    if (!player) return;
-    
+  useEffect(() => {
+    setRetryCount(0);
+  }, [processedUri, uri]);
+
+  const player = useVideoPlayer(processedUri, (playerInstance) => {
+    if (!playerInstance) {
+      return;
+    }
+
     console.log('[MP4Player] Initializing player with URI:', processedUri);
-    player.loop = false;
-    player.muted = false;
-    
-    // CRITICAL FIX: Delayed autoplay to avoid race condition
-    // Wait for player to be fully ready before attempting to play
+    playerInstance.loop = false;
+    playerInstance.muted = false;
+
     if (autoPlay) {
       console.log('[MP4Player] Auto-play enabled, scheduling delayed playback (500ms)');
       setTimeout(() => {
-        if (player && player.status === 'readyToPlay') {
+        if (playerInstance && playerInstance.status === 'readyToPlay') {
           try {
             console.log('[MP4Player] Executing delayed auto-play');
-            player.play();
+            playerInstance.play();
           } catch (e) {
             console.warn('[MP4Player] Delayed auto-play failed:', e);
           }
         } else {
-          console.warn('[MP4Player] Player not ready for auto-play after delay, status:', player?.status);
+          console.warn('[MP4Player] Player not ready for auto-play after delay, status:', playerInstance?.status);
         }
       }, 500);
     }
@@ -167,24 +168,15 @@ export function MP4Player({
     }
 
     if (!processedUri || processedUri.trim() === '') {
-      console.warn('[MP4Player] ❌ No valid URI to play');
-      setError('No video URL provided');
-      setIsLoading(false);
+      console.log('[MP4Player] Waiting for processed URI before initializing');
       return;
     }
 
-    console.log('[MP4Player] ========== Player Initialization ==========');
-    console.log('[MP4Player] Original URI:', uri);
-    console.log('[MP4Player] Processed URI:', processedUri);
-    console.log('[MP4Player] Auto-play:', autoPlay);
-    console.log('[MP4Player] Platform:', Platform.OS);
-    console.log('[MP4Player] Player instance:', player ? '✅ Available' : '❌ NULL');
-    console.log('[MP4Player] Retry count:', `${retryCount}/${maxRetries}`);
+    const localScheme = isLocalUri(processedUri);
 
-    if (processedUri && processedUri !== '') {
+    if (!localScheme) {
       try {
         new URL(processedUri);
-        console.log('[MP4Player] ✅ URL format is valid');
       } catch (urlError) {
         const errorMsg = 'Invalid video URL format';
         console.error('[MP4Player] ❌ URL validation failed:', urlError);
@@ -195,6 +187,18 @@ export function MP4Player({
       }
     }
 
+    console.log('[MP4Player] ========== Player Initialization ==========');
+    console.log('[MP4Player] Original URI:', uri);
+    console.log('[MP4Player] Processed URI:', processedUri);
+    console.log('[MP4Player] Auto-play:', autoPlay);
+    console.log('[MP4Player] Platform:', Platform.OS);
+    console.log('[MP4Player] Player instance:', player ? '✅ Available' : '❌ NULL');
+    console.log('[MP4Player] Retry count:', `${retryCount}/${maxRetries}`);
+    console.log('[MP4Player] Local scheme detected:', localScheme);
+
+    setError(null);
+    setIsLoading(true);
+
     const runDiagnostics = async () => {
       console.log('[MP4Player] 🔍 Running MP4 diagnostics...');
       try {
@@ -202,18 +206,15 @@ export function MP4Player({
         setDiagnostics(diagResult);
         console.log('[MP4Player] 📊 Diagnostics complete:');
         console.log(formatDiagnosticsReport(diagResult));
-        
-        // For local files, only log diagnostic info - don't fail
+
         if (diagResult.isLocalFile) {
           console.log('[MP4Player] ✅ Local file detected:', diagResult.fileInfo?.name);
           if (diagResult.warnings.length > 0) {
             console.warn('[MP4Player] ⚠️ Local file warnings:', diagResult.warnings);
           }
-          // Continue with playback even if there are warnings
           return;
         }
-        
-        // For remote files, enforce validation
+
         if (!diagResult.isValid) {
           const errorMsg = `MP4 Validation Failed:\n${diagResult.errors.join('\n')}`;
           console.error('[MP4Player] ❌ Diagnostics failed:', errorMsg);
@@ -222,7 +223,7 @@ export function MP4Player({
           onError?.(errorMsg);
           return;
         }
-        
+
         if (diagResult.warnings.length > 0) {
           console.warn('[MP4Player] ⚠️ Diagnostics warnings:', diagResult.warnings);
           console.warn('[MP4Player] 💡 Recommendations:', diagResult.recommendations);
@@ -231,7 +232,7 @@ export function MP4Player({
         console.error('[MP4Player] ⚠️ Diagnostics failed but continuing:', diagError);
       }
     };
-    
+
     runDiagnostics();
 
     const statusSubscription = player.addListener('statusChange', (status) => {
@@ -240,16 +241,16 @@ export function MP4Player({
         oldStatus: status.oldStatus,
         timestamp: new Date().toISOString(),
       });
-      
+
       if (status.status === 'readyToPlay') {
         console.log('[MP4Player] ✅ Video ready to play');
         console.log('[MP4Player] Duration:', player.duration, 'seconds');
         console.log('[MP4Player] Current time:', player.currentTime, 'seconds');
-        
+
         setIsLoading(false);
         setError(null);
         setHasInitialized(true);
-        
+
         if (autoPlay && player) {
           console.log('[MP4Player] Auto-playing video');
           try {
@@ -264,7 +265,7 @@ export function MP4Player({
         setIsLoading(true);
       } else if (status.status === 'error') {
         let errorMsg = 'Unknown playback error';
-        
+
         if (status.error) {
           if (typeof status.error === 'object' && 'message' in status.error) {
             errorMsg = String((status.error as any).message || 'Unknown error');
@@ -274,7 +275,7 @@ export function MP4Player({
             errorMsg = JSON.stringify(status.error);
           }
         }
-        
+
         console.error('[MP4Player] ========== PLAYBACK ERROR ==========');
         console.error('[MP4Player] ❌ Error message:', errorMsg);
         console.error('[MP4Player] 🔗 URI:', processedUri);
@@ -282,11 +283,11 @@ export function MP4Player({
         console.error('[MP4Player] 📁 Is local file:', isLocalFile);
         console.error('[MP4Player] 🔄 Retry count:', `${retryCount}/${maxRetries}`);
         console.error('[MP4Player] ⏰ Timestamp:', new Date().toISOString());
-        
+
         if (diagnostics) {
           console.error('[MP4Player] 📊 Previous diagnostics:');
           console.error(formatDiagnosticsReport(diagnostics));
-          
+
           if (isLocalFile) {
             console.error('[MP4Player] 🔍 Local file troubleshooting:');
             console.error('[MP4Player]   - Check file permissions');
@@ -297,19 +298,19 @@ export function MP4Player({
             }
           }
         }
-        
+
         if (retryCount < maxRetries) {
           console.log(`[MP4Player] 🔄 Attempting retry ${retryCount + 1}/${maxRetries}...`);
           setTimeout(() => {
-            setRetryCount(prev => prev + 1);
+            setRetryCount((prev) => prev + 1);
             setError(null);
             setIsLoading(true);
           }, 1000 * (retryCount + 1));
           return;
         }
-        
+
         let fullErrorMsg = `Unable to play video after ${maxRetries + 1} attempts\n\n❌ Error: ${errorMsg}`;
-        
+
         if (isLocalFile) {
           fullErrorMsg += `\n\n📁 Local File Issues:\n• Check if the app has permission to read this file\n• Verify the file is not corrupted\n• Supported formats: MP4 (H.264 + AAC), MOV, M4V\n• Try selecting the file again\n\n📋 File Info:\n${diagnostics?.fileInfo?.name || 'Unknown'}`;
           if (Platform.OS === 'ios') {
@@ -324,7 +325,7 @@ export function MP4Player({
         } else {
           fullErrorMsg += `\n\n🔍 Diagnostics:\n${diagnostics ? formatDiagnosticsReport(diagnostics) : 'No diagnostics available'}`;
         }
-        
+
         console.error('[MP4Player] ❌ All retry attempts exhausted');
         setIsLoading(false);
         setError(fullErrorMsg);
@@ -340,7 +341,7 @@ export function MP4Player({
         currentTime: player.currentTime,
         duration: player.duration,
       });
-      
+
       if (event.isPlaying && hasInitialized) {
         onPlaybackStart?.();
       }
@@ -359,7 +360,7 @@ export function MP4Player({
       playingSubscription.remove();
       volumeSubscription.remove();
     };
-  }, [player, uri, processedUri, autoPlay, hasInitialized, onPlaybackStart, onError, retryCount, diagnostics, isLocalFile]);
+  }, [player, uri, processedUri, autoPlay, hasInitialized, onPlaybackStart, onError, retryCount, diagnostics, isLocalFile, prepareResult]);
 
   const handleBackPress = useCallback(() => {
     if (onBackPress) {

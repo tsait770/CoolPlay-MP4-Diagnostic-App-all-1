@@ -133,6 +133,7 @@ export function MP4DiagnosticTool({
         console.log('[MP4DiagnosticTool] Prepare result:', prepResult);
         
         if (prepResult.success && prepResult.uri) {
+          setTestUrl(prepResult.uri);
           // For local files, create simplified diagnostic result
           const diagResult: MP4DiagnosticsResult = {
             isValid: true,
@@ -149,8 +150,9 @@ export function MP4DiagnosticTool({
               prepResult.needsCopy ? '文件已複製到應用快取目錄' : '文件可直接訪問',
             ],
             fileInfo: {
-              name: url.split('/').pop() || 'Unknown',
+              name: prepResult.displayName || url.split('/').pop() || 'Unknown',
               size: prepResult.size || 0,
+              uri: prepResult.uri,
             },
           };
           setResult(diagResult);
@@ -279,6 +281,7 @@ export function MP4DiagnosticTool({
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>視頻 URL</Text>
               <TextInput
+                testID="mp4-diagnostic-url-input"
                 style={styles.input}
                 placeholder="輸入 MP4 視頻 URL"
                 placeholderTextColor={Colors.primary.textSecondary}
@@ -310,6 +313,7 @@ export function MP4DiagnosticTool({
 
             <View style={styles.buttonRow}>
               <TouchableOpacity
+                testID="mp4-diagnostic-select-file-button"
                 style={[styles.selectFileButton]}
                 onPress={handlePickFile}
               >
@@ -317,6 +321,7 @@ export function MP4DiagnosticTool({
               </TouchableOpacity>
               
               <TouchableOpacity
+                testID="mp4-diagnostic-start-button"
                 style={[styles.testButton, (isTesting || !testUrl?.trim()) && styles.buttonDisabled]}
                 onPress={handleTest}
                 disabled={isTesting || !testUrl?.trim()}
@@ -403,6 +408,16 @@ export function MP4DiagnosticTool({
                         <Text style={styles.infoValue}>
                           ✅ {prepareResult.needsCopy ? '已複製到快取' : prepareResult.isCached ? '使用已快取文件' : '直接訪問'}
                         </Text>
+                        {prepareResult.displayName && (
+                          <Text style={styles.infoDetail}>
+                            🎞️ {prepareResult.displayName}
+                          </Text>
+                        )}
+                        {prepareResult.uri && (
+                          <Text style={styles.infoDetail} numberOfLines={2}>
+                            📁 {prepareResult.uri}
+                          </Text>
+                        )}
                         {prepareResult.needsCopy && (
                           <Text style={styles.warningText}>
                             💡 文件已複製到應用快取目錄以確保播放相容性
@@ -483,6 +498,7 @@ export function MP4DiagnosticTool({
 
                 {result.isValid && result.errors.length === 0 && onLoadVideo && (
                   <TouchableOpacity
+                    testID="mp4-diagnostic-load-button"
                     style={styles.loadButton}
                     onPress={handleLoadVideo}
                   >
@@ -661,6 +677,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600' as const,
     color: Colors.primary.text,
+  },
+  infoDetail: {
+    fontSize: 12,
+    color: Colors.primary.textSecondary,
+    marginTop: 6,
   },
   warningText: {
     fontSize: 12,

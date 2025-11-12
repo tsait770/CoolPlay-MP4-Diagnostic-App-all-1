@@ -78,9 +78,8 @@ async function ensureCacheDirectory(): Promise<void> {
   }
   try {
     const dir = new Directory(videoCacheDirectory);
-    const exists = await dir.exists();
-    if (!exists) {
-      await dir.create();
+    if (!dir.exists) {
+      dir.create();
     }
     cacheDirectoryEnsured = true;
   } catch (error) {
@@ -148,17 +147,11 @@ export async function prepareLocalVideo(originalUri: string): Promise<PrepareLoc
 
     if (isFileUri) {
       const file = new File(normalizedOriginalUri);
-      const exists = await file.exists();
-      if (!exists) {
+      if (!file.exists) {
         throw new Error('FILE_NOT_FOUND: Unable to access local file');
       }
       const parts = extractFileNameParts(cleanUri);
-      let fileSize: number | undefined;
-      try {
-        fileSize = await file.size();
-      } catch {
-        fileSize = undefined;
-      }
+      const fileSize = file.size;
       return {
         success: true,
         uri: normalizedOriginalUri,
@@ -176,7 +169,7 @@ export async function prepareLocalVideo(originalUri: string): Promise<PrepareLoc
       await ensureCacheDirectory();
       const cacheEntry = buildCacheUri(cleanUri);
       const cacheFile = new File(cacheEntry.uri);
-      const alreadyCached = await cacheFile.exists();
+      const alreadyCached = cacheFile.exists;
 
       if (!alreadyCached) {
         console.log('[VideoHelpers] Copying local content URI to cache:', cacheEntry.uri);
@@ -191,12 +184,7 @@ export async function prepareLocalVideo(originalUri: string): Promise<PrepareLoc
         console.log('[VideoHelpers] Using cached local video:', cacheEntry.uri);
       }
 
-      let fileSize: number | undefined;
-      try {
-        fileSize = await cacheFile.size();
-      } catch {
-        fileSize = undefined;
-      }
+      const fileSize = cacheFile.size;
 
       const normalizedCacheUri = normalizeUriSpacing(cacheEntry.uri);
       return {

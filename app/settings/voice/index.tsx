@@ -1,18 +1,15 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable, Modal, Alert } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
-import { Mic, ChevronRight, TestTube2, X } from "lucide-react-native";
+import { Mic, ChevronRight, TestTube2 } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { useTranslation } from "@/hooks/useTranslation";
 import MP4DiagnosticTool from "@/components/MP4DiagnosticTool";
-import MP4Player from "@/components/MP4Player";
 
 export default function VoiceIndexScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const [showDiagnostic, setShowDiagnostic] = useState(false);
-  const [showPlayer, setShowPlayer] = useState(false);
-  const [videoUri, setVideoUri] = useState<string | null>(null);
 
   const voiceItems = [
     {
@@ -89,64 +86,10 @@ export default function VoiceIndexScreen() {
         visible={showDiagnostic}
         onClose={() => setShowDiagnostic(false)}
         onLoadVideo={(url) => {
-          console.log('[VoiceSettings] ========== Load video from diagnostic ==========');
-          console.log('[VoiceSettings] URI:', url);
-          console.log('[VoiceSettings] Is local file:', url.startsWith('file://'));
-          
-          // Close diagnostic and show player directly
-          setShowDiagnostic(false);
-          setVideoUri(url);
-          setShowPlayer(true);
+          console.log('[VoiceSettings] Load video from diagnostic:', url);
+          router.push(`/mp4-test?url=${encodeURIComponent(url)}`);
         }}
       />
-      
-      {/* Inline Video Player Modal */}
-      <Modal
-        visible={showPlayer}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowPlayer(false)}
-      >
-        <View style={styles.playerModalOverlay}>
-          <View style={styles.playerModalContent}>
-            <View style={styles.playerHeader}>
-              <Text style={styles.playerTitle}>視頻播放</Text>
-              <Pressable
-                onPress={() => {
-                  setShowPlayer(false);
-                  setVideoUri(null);
-                }}
-                style={styles.closePlayerButton}
-              >
-                <X size={24} color={Colors.primary.text} />
-              </Pressable>
-            </View>
-            
-            {videoUri && (
-              <View style={styles.playerContainer}>
-                <MP4Player
-                  uri={videoUri}
-                  autoPlay={true}
-                  onError={(error) => {
-                    console.error('[VoiceSettings] Player error:', error);
-                    Alert.alert('播放錯誤', error);
-                  }}
-                  onPlaybackStart={() => {
-                    console.log('[VoiceSettings] ✅ Playback started successfully');
-                  }}
-                />
-              </View>
-            )}
-            
-            <View style={styles.playerInfoBox}>
-              <Text style={styles.playerInfoLabel}>視頻路徑：</Text>
-              <Text style={styles.playerInfoText} numberOfLines={3}>
-                {videoUri}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -239,55 +182,5 @@ const styles = StyleSheet.create({
   itemSubtitle: {
     fontSize: 13,
     color: Colors.primary.textSecondary,
-  },
-  playerModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playerModalContent: {
-    width: '90%',
-    maxWidth: 500,
-    backgroundColor: Colors.primary.bg,
-    borderRadius: 20,
-    padding: 20,
-    gap: 16,
-  },
-  playerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  playerTitle: {
-    fontSize: 20,
-    fontWeight: '700' as const,
-    color: Colors.primary.text,
-  },
-  closePlayerButton: {
-    padding: 8,
-  },
-  playerContainer: {
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  playerInfoBox: {
-    padding: 12,
-    backgroundColor: Colors.secondary.bg,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.card.border,
-  },
-  playerInfoLabel: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    color: Colors.primary.textSecondary,
-    marginBottom: 4,
-  },
-  playerInfoText: {
-    fontSize: 11,
-    color: Colors.primary.text,
-    fontFamily: 'monospace' as const,
   },
 });

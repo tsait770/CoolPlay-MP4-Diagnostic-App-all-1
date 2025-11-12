@@ -77,17 +77,14 @@ export default function UniversalVideoPlayer({
   const playbackEligibility = canPlayVideo(url, tier);
   
   // Determine which player to use based on source info
+  // All direct video files should use MP4Player (not just .mp4)
   const shouldUseMp4Player =
     sourceInfo.type === 'direct' &&
-    url && url.trim() !== '' &&
-    (url.toLowerCase().endsWith('.mp4') ||
-     url.toLowerCase().includes('.mp4?') ||
-     url.toLowerCase().includes('/mp4/'));
+    url && url.trim() !== '';
 
   const shouldUseNativePlayer =
     !shouldUseMp4Player &&
-    (sourceInfo.type === 'direct' ||
-    sourceInfo.type === 'stream' ||
+    (sourceInfo.type === 'stream' ||
     sourceInfo.type === 'hls' ||
     sourceInfo.type === 'dash');
 

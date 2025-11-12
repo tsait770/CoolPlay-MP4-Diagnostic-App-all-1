@@ -43,7 +43,7 @@ export function MP4DiagnosticTool({
   const [testUrl, setTestUrl] = useState(initialUrl);
   const [isTesting, setIsTesting] = useState(false);
   const [result, setResult] = useState<MP4DiagnosticsResult | null>(null);
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<{ name: string; uri: string } | null>(null);
   const [prepareResult, setPrepareResult] = useState<PrepareLocalVideoResult | null>(null);
 
   React.useEffect(() => {
@@ -79,8 +79,12 @@ export function MP4DiagnosticTool({
         console.log('[MP4DiagnosticTool] MIME type:', file.mimeType);
         console.log('[MP4DiagnosticTool] Platform:', Platform.OS);
         
-        setSelectedFile(file.name);
+        // Store both name and URI together
+        const fileInfo = { name: file.name, uri: file.uri };
+        setSelectedFile(fileInfo);
         setTestUrl(file.uri);
+        
+        console.log('[MP4DiagnosticTool] ✅ File info stored:', fileInfo);
         
         // Auto-run diagnostics for local files
         setTimeout(() => handleTest(), 100);
@@ -94,6 +98,11 @@ export function MP4DiagnosticTool({
   const handleTest = async () => {
     const urlTrimmed = testUrl?.trim() || '';
     const hasValidInput = urlTrimmed.length > 0;
+    
+    console.log('[MP4DiagnosticTool] ========== Starting Test ==========');
+    console.log('[MP4DiagnosticTool] testUrl:', testUrl);
+    console.log('[MP4DiagnosticTool] selectedFile:', selectedFile);
+    console.log('[MP4DiagnosticTool] hasValidInput:', hasValidInput);
     
     if (!hasValidInput) {
       console.error('[MP4DiagnosticTool] ❌ No URL or file selected');
@@ -192,15 +201,28 @@ export function MP4DiagnosticTool({
         ? prepareResult.uri 
         : testUrl.trim();
       
-      console.log('[MP4DiagnosticTool] Loading video:', {
-        isLocalFile: result.isLocalFile,
-        originalUri: testUrl.trim(),
-        preparedUri: prepareResult?.uri,
-        uriToLoad,
-      });
+      console.log('[MP4DiagnosticTool] ========== Loading Video ==========');
+      console.log('[MP4DiagnosticTool] isLocalFile:', result.isLocalFile);
+      console.log('[MP4DiagnosticTool] originalUri:', testUrl.trim());
+      console.log('[MP4DiagnosticTool] preparedUri:', prepareResult?.uri);
+      console.log('[MP4DiagnosticTool] uriToLoad:', uriToLoad);
+      console.log('[MP4DiagnosticTool] selectedFile:', selectedFile);
       
+      if (!uriToLoad || uriToLoad.trim() === '') {
+        console.error('[MP4DiagnosticTool] ❌ Empty URI - cannot load video');
+        Alert.alert('錯誤', '無法載入影片：URI 為空');
+        return;
+      }
+      
+      console.log('[MP4DiagnosticTool] ✅ Calling onLoadVideo with URI:', uriToLoad);
       onLoadVideo(uriToLoad);
       onClose();
+    } else {
+      console.error('[MP4DiagnosticTool] ❌ Cannot load video:', {
+        hasResult: !!result,
+        isValid: result?.isValid,
+        hasCallback: !!onLoadVideo,
+      });
     }
   };
 
@@ -260,7 +282,7 @@ export function MP4DiagnosticTool({
                 style={styles.input}
                 placeholder="輸入 MP4 視頻 URL"
                 placeholderTextColor={Colors.primary.textSecondary}
-                value={selectedFile ? `本地文件: ${selectedFile}` : testUrl}
+                value={selectedFile ? `本地文件: ${selectedFile.name}` : testUrl}
                 onChangeText={(text) => {
                   setTestUrl(text);
                   setSelectedFile(null);

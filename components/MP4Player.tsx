@@ -207,7 +207,7 @@ export default function MP4Player({
       
       {isLoading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={Colors.primary.accent} />
+          <ActivityIndicator size="large" color={Colors.accent.primary} />
           <Text style={styles.loadingText}>Loading video...</Text>
         </View>
       )}

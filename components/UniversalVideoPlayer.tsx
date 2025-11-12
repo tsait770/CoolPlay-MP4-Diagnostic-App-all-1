@@ -76,14 +76,20 @@ export default function UniversalVideoPlayer({
   // For WebView-required URLs, skip native player initialization
   const shouldInitializeNativePlayer = shouldUseNativePlayer && url && url.trim() !== '';
   
-  // Use null URL when we don't need the native player to prevent loading errors
-  const nativePlayerUrl = shouldInitializeNativePlayer ? url : 'about:blank';
+  // IMPORTANT: Don't pass a dummy URL to prevent errors
+  // Pass undefined when not using native player
+  const nativePlayerUrl = shouldInitializeNativePlayer ? url : undefined;
   
-  const player = useVideoPlayer(nativePlayerUrl, (player) => {
+  const player = useVideoPlayer(nativePlayerUrl || '', (player) => {
+    if (!player) return;
     player.loop = false;
     player.muted = false;
     if (autoPlay && shouldInitializeNativePlayer) {
-      player.play();
+      try {
+        player.play();
+      } catch (e) {
+        console.warn('[UniversalVideoPlayer] Auto-play failed:', e);
+      }
     }
   });
   
@@ -91,9 +97,12 @@ export default function UniversalVideoPlayer({
     url,
     type: sourceInfo.type,
     platform: sourceInfo.platform,
+    streamType: sourceInfo.streamType,
     requiresWebView: sourceInfo.requiresWebView,
     requiresAgeVerification: sourceInfo.requiresAgeVerification,
     canPlay: playbackEligibility.canPlay,
+    shouldUseNativePlayer,
+    shouldInitializeNativePlayer,
   });
 
   useEffect(() => {
@@ -632,14 +641,28 @@ export default function UniversalVideoPlayer({
   };
 
   const renderNativePlayer = () => {
-    console.log('[UniversalVideoPlayer] Rendering MP4 player for:', url);
+    console.log('[UniversalVideoPlayer] Rendering MP4 player for:', {
+      url,
+      sourceType: sourceInfo.type,
+      platform: sourceInfo.platform,
+      autoPlay,
+    });
 
     return (
       <MP4Player
         uri={url}
-        onError={onError}
-        onPlaybackStart={onPlaybackStart}
-        onPlaybackEnd={onPlaybackEnd}
+        onError={(error) => {
+          console.error('[UniversalVideoPlayer] MP4Player error:', error);
+          onError?.(error);
+        }}
+        onPlaybackStart={() => {
+          console.log('[UniversalVideoPlayer] MP4 playback started');
+          onPlaybackStart?.();
+        }}
+        onPlaybackEnd={() => {
+          console.log('[UniversalVideoPlayer] MP4 playback ended');
+          onPlaybackEnd?.();
+        }}
         autoPlay={autoPlay}
         style={style}
         onBackPress={onBackPress}

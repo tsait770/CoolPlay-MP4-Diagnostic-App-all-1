@@ -94,10 +94,10 @@ export async function prepareLocalVideo(originalUri: string): Promise<PrepareLoc
         console.log('[VideoHelpers] 🔍 Android file:// - checking accessibility');
         try {
           const file = new File(cleanUri);
-          const exists = await file.exists();
+          const exists = file.exists;
           
           if (exists) {
-            const size = await file.size();
+            const size = file.size;
             console.log('[VideoHelpers] ✅ File accessible directly on Android');
             console.log('[VideoHelpers] File size:', size, 'bytes');
             return {
@@ -186,10 +186,10 @@ async function copyToCache(
       
       try {
         const file = new File(sourceUri);
-        const exists = await file.exists();
+        const exists = file.exists;
         
         if (exists) {
-          const size = await file.size();
+          const size = file.size;
           if (size > 0) {
             console.log('[VideoHelpers] ✅ File accessible directly from cache');
             console.log('[VideoHelpers] File size:', size, 'bytes');
@@ -220,10 +220,10 @@ async function copyToCache(
     if (sourceUri.includes('/Caches/') || sourceUri.startsWith('file://')) {
       try {
         const file = new File(sourceUri);
-        const exists = await file.exists();
+        const exists = file.exists;
         
         if (exists) {
-          const size = await file.size();
+          const size = file.size;
           if (size > 0) {
             console.log('[VideoHelpers] ✅ Using source file directly');
             console.log('[VideoHelpers] File size:', size, 'bytes');
@@ -267,10 +267,10 @@ async function copyToCache(
 
     // Check if file already exists in cache (avoid re-copying)
     const existingFile = new File(destUri);
-    const existingFileExists = await existingFile.exists();
+    const existingFileExists = existingFile.exists;
     
     if (existingFileExists) {
-      const existingSize = await existingFile.size();
+      const existingSize = existingFile.size;
       console.log('[VideoHelpers] ✅ File already exists in cache');
       console.log('[VideoHelpers] Cached file size:', existingSize, 'bytes');
       
@@ -299,13 +299,13 @@ async function copyToCache(
     console.log('[VideoHelpers] ✅ File copy completed');
 
     // Verify copied file
-    const copiedExists = await destFile.exists();
+    const copiedExists = destFile.exists;
     
     if (!copiedExists) {
       throw new Error('COPY_VERIFICATION_FAILED: File was copied but cannot be verified');
     }
 
-    const copiedSize = await destFile.size();
+    const copiedSize = destFile.size;
     const copyDuration = Date.now() - copyStartTime;
     const fileSizeMB = (copiedSize / 1024 / 1024).toFixed(2);
     const copySpeedMBps = (copiedSize / 1024 / 1024 / (copyDuration / 1000)).toFixed(2);
@@ -399,7 +399,7 @@ export async function cleanupCachedVideos(olderThanDays: number = 7): Promise<{
       try {
         const fileUri = `${Paths.cache}/${fileName}`;
         const file = new File(fileUri);
-        const exists = await file.exists();
+        const exists = file.exists;
 
         if (exists) {
           const metadata = await file.metadata();
@@ -412,7 +412,7 @@ export async function cleanupCachedVideos(olderThanDays: number = 7): Promise<{
               console.log('[VideoHelpers] Removing old cached file:', fileName);
               console.log('[VideoHelpers] Age:', (age / 1000 / 60 / 60 / 24).toFixed(1), 'days');
               
-              const size = await file.size();
+              const size = file.size;
               await file.delete();
               
               removed++;
@@ -469,11 +469,11 @@ export async function getCacheStats(): Promise<{
       try {
         const fileUri = `${Paths.cache}/${fileName}`;
         const file = new File(fileUri);
-        const exists = await file.exists();
+        const exists = file.exists;
 
         if (exists) {
           totalFiles++;
-          const size = await file.size();
+          const size = file.size;
           totalSize += size;
           
           const metadata = await file.metadata();

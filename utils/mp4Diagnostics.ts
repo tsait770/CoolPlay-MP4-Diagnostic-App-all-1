@@ -1,6 +1,13 @@
 export interface MP4DiagnosticsResult {
   isValid: boolean;
   url: string;
+  isLocalFile: boolean;
+  fileInfo?: {
+    name: string;
+    size?: number;
+    type?: string;
+    uri: string;
+  };
   httpStatus?: number;
   contentType?: string;
   acceptRanges?: boolean;
@@ -20,6 +27,7 @@ export async function diagnoseMP4Url(url: string): Promise<MP4DiagnosticsResult>
   const result: MP4DiagnosticsResult = {
     isValid: true,
     url,
+    isLocalFile: false,
     errors: [],
     warnings: [],
     recommendations: [],
@@ -31,6 +39,52 @@ export async function diagnoseMP4Url(url: string): Promise<MP4DiagnosticsResult>
     return result;
   }
 
+  // Check if this is a local file (file://, content://, or asset protocol)
+  const isLocalFile = url.startsWith('file://') || 
+                      url.startsWith('content://') || 
+                      url.startsWith('ph://') ||
+                      url.startsWith('assets-library://');
+  
+  result.isLocalFile = isLocalFile;
+
+  // If it's a local file, perform local file diagnostics
+  if (isLocalFile) {
+    console.log('[MP4Diagnostics] Detected local file, skipping network checks');
+    
+    // Extract file info from URI
+    const fileName = url.split('/').pop() || 'Unknown';
+    const cleanFileName = decodeURIComponent(fileName.split('?')[0]);
+    
+    result.fileInfo = {
+      name: cleanFileName,
+      uri: url,
+    };
+
+    // Validate file extension
+    const extension = cleanFileName.toLowerCase().split('.').pop();
+    const validExtensions = ['mp4', 'm4v', 'mov'];
+    
+    if (!extension || !validExtensions.includes(extension)) {
+      result.warnings.push(`File extension .${extension} may not be a valid MP4 format`);
+      result.recommendations.push('Ensure the file is in MP4, M4V, or MOV format');
+      result.recommendations.push('Supported codecs: H.264 (video) + AAC (audio)');
+    }
+
+    // Local file specific validations
+    result.recommendations.push('✅ Local file detected - network checks skipped');
+    result.recommendations.push('Make sure the app has permission to read this file');
+    
+    // Check for common local file issues
+    if (url.includes(' ')) {
+      result.warnings.push('URI contains spaces - may cause playback issues');
+      result.recommendations.push('File paths with spaces should be properly encoded');
+    }
+
+    console.log('[MP4Diagnostics] Local file diagnostics complete:', result);
+    return result;
+  }
+
+  // Validate URL format (only for remote URLs)
   try {
     new URL(url);
   } catch (error) {

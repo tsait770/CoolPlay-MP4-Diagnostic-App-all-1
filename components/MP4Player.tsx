@@ -35,10 +35,29 @@ export function MP4Player({
   const videoRef = useRef<VideoView>(null);
   const maxRetries = 2;
 
+  // Check if this is a local file
+  const isLocalFile = React.useMemo(() => {
+    return uri.startsWith('file://') || 
+           uri.startsWith('content://') || 
+           uri.startsWith('ph://') ||
+           uri.startsWith('assets-library://');
+  }, [uri]);
+
   const processedUri = React.useMemo(() => {
     if (!uri || uri.trim() === '') {
       return '';
     }
+
+    // For local files, don't convert - use as-is
+    if (isLocalFile) {
+      console.log('[MP4Player] ========== Local File Processing ==========');
+      console.log('[MP4Player] Local file URI:', uri);
+      console.log('[MP4Player] Platform:', Platform.OS);
+      console.log('[MP4Player] Retry attempt:', retryCount);
+      return uri;
+    }
+    
+    // For remote URLs, apply conversion and encoding
     let converted = convertToPlayableUrl(uri);
     
     // MIME correction: Ensure URL spacing is properly encoded
@@ -51,7 +70,7 @@ export function MP4Player({
     console.log('[MP4Player] Retry attempt:', retryCount);
     console.log('[MP4Player] MIME correction applied:', converted !== uri);
     return converted;
-  }, [uri, retryCount]);
+  }, [uri, retryCount, isLocalFile]);
 
   const player = useVideoPlayer(processedUri, (player) => {
     if (!player) return;
@@ -122,6 +141,17 @@ export function MP4Player({
         console.log('[MP4Player] 📊 Diagnostics complete:');
         console.log(formatDiagnosticsReport(diagResult));
         
+        // For local files, only log diagnostic info - don't fail
+        if (diagResult.isLocalFile) {
+          console.log('[MP4Player] ✅ Local file detected:', diagResult.fileInfo?.name);
+          if (diagResult.warnings.length > 0) {
+            console.warn('[MP4Player] ⚠️ Local file warnings:', diagResult.warnings);
+          }
+          // Continue with playback even if there are warnings
+          return;
+        }
+        
+        // For remote files, enforce validation
         if (!diagResult.isValid) {
           const errorMsg = `MP4 Validation Failed:\n${diagResult.errors.join('\n')}`;
           console.error('[MP4Player] ❌ Diagnostics failed:', errorMsg);
@@ -187,12 +217,23 @@ export function MP4Player({
         console.error('[MP4Player] ❌ Error message:', errorMsg);
         console.error('[MP4Player] 🔗 URI:', processedUri);
         console.error('[MP4Player] 📱 Platform:', Platform.OS);
+        console.error('[MP4Player] 📁 Is local file:', isLocalFile);
         console.error('[MP4Player] 🔄 Retry count:', `${retryCount}/${maxRetries}`);
         console.error('[MP4Player] ⏰ Timestamp:', new Date().toISOString());
         
         if (diagnostics) {
           console.error('[MP4Player] 📊 Previous diagnostics:');
           console.error(formatDiagnosticsReport(diagnostics));
+          
+          if (isLocalFile) {
+            console.error('[MP4Player] 🔍 Local file troubleshooting:');
+            console.error('[MP4Player]   - Check file permissions');
+            console.error('[MP4Player]   - Verify file format (H.264/AAC)');
+            console.error('[MP4Player]   - File path:', uri);
+            if (diagnostics.fileInfo) {
+              console.error('[MP4Player]   - File name:', diagnostics.fileInfo.name);
+            }
+          }
         }
         
         if (retryCount < maxRetries) {
@@ -205,7 +246,17 @@ export function MP4Player({
           return;
         }
         
-        const fullErrorMsg = `Unable to play video after ${maxRetries + 1} attempts\n\n❌ Error: ${errorMsg}\n\n🔍 Diagnostics:\n${diagnostics ? formatDiagnosticsReport(diagnostics) : 'No diagnostics available'}`;
+        let fullErrorMsg = `Unable to play video after ${maxRetries + 1} attempts\n\n❌ Error: ${errorMsg}`;
+        
+        if (isLocalFile) {
+          fullErrorMsg += `\n\n📁 Local File Issues:\n• Check if the app has permission to read this file\n• Verify the file is not corrupted\n• Supported formats: MP4 (H.264 + AAC), MOV, M4V\n• Try selecting the file again\n\n📋 File Info:\n${diagnostics?.fileInfo?.name || 'Unknown'}`;
+          if (Platform.OS === 'android') {
+            fullErrorMsg += '\n\n⚠️ Android Note: Some file paths from external apps may not be accessible';
+          }
+        } else {
+          fullErrorMsg += `\n\n🔍 Diagnostics:\n${diagnostics ? formatDiagnosticsReport(diagnostics) : 'No diagnostics available'}`;
+        }
+        
         console.error('[MP4Player] ❌ All retry attempts exhausted');
         setIsLoading(false);
         setError(fullErrorMsg);
@@ -240,7 +291,7 @@ export function MP4Player({
       playingSubscription.remove();
       volumeSubscription.remove();
     };
-  }, [player, uri, processedUri, autoPlay, hasInitialized, onPlaybackStart, onError, retryCount, diagnostics]);
+  }, [player, uri, processedUri, autoPlay, hasInitialized, onPlaybackStart, onError, retryCount, diagnostics, isLocalFile]);
 
   const handleBackPress = useCallback(() => {
     if (onBackPress) {

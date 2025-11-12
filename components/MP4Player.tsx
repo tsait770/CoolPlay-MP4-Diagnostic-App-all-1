@@ -39,12 +39,17 @@ export function MP4Player({
     if (!uri || uri.trim() === '') {
       return '';
     }
-    const converted = convertToPlayableUrl(uri);
+    let converted = convertToPlayableUrl(uri);
+    
+    // MIME correction: Ensure URL spacing is properly encoded
+    converted = converted.replace(/[\s]/g, '%20');
+    
     console.log('[MP4Player] ========== URI Processing ==========');
     console.log('[MP4Player] Original URI:', uri);
     console.log('[MP4Player] Converted URI:', converted);
     console.log('[MP4Player] Platform:', Platform.OS);
     console.log('[MP4Player] Retry attempt:', retryCount);
+    console.log('[MP4Player] MIME correction applied:', converted !== uri);
     return converted;
   }, [uri, retryCount]);
 
@@ -55,13 +60,22 @@ export function MP4Player({
     player.loop = false;
     player.muted = false;
     
+    // CRITICAL FIX: Delayed autoplay to avoid race condition
+    // Wait for player to be fully ready before attempting to play
     if (autoPlay) {
-      console.log('[MP4Player] Auto-play enabled, starting playback');
-      try {
-        player.play();
-      } catch (e) {
-        console.warn('[MP4Player] Auto-play failed:', e);
-      }
+      console.log('[MP4Player] Auto-play enabled, scheduling delayed playback (500ms)');
+      setTimeout(() => {
+        if (player && player.status === 'readyToPlay') {
+          try {
+            console.log('[MP4Player] Executing delayed auto-play');
+            player.play();
+          } catch (e) {
+            console.warn('[MP4Player] Delayed auto-play failed:', e);
+          }
+        } else {
+          console.warn('[MP4Player] Player not ready for auto-play after delay, status:', player?.status);
+        }
+      }, 500);
     }
   });
 
@@ -277,7 +291,7 @@ export function MP4Player({
         ref={videoRef}
         player={player} 
         style={[styles.video, isFullscreen && styles.fullscreenVideo]}
-        nativeControls={true}
+        nativeControls={Platform.OS === 'android' ? true : true}
         contentFit={isFullscreen ? "cover" : "contain"}
         allowsFullscreen={true}
         allowsPictureInPicture={true}

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MP4Player from '@/components/MP4Player';
-import { Play, TestTube2 } from 'lucide-react-native';
+import { Play, TestTube2, ArrowLeft } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { testVideoUrl, formatTestResult, type VideoUrlTestResult } from '@/utils/videoUrlTester';
 
@@ -27,10 +27,20 @@ const TEST_VIDEOS = [
 ];
 
 export default function MP4TestScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams();
   const [currentVideo, setCurrentVideo] = useState<string>('');
   const [customUrl, setCustomUrl] = useState<string>('');
   const [testResult, setTestResult] = useState<VideoUrlTestResult | null>(null);
   const [isTesting, setIsTesting] = useState(false);
+
+  useEffect(() => {
+    if (params.url && typeof params.url === 'string') {
+      const decodedUrl = decodeURIComponent(params.url);
+      setCustomUrl(decodedUrl);
+      handleLoadVideo(decodedUrl);
+    }
+  }, [params.url]);
 
   const handleLoadVideo = (url: string) => {
     console.log('[MP4Test] Loading video:', url);
@@ -96,6 +106,14 @@ export default function MP4TestScreen() {
           title: 'MP4 播放測試',
           headerStyle: { backgroundColor: Colors.primary.bg },
           headerTintColor: Colors.primary.text,
+          headerLeft: () => (
+            <TouchableOpacity 
+              onPress={() => router.back()}
+              style={{ marginLeft: 12, padding: 8 }}
+            >
+              <ArrowLeft size={24} color={Colors.primary.text} />
+            </TouchableOpacity>
+          ),
         }} 
       />
       

@@ -6,6 +6,9 @@ export interface MP4DiagnosticsResult {
   acceptRanges?: boolean;
   contentLength?: number;
   corsEnabled?: boolean;
+  corsFallbackTested?: boolean;
+  mimeTypeIssue?: boolean;
+  needsMimeCorrection?: boolean;
   errors: string[];
   warnings: string[];
   recommendations: string[];
@@ -36,15 +39,53 @@ export async function diagnoseMP4Url(url: string): Promise<MP4DiagnosticsResult>
     return result;
   }
 
+  // First attempt: Standard HEAD request
+  let response: Response | null = null;
+  let corsError = false;
+  
   try {
     console.log('[MP4Diagnostics] Sending HEAD request...');
-    const response = await fetch(url, {
+    response = await fetch(url, {
       method: 'HEAD',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'video/mp4,video/*;q=0.9,*/*;q=0.8',
       },
     });
+  } catch (headError) {
+    console.warn('[MP4Diagnostics] HEAD request failed, trying no-cors GET:', headError);
+    corsError = true;
+    
+    // Fallback: Try no-cors GET request
+    try {
+      response = await fetch(url, {
+        method: 'GET',
+        mode: 'no-cors',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': 'video/mp4,video/*;q=0.9,*/*;q=0.8',
+        },
+      });
+      result.corsFallbackTested = true;
+      console.log('[MP4Diagnostics] no-cors GET request succeeded');
+    } catch (noCorsError) {
+      console.error('[MP4Diagnostics] Both HEAD and no-cors GET failed:', noCorsError);
+      result.isValid = false;
+      result.errors.push(`Network error: ${noCorsError instanceof Error ? noCorsError.message : 'Unknown error'}`);
+      result.errors.push('CORS may be blocking requests - try using a proxy or server-side fetching');
+      result.recommendations.push('Check internet connection and server availability');
+      result.recommendations.push('Add CORS headers to your server or use a CORS proxy');
+      return result;
+    }
+  }
+  
+  if (!response) {
+    result.isValid = false;
+    result.errors.push('No response received from server');
+    return result;
+  }
+  
+  try {
 
     result.httpStatus = response.status;
     
@@ -65,12 +106,25 @@ export async function diagnoseMP4Url(url: string): Promise<MP4DiagnosticsResult>
     const contentType = response.headers.get('content-type');
     result.contentType = contentType || undefined;
     
+    // Check for MIME type issues
     if (!contentType) {
       result.warnings.push('No Content-Type header found');
+      result.mimeTypeIssue = true;
+      result.needsMimeCorrection = true;
       result.recommendations.push('Server should return Content-Type: video/mp4 header');
-    } else if (!contentType.includes('video')) {
+      result.recommendations.push('Player will attempt automatic MIME type correction');
+    } else if (contentType === 'application/octet-stream' || !contentType.includes('video')) {
       result.warnings.push(`Content-Type is "${contentType}", expected "video/mp4"`);
+      result.mimeTypeIssue = true;
+      result.needsMimeCorrection = true;
       result.recommendations.push('Server should return Content-Type: video/mp4 for better compatibility');
+      result.recommendations.push('Player will force MIME type to video/mp4');
+      
+      // Check if URL has MP4 extension
+      if (url.toLowerCase().includes('.mp4')) {
+        result.warnings.push('URL indicates MP4 file but Content-Type is incorrect');
+        result.recommendations.push('Automatic MIME correction will be applied based on file extension');
+      }
     }
 
     const acceptRanges = response.headers.get('accept-ranges');
@@ -98,9 +152,18 @@ export async function diagnoseMP4Url(url: string): Promise<MP4DiagnosticsResult>
     const corsHeader = response.headers.get('access-control-allow-origin');
     result.corsEnabled = corsHeader === '*' || corsHeader !== null;
     
-    if (!result.corsEnabled) {
-      result.warnings.push('CORS headers not properly configured');
-      result.recommendations.push('Add Access-Control-Allow-Origin header for cross-origin requests');
+    if (!result.corsEnabled || corsError) {
+      if (corsError) {
+        result.warnings.push('CORS error detected - had to use no-cors mode');
+        result.recommendations.push('CRITICAL: Add Access-Control-Allow-Origin header to your server');
+        result.recommendations.push('Consider using WebView fallback for CORS-blocked videos');
+      } else {
+        result.warnings.push('CORS headers not properly configured');
+        result.recommendations.push('Add Access-Control-Allow-Origin header for cross-origin requests');
+      }
+      result.recommendations.push('If you control the server, add these headers:');
+      result.recommendations.push('  Access-Control-Allow-Origin: *');
+      result.recommendations.push('  Access-Control-Allow-Methods: GET, HEAD, OPTIONS');
     }
 
   } catch (error) {

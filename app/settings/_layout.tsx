@@ -36,12 +36,14 @@ export default function SettingsLayout() {
           headerShown: true,
           headerBackVisible: true,
           headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={{ marginLeft: -8, padding: 8 }}
-            >
-              <ChevronLeft size={24} color={Colors.primary.text} />
-            </TouchableOpacity>
+            router.canGoBack() ? (
+              <TouchableOpacity
+                onPress={() => router.back()}
+                style={{ marginLeft: -8, padding: 8 }}
+              >
+                <ChevronLeft size={24} color={Colors.primary.text} />
+              </TouchableOpacity>
+            ) : null
           ),
         }}
       />

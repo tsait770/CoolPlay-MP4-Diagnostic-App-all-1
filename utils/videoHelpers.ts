@@ -9,8 +9,7 @@
  */
 
 import { Platform } from 'react-native';
-import * as FileSystem from 'expo-file-system';
-import { cacheDirectory as expoCacheDirectory, documentDirectory as expoDocumentDirectory } from 'expo-file-system';
+import { File, Directory, Paths } from 'expo-file-system';
 
 export interface PrepareLocalVideoResult {
   success: boolean;
@@ -32,7 +31,7 @@ type FileNameParts = {
   originalName: string;
 };
 
-const baseCacheDirectory = expoCacheDirectory ?? expoDocumentDirectory ?? ''; 
+const baseCacheDirectory = Paths.cache ?? Paths.document ?? ''; 
 const videoCacheDirectory = baseCacheDirectory ? `${baseCacheDirectory}local-videos/` : null;
 let cacheDirectoryEnsured = false;
 
@@ -78,9 +77,10 @@ async function ensureCacheDirectory(): Promise<void> {
     return;
   }
   try {
-    const info = await FileSystem.getInfoAsync(videoCacheDirectory);
-    if (!info.exists) {
-      await FileSystem.makeDirectoryAsync(videoCacheDirectory, { intermediates: true });
+    const dir = new Directory(videoCacheDirectory);
+    const exists = await dir.exists();
+    if (!exists) {
+      await dir.create();
     }
     cacheDirectoryEnsured = true;
   } catch (error) {
@@ -147,17 +147,24 @@ export async function prepareLocalVideo(originalUri: string): Promise<PrepareLoc
     }
 
     if (isFileUri) {
-      const info = await FileSystem.getInfoAsync(normalizedOriginalUri, { size: true });
-      if (!info.exists) {
+      const file = new File(normalizedOriginalUri);
+      const exists = await file.exists();
+      if (!exists) {
         throw new Error('FILE_NOT_FOUND: Unable to access local file');
       }
       const parts = extractFileNameParts(cleanUri);
+      let fileSize: number | undefined;
+      try {
+        fileSize = await file.size();
+      } catch {
+        fileSize = undefined;
+      }
       return {
         success: true,
         uri: normalizedOriginalUri,
         originUri: cleanUri,
         platform,
-        size: typeof info.size === 'number' ? info.size : undefined,
+        size: fileSize,
         needsCopy: false,
         isCached: true,
         fileName: `${parts.baseName}.${parts.extension}`,
@@ -168,20 +175,27 @@ export async function prepareLocalVideo(originalUri: string): Promise<PrepareLoc
     if (isLocalFile) {
       await ensureCacheDirectory();
       const cacheEntry = buildCacheUri(cleanUri);
-      let info = await FileSystem.getInfoAsync(cacheEntry.uri, { size: true });
-      const alreadyCached = info.exists;
+      const cacheFile = new File(cacheEntry.uri);
+      const alreadyCached = await cacheFile.exists();
 
       if (!alreadyCached) {
         console.log('[VideoHelpers] Copying local content URI to cache:', cacheEntry.uri);
         try {
-          await FileSystem.copyAsync({ from: cleanUri, to: cacheEntry.uri });
+          const sourceFile = new File(cleanUri);
+          await sourceFile.copy(cacheEntry.uri);
         } catch (copyError) {
           console.error('[VideoHelpers] Copy failed:', copyError);
           throw new Error(`COPY_FAILED: ${(copyError instanceof Error ? copyError.message : String(copyError))}`);
         }
-        info = await FileSystem.getInfoAsync(cacheEntry.uri, { size: true });
       } else {
         console.log('[VideoHelpers] Using cached local video:', cacheEntry.uri);
+      }
+
+      let fileSize: number | undefined;
+      try {
+        fileSize = await cacheFile.size();
+      } catch {
+        fileSize = undefined;
       }
 
       const normalizedCacheUri = normalizeUriSpacing(cacheEntry.uri);
@@ -190,7 +204,7 @@ export async function prepareLocalVideo(originalUri: string): Promise<PrepareLoc
         uri: normalizedCacheUri,
         originUri: cleanUri,
         platform,
-        size: typeof info.size === 'number' ? info.size : undefined,
+        size: fileSize,
         needsCopy: !alreadyCached,
         isCached: alreadyCached,
         fileName: cacheEntry.fileName,

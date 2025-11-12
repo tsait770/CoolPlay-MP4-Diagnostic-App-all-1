@@ -38,48 +38,18 @@ export default function MP4Player({
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Validate URI before initializing player
-  const validUri = uri && uri.trim() !== '' ? uri : null;
-  
-  console.log('[MP4Player] Initializing with URI:', validUri);
-  console.log('[MP4Player] URI details:', {
-    uri: validUri,
-    autoPlay,
-    hasError: !!error,
-    isLoading,
-  });
-  
-  const player = useVideoPlayer(validUri || 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAu1tZGF0AAACrQYF//+p3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE1MiByMjg1NCBlOWE1OTAzIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNyAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTYgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTEgc2NlbmVjdXQ9NDAgaW50cmFfcmVmcmVzaD0wIHJjX2xvb2thaGVhZD00MCByYz1jcmYgbWJ0cmVlPTEgY3JmPTIzLjAgcWNvbXA9MC42MCBxcG1pbj0wIHFwbWF4PTY5IHFwc3RlcD00IGlwX3JhdGlvPTEuNDAgYXE9MToxLjAwAIAAAAA/ZYiEACD/2lu4PtiAGCZiIJmO35BneLS4/AKawbwF3gS81VgCN/Hrr5/Vp4UEDhArEAAAAwAAAwAAFgJPWwAAAAA=', (player) => {
-    if (!validUri) {
-      console.warn('[MP4Player] No valid URI provided');
-      return;
-    }
-    
+  const player = useVideoPlayer(uri, (player) => {
     player.loop = false;
     player.muted = false;
     if (autoPlay) {
-      console.log('[MP4Player] Autoplay enabled, starting playback');
       player.play();
     }
   });
 
-  // Check if URI is valid
   useEffect(() => {
-    if (!validUri) {
-      const errorMsg = 'No valid video URI provided';
-      console.error('[MP4Player]', errorMsg);
-      setError(errorMsg);
-      if (onError) {
-        onError(errorMsg);
-      }
-      return;
-    }
-  }, [validUri, onError]);
+    if (!player) return;
 
-  useEffect(() => {
-    if (!player || !validUri) return;
-
-    console.log('[MP4Player] Setting up player listeners for URI:', validUri);
+    console.log('[MP4Player] Initialized with URI:', uri);
 
     const statusSubscription = player.addListener('statusChange', (status) => {
       console.log('[MP4Player] Status changed:', status.status);

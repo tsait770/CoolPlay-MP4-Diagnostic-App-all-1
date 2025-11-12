@@ -1,165 +1,224 @@
-import { detectVideoSource } from './videoSourceDetector';
-
 export interface MP4DiagnosticsResult {
+  isValid: boolean;
   url: string;
-  isValidUrl: boolean;
-  detectedType: string;
-  detectedPlatform: string;
-  streamType?: string;
-  requiresWebView: boolean;
-  shouldUseMp4Player: boolean;
-  urlHasMp4Extension: boolean;
-  isHttps: boolean;
-  potentialIssues: string[];
+  httpStatus?: number;
+  contentType?: string;
+  acceptRanges?: boolean;
+  contentLength?: number;
+  corsEnabled?: boolean;
+  errors: string[];
+  warnings: string[];
   recommendations: string[];
 }
 
-export function diagnoseMP4Playback(url: string): MP4DiagnosticsResult {
+export async function diagnoseMP4Url(url: string): Promise<MP4DiagnosticsResult> {
+  console.log('[MP4Diagnostics] Starting diagnostics for:', url);
+  
   const result: MP4DiagnosticsResult = {
+    isValid: true,
     url,
-    isValidUrl: false,
-    detectedType: 'unknown',
-    detectedPlatform: 'unknown',
-    requiresWebView: false,
-    shouldUseMp4Player: false,
-    urlHasMp4Extension: false,
-    isHttps: false,
-    potentialIssues: [],
+    errors: [],
+    warnings: [],
     recommendations: [],
   };
 
-  if (!url || typeof url !== 'string' || url.trim() === '') {
-    result.potentialIssues.push('URL is empty or invalid');
-    result.recommendations.push('Provide a valid video URL');
+  if (!url || url.trim() === '') {
+    result.isValid = false;
+    result.errors.push('Empty or invalid URL');
     return result;
   }
 
-  result.isValidUrl = true;
-  result.isHttps = url.toLowerCase().startsWith('https://');
-  
-  if (!result.isHttps && url.toLowerCase().startsWith('http://')) {
-    result.potentialIssues.push('Using HTTP instead of HTTPS - may cause security issues');
-    result.recommendations.push('Use HTTPS URL if available');
+  try {
+    new URL(url);
+  } catch (error) {
+    result.isValid = false;
+    result.errors.push(`Invalid URL format: ${error}`);
+    return result;
   }
 
-  const sourceInfo = detectVideoSource(url);
-  result.detectedType = sourceInfo.type;
-  result.detectedPlatform = sourceInfo.platform;
-  result.requiresWebView = sourceInfo.requiresWebView || false;
-  result.streamType = sourceInfo.streamType;
+  try {
+    console.log('[MP4Diagnostics] Sending HEAD request...');
+    const response = await fetch(url, {
+      method: 'HEAD',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'video/mp4,video/*;q=0.9,*/*;q=0.8',
+      },
+    });
 
-  result.shouldUseMp4Player = sourceInfo.type === 'direct';
+    result.httpStatus = response.status;
+    
+    console.log('[MP4Diagnostics] Response status:', response.status);
+    console.log('[MP4Diagnostics] Response headers:', {
+      contentType: response.headers.get('content-type'),
+      acceptRanges: response.headers.get('accept-ranges'),
+      contentLength: response.headers.get('content-length'),
+      accessControlAllowOrigin: response.headers.get('access-control-allow-origin'),
+    });
 
-  const videoFormats = ['mp4', 'webm', 'ogg', 'ogv', 'mkv', 'avi', 'mov', 'flv', 'wmv', '3gp'];
-  const urlLower = url.toLowerCase();
-  result.urlHasMp4Extension = videoFormats.some(ext => 
-    urlLower.includes(`.${ext}`)
-  );
-
-  if (sourceInfo.type !== 'direct' && result.urlHasMp4Extension) {
-    result.potentialIssues.push(
-      `URL appears to be a direct video file but was detected as '${sourceInfo.type}'`
-    );
-    result.recommendations.push(
-      'Check if URL format is preventing proper detection'
-    );
-  }
-
-  if (sourceInfo.type === 'direct' && !result.urlHasMp4Extension) {
-    result.potentialIssues.push(
-      'Detected as direct video but URL has no clear video extension'
-    );
-    result.recommendations.push(
-      'Server may need to return proper Content-Type headers'
-    );
-  }
-
-  if (sourceInfo.type === 'direct' && sourceInfo.streamType) {
-    const advancedFormats = ['mkv', 'avi', 'flv', 'wmv'];
-    if (advancedFormats.includes(sourceInfo.streamType)) {
-      result.potentialIssues.push(
-        `${sourceInfo.streamType.toUpperCase()} format may have limited support in expo-video`
-      );
-      result.recommendations.push(
-        `Consider converting to MP4 (H.264/AAC) for best compatibility`
-      );
+    if (response.status >= 400) {
+      result.isValid = false;
+      result.errors.push(`HTTP ${response.status}: ${getHttpStatusMessage(response.status)}`);
+      return result;
     }
+
+    const contentType = response.headers.get('content-type');
+    result.contentType = contentType || undefined;
+    
+    if (!contentType) {
+      result.warnings.push('No Content-Type header found');
+      result.recommendations.push('Server should return Content-Type: video/mp4 header');
+    } else if (!contentType.includes('video')) {
+      result.warnings.push(`Content-Type is "${contentType}", expected "video/mp4"`);
+      result.recommendations.push('Server should return Content-Type: video/mp4 for better compatibility');
+    }
+
+    const acceptRanges = response.headers.get('accept-ranges');
+    result.acceptRanges = acceptRanges === 'bytes';
+    
+    if (!result.acceptRanges) {
+      result.warnings.push('Accept-Ranges header is missing or not set to "bytes"');
+      result.recommendations.push('Enable Accept-Ranges: bytes header for seeking support');
+      result.recommendations.push('This is critical for progressive playback and seeking');
+    }
+
+    const contentLength = response.headers.get('content-length');
+    if (contentLength) {
+      result.contentLength = parseInt(contentLength, 10);
+      console.log('[MP4Diagnostics] Content-Length:', result.contentLength, 'bytes');
+      
+      if (result.contentLength > 100 * 1024 * 1024) {
+        result.warnings.push(`Large file size: ${(result.contentLength / 1024 / 1024).toFixed(2)} MB`);
+        result.recommendations.push('Consider using adaptive streaming (HLS/DASH) for large files');
+      }
+    } else {
+      result.warnings.push('Content-Length header is missing');
+    }
+
+    const corsHeader = response.headers.get('access-control-allow-origin');
+    result.corsEnabled = corsHeader === '*' || corsHeader !== null;
+    
+    if (!result.corsEnabled) {
+      result.warnings.push('CORS headers not properly configured');
+      result.recommendations.push('Add Access-Control-Allow-Origin header for cross-origin requests');
+    }
+
+  } catch (error) {
+    result.isValid = false;
+    result.errors.push(`Network error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    result.recommendations.push('Check internet connection and server availability');
   }
 
-  if (result.shouldUseMp4Player) {
-    result.recommendations.push(
-      'This URL should use MP4Player component',
-      'Check console logs for [MP4Player] messages',
-      'Verify network connection and CORS settings'
-    );
+  if (!url.toLowerCase().endsWith('.mp4') && !url.toLowerCase().includes('.mp4?')) {
+    result.warnings.push('URL does not have .mp4 extension');
+    result.recommendations.push('Ensure URL points to a valid MP4 file');
   }
 
-  if (!result.isValidUrl || sourceInfo.type === 'unknown') {
-    result.potentialIssues.push('Could not detect video source type');
-    result.recommendations.push(
-      'Verify URL is accessible',
-      'Check if video server allows embedding',
-      'Test URL in browser first'
-    );
-  }
-
-  if (url.length > 2000) {
-    result.potentialIssues.push('URL is very long - may cause issues');
-    result.recommendations.push('Consider using a URL shortener or direct link');
-  }
-
+  console.log('[MP4Diagnostics] Diagnostics complete:', result);
   return result;
 }
 
-export function printMP4Diagnostics(url: string): void {
-  const result = diagnoseMP4Playback(url);
+export function getHttpStatusMessage(status: number): string {
+  const messages: Record<number, string> = {
+    200: 'OK',
+    301: 'Moved Permanently',
+    302: 'Found (Temporary Redirect)',
+    304: 'Not Modified',
+    400: 'Bad Request',
+    401: 'Unauthorized - Authentication required',
+    403: 'Forbidden - Access denied',
+    404: 'Not Found - Video does not exist',
+    429: 'Too Many Requests - Rate limited',
+    451: 'Unavailable For Legal Reasons',
+    500: 'Internal Server Error',
+    502: 'Bad Gateway',
+    503: 'Service Unavailable',
+    504: 'Gateway Timeout',
+  };
   
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('MP4 Playback Diagnostics Report');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`URL: ${result.url.substring(0, 100)}${result.url.length > 100 ? '...' : ''}`);
-  console.log('');
-  console.log('Detection Results:');
-  console.log(`  ✓ Valid URL: ${result.isValidUrl ? 'Yes' : 'No'}`);
-  console.log(`  ✓ Detected Type: ${result.detectedType}`);
-  console.log(`  ✓ Platform: ${result.detectedPlatform}`);
-  if (result.streamType) {
-    console.log(`  ✓ Stream Type: ${result.streamType.toUpperCase()}`);
+  return messages[status] || `HTTP ${status}`;
+}
+
+export function formatDiagnosticsReport(result: MP4DiagnosticsResult): string {
+  const lines: string[] = [];
+  
+  lines.push('=== MP4 Diagnostics Report ===\n');
+  lines.push(`URL: ${result.url}\n`);
+  lines.push(`Status: ${result.isValid ? '✅ VALID' : '❌ INVALID'}\n`);
+  
+  if (result.httpStatus) {
+    lines.push(`\nHTTP Status: ${result.httpStatus} (${getHttpStatusMessage(result.httpStatus)})`);
   }
-  console.log(`  ✓ Should Use MP4Player: ${result.shouldUseMp4Player ? 'Yes' : 'No'}`);
-  console.log(`  ✓ Has Video Extension: ${result.urlHasMp4Extension ? 'Yes' : 'No'}`);
-  console.log(`  ✓ Uses HTTPS: ${result.isHttps ? 'Yes' : 'No'}`);
-  console.log(`  ✓ Requires WebView: ${result.requiresWebView ? 'Yes' : 'No'}`);
   
-  if (result.potentialIssues.length > 0) {
-    console.log('');
-    console.log('⚠️  Potential Issues:');
-    result.potentialIssues.forEach((issue, i) => {
-      console.log(`  ${i + 1}. ${issue}`);
-    });
+  if (result.contentType) {
+    lines.push(`Content-Type: ${result.contentType}`);
+  }
+  
+  if (result.acceptRanges !== undefined) {
+    lines.push(`Accept-Ranges: ${result.acceptRanges ? '✅ bytes' : '❌ Not supported'}`);
+  }
+  
+  if (result.contentLength) {
+    lines.push(`Content-Length: ${(result.contentLength / 1024 / 1024).toFixed(2)} MB`);
+  }
+  
+  if (result.corsEnabled !== undefined) {
+    lines.push(`CORS: ${result.corsEnabled ? '✅ Enabled' : '⚠️ Not configured'}`);
+  }
+  
+  if (result.errors.length > 0) {
+    lines.push('\n❌ Errors:');
+    result.errors.forEach(error => lines.push(`  • ${error}`));
+  }
+  
+  if (result.warnings.length > 0) {
+    lines.push('\n⚠️ Warnings:');
+    result.warnings.forEach(warning => lines.push(`  • ${warning}`));
   }
   
   if (result.recommendations.length > 0) {
-    console.log('');
-    console.log('💡 Recommendations:');
-    result.recommendations.forEach((rec, i) => {
-      console.log(`  ${i + 1}. ${rec}`);
-    });
+    lines.push('\n💡 Recommendations:');
+    result.recommendations.forEach(rec => lines.push(`  • ${rec}`));
   }
   
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  return lines.join('\n');
 }
 
-export function getMP4PlayerStatus(): {
-  componentExists: boolean;
-  usesExpoVideo: boolean;
-  hasErrorHandling: boolean;
-  hasEventListeners: boolean;
-} {
+export async function testMP4Playability(url: string): Promise<{
+  canPlay: boolean;
+  reason?: string;
+  diagnostics: MP4DiagnosticsResult;
+}> {
+  console.log('[MP4Diagnostics] Testing MP4 playability for:', url);
+  
+  const diagnostics = await diagnoseMP4Url(url);
+  
+  if (!diagnostics.isValid) {
+    return {
+      canPlay: false,
+      reason: diagnostics.errors.join('; '),
+      diagnostics,
+    };
+  }
+  
+  if (diagnostics.errors.length > 0) {
+    return {
+      canPlay: false,
+      reason: diagnostics.errors[0],
+      diagnostics,
+    };
+  }
+  
+  if (!diagnostics.acceptRanges) {
+    return {
+      canPlay: true,
+      reason: 'May have issues with seeking - Accept-Ranges header missing',
+      diagnostics,
+    };
+  }
+  
   return {
-    componentExists: true,
-    usesExpoVideo: true,
-    hasErrorHandling: true,
-    hasEventListeners: true,
+    canPlay: true,
+    diagnostics,
   };
 }

@@ -4,6 +4,7 @@ import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity, Platform }
 import { ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { convertToPlayableUrl } from '@/utils/videoSourceDetector';
+import { diagnoseMP4Url, formatDiagnosticsReport, type MP4DiagnosticsResult } from '@/utils/mp4Diagnostics';
 
 export interface MP4PlayerProps {
   uri: string;
@@ -29,16 +30,23 @@ export function MP4Player({
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<MP4DiagnosticsResult | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const videoRef = useRef<VideoView>(null);
+  const maxRetries = 2;
 
   const processedUri = React.useMemo(() => {
     if (!uri || uri.trim() === '') {
       return '';
     }
     const converted = convertToPlayableUrl(uri);
-    console.log('[MP4Player] URI conversion:', { original: uri, converted });
+    console.log('[MP4Player] ========== URI Processing ==========');
+    console.log('[MP4Player] Original URI:', uri);
+    console.log('[MP4Player] Converted URI:', converted);
+    console.log('[MP4Player] Platform:', Platform.OS);
+    console.log('[MP4Player] Retry attempt:', retryCount);
     return converted;
-  }, [uri]);
+  }, [uri, retryCount]);
 
   const player = useVideoPlayer(processedUri, (player) => {
     if (!player) return;
@@ -59,36 +67,66 @@ export function MP4Player({
 
   useEffect(() => {
     if (!player) {
-      console.warn('[MP4Player] Player instance is null');
+      console.warn('[MP4Player] ❌ Player instance is null');
       return;
     }
 
     if (!processedUri || processedUri.trim() === '') {
-      console.warn('[MP4Player] No valid URI to play');
+      console.warn('[MP4Player] ❌ No valid URI to play');
       setError('No video URL provided');
       setIsLoading(false);
       return;
     }
 
-    console.log('[MP4Player] ========== Player Status ==========');
+    console.log('[MP4Player] ========== Player Initialization ==========');
     console.log('[MP4Player] Original URI:', uri);
     console.log('[MP4Player] Processed URI:', processedUri);
     console.log('[MP4Player] Auto-play:', autoPlay);
     console.log('[MP4Player] Platform:', Platform.OS);
-    console.log('[MP4Player] Player instance:', player ? 'Available' : 'NULL');
+    console.log('[MP4Player] Player instance:', player ? '✅ Available' : '❌ NULL');
+    console.log('[MP4Player] Retry count:', `${retryCount}/${maxRetries}`);
 
     if (processedUri && processedUri !== '') {
       try {
         new URL(processedUri);
+        console.log('[MP4Player] ✅ URL format is valid');
       } catch (urlError) {
         const errorMsg = 'Invalid video URL format';
-        console.error('[MP4Player] URL validation failed:', urlError);
+        console.error('[MP4Player] ❌ URL validation failed:', urlError);
         setError(errorMsg);
         setIsLoading(false);
         onError?.(errorMsg);
         return;
       }
     }
+
+    const runDiagnostics = async () => {
+      console.log('[MP4Player] 🔍 Running MP4 diagnostics...');
+      try {
+        const diagResult = await diagnoseMP4Url(processedUri);
+        setDiagnostics(diagResult);
+        console.log('[MP4Player] 📊 Diagnostics complete:');
+        console.log(formatDiagnosticsReport(diagResult));
+        
+        if (!diagResult.isValid) {
+          const errorMsg = `MP4 Validation Failed:\n${diagResult.errors.join('\n')}`;
+          console.error('[MP4Player] ❌ Diagnostics failed:', errorMsg);
+          setError(errorMsg);
+          setIsLoading(false);
+          onError?.(errorMsg);
+          return;
+        }
+        
+        if (diagResult.warnings.length > 0) {
+          console.warn('[MP4Player] ⚠️ Diagnostics warnings:', diagResult.warnings);
+          console.warn('[MP4Player] 💡 Recommendations:', diagResult.recommendations);
+        }
+      } catch (diagError) {
+        console.error('[MP4Player] ⚠️ Diagnostics failed but continuing:', diagError);
+      }
+    };
+    
+    runDiagnostics();
 
     const statusSubscription = player.addListener('statusChange', (status) => {
       console.log('[MP4Player] Status change:', {
@@ -131,13 +169,30 @@ export function MP4Player({
           }
         }
         
-        console.error('[MP4Player] ❌ Playback error:', {
-          message: errorMsg,
-          uri: processedUri,
-          timestamp: new Date().toISOString(),
-        });
+        console.error('[MP4Player] ========== PLAYBACK ERROR ==========');
+        console.error('[MP4Player] ❌ Error message:', errorMsg);
+        console.error('[MP4Player] 🔗 URI:', processedUri);
+        console.error('[MP4Player] 📱 Platform:', Platform.OS);
+        console.error('[MP4Player] 🔄 Retry count:', `${retryCount}/${maxRetries}`);
+        console.error('[MP4Player] ⏰ Timestamp:', new Date().toISOString());
         
-        const fullErrorMsg = `Unable to play video: ${errorMsg}`;
+        if (diagnostics) {
+          console.error('[MP4Player] 📊 Previous diagnostics:');
+          console.error(formatDiagnosticsReport(diagnostics));
+        }
+        
+        if (retryCount < maxRetries) {
+          console.log(`[MP4Player] 🔄 Attempting retry ${retryCount + 1}/${maxRetries}...`);
+          setTimeout(() => {
+            setRetryCount(prev => prev + 1);
+            setError(null);
+            setIsLoading(true);
+          }, 1000 * (retryCount + 1));
+          return;
+        }
+        
+        const fullErrorMsg = `Unable to play video after ${maxRetries + 1} attempts\n\n❌ Error: ${errorMsg}\n\n🔍 Diagnostics:\n${diagnostics ? formatDiagnosticsReport(diagnostics) : 'No diagnostics available'}`;
+        console.error('[MP4Player] ❌ All retry attempts exhausted');
         setIsLoading(false);
         setError(fullErrorMsg);
         onError?.(fullErrorMsg);
@@ -171,7 +226,7 @@ export function MP4Player({
       playingSubscription.remove();
       volumeSubscription.remove();
     };
-  }, [player, uri, processedUri, autoPlay, hasInitialized, onPlaybackStart, onError]);
+  }, [player, uri, processedUri, autoPlay, hasInitialized, onPlaybackStart, onError, retryCount, diagnostics]);
 
   const handleBackPress = useCallback(() => {
     if (onBackPress) {

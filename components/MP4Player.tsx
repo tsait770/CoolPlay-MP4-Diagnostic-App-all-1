@@ -85,11 +85,13 @@ export default function MP4Player({
         setIsLoading(false);
         setError(null);
         
-        // Only call onLoad once per URI
+        // Only call onLoad once per URI - schedule in next tick
         if (!hasCalledOnLoad.current && onLoad) {
-          console.log('[MP4Player] Calling onLoad callback');
+          console.log('[MP4Player] Scheduling onLoad callback');
           hasCalledOnLoad.current = true;
-          onLoad();
+          setTimeout(() => {
+            onLoad();
+          }, 0);
         }
         
         // Start playing if autoPlay is enabled
@@ -117,8 +119,11 @@ export default function MP4Player({
         console.error('[MP4Player] Playback error:', errorMsg);
         setError(errorMsg);
         
+        // Schedule error callback in next tick
         if (onError) {
-          onError(errorMsg);
+          setTimeout(() => {
+            onError(errorMsg);
+          }, 0);
         }
       }
     });
@@ -128,8 +133,10 @@ export default function MP4Player({
       console.log('[MP4Player] Playing state changed:', event.isPlaying, 'oldIsPlaying:', event.oldIsPlaying);
       
       if (event.isPlaying && onPlaybackStart) {
-        console.log('[MP4Player] Playback started, calling onPlaybackStart');
-        onPlaybackStart();
+        console.log('[MP4Player] Playback started, scheduling onPlaybackStart');
+        setTimeout(() => {
+          onPlaybackStart();
+        }, 0);
       } else if (!event.isPlaying && event.oldIsPlaying) {
         // Check if video ended
         const currentTime = player.currentTime || 0;
@@ -138,9 +145,11 @@ export default function MP4Player({
         console.log('[MP4Player] Playback paused/stopped. CurrentTime:', currentTime, 'Duration:', duration);
         
         if (duration > 0 && currentTime >= duration - 0.5) {
-          console.log('[MP4Player] Video ended, calling onPlaybackEnd');
+          console.log('[MP4Player] Video ended, scheduling onPlaybackEnd');
           if (onPlaybackEnd) {
-            onPlaybackEnd();
+            setTimeout(() => {
+              onPlaybackEnd();
+            }, 0);
           }
         }
       }

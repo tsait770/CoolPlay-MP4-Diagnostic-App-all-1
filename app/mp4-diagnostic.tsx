@@ -96,7 +96,7 @@ export default function MP4DiagnosticScreen() {
         options={{
           title: 'MP4 播放診斷工具',
           headerStyle: {
-            backgroundColor: Colors.background.primary,
+            backgroundColor: Colors.primary.bg,
           },
           headerTintColor: Colors.primary.text,
         }}
@@ -302,7 +302,7 @@ export default function MP4DiagnosticScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.primary.bg,
   },
   scrollView: {
     flex: 1,
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   input: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.surface.secondary,
     borderRadius: 12,
     padding: 16,
     fontSize: 14,
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
     borderWidth: 1,
-    borderColor: Colors.border.primary,
+    borderColor: Colors.card.border,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -358,12 +358,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   testUrlItem: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.surface.secondary,
     padding: 12,
     borderRadius: 8,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: Colors.border.primary,
+    borderColor: Colors.card.border,
   },
   testUrlName: {
     fontSize: 14,
@@ -376,16 +376,16 @@ const styles = StyleSheet.create({
     color: Colors.primary.textSecondary,
   },
   diagnosticsCard: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.surface.secondary,
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border.primary,
+    borderColor: Colors.card.border,
   },
   diagnosticItem: {
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border.primary,
+    borderBottomColor: Colors.card.border,
   },
   diagnosticLabel: {
     flexDirection: 'row',
@@ -462,10 +462,10 @@ const styles = StyleSheet.create({
   resetButton: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.surface.secondary,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: Colors.border.primary,
+    borderColor: Colors.card.border,
   },
   resetButtonText: {
     fontSize: 13,
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     padding: 12,
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.surface.secondary,
     borderRadius: 8,
   },
   statusText: {
@@ -501,11 +501,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   instructionsCard: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.surface.secondary,
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border.primary,
+    borderColor: Colors.card.border,
   },
   instructionText: {
     fontSize: 14,

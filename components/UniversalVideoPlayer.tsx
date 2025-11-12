@@ -134,19 +134,12 @@ export default function UniversalVideoPlayer({
   }, []);
 
   const handleBackPress = useCallback(() => {
-    // Call parent's back handler to clear the video
+    console.log('[UniversalVideoPlayer] Back button pressed');
+    
     if (onBackPress) {
       onBackPress();
     } else {
-      // If no onBackPress handler, try to navigate back
-      // Check if we can go back in WebView first (for multi-page navigation)
-      if (webViewRef.current) {
-        console.log('[UniversalVideoPlayer] Attempting WebView back navigation');
-        // For now, just call onBackPress since we want to return to voice control
-        // WebView history navigation is not the primary goal
-      }
-      // No router.back() call - parent should handle navigation
-      console.log('[UniversalVideoPlayer] Back pressed, parent should handle navigation');
+      console.warn('[UniversalVideoPlayer] No onBackPress handler provided, back action ignored');
     }
   }, [onBackPress]);
 

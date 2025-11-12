@@ -1,6 +1,6 @@
 import { VideoView, useVideoPlayer } from 'expo-video';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity, Platform } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { convertToPlayableUrl } from '@/utils/videoSourceDetector';
@@ -35,10 +35,12 @@ export function MP4Player({
     if (!uri || uri.trim() === '') {
       return '';
     }
-    return convertToPlayableUrl(uri);
+    const converted = convertToPlayableUrl(uri);
+    console.log('[MP4Player] URI conversion:', { original: uri, converted });
+    return converted;
   }, [uri]);
 
-  const player = useVideoPlayer(processedUri && processedUri.trim() !== '' ? processedUri : undefined, (player) => {
+  const player = useVideoPlayer(processedUri, (player) => {
     if (!player) return;
     
     console.log('[MP4Player] Initializing player with URI:', processedUri);
@@ -73,16 +75,19 @@ export function MP4Player({
     console.log('[MP4Player] Processed URI:', processedUri);
     console.log('[MP4Player] Auto-play:', autoPlay);
     console.log('[MP4Player] Platform:', Platform.OS);
+    console.log('[MP4Player] Player instance:', player ? 'Available' : 'NULL');
 
-    try {
-      new URL(processedUri);
-    } catch (urlError) {
-      const errorMsg = 'Invalid video URL format';
-      console.error('[MP4Player] URL validation failed:', urlError);
-      setError(errorMsg);
-      setIsLoading(false);
-      onError?.(errorMsg);
-      return;
+    if (processedUri && processedUri !== '') {
+      try {
+        new URL(processedUri);
+      } catch (urlError) {
+        const errorMsg = 'Invalid video URL format';
+        console.error('[MP4Player] URL validation failed:', urlError);
+        setError(errorMsg);
+        setIsLoading(false);
+        onError?.(errorMsg);
+        return;
+      }
     }
 
     const statusSubscription = player.addListener('statusChange', (status) => {
@@ -94,19 +99,24 @@ export function MP4Player({
       
       if (status.status === 'readyToPlay') {
         console.log('[MP4Player] ✅ Video ready to play');
-        console.log('[MP4Player] Duration:', player.duration);
-        console.log('[MP4Player] Current time:', player.currentTime);
+        console.log('[MP4Player] Duration:', player.duration, 'seconds');
+        console.log('[MP4Player] Current time:', player.currentTime, 'seconds');
         
         setIsLoading(false);
         setError(null);
         setHasInitialized(true);
         
-        if (autoPlay) {
-          console.log('[MP4Player] Triggering onPlaybackStart callback');
-          onPlaybackStart?.();
+        if (autoPlay && player) {
+          console.log('[MP4Player] Auto-playing video');
+          try {
+            player.play();
+            onPlaybackStart?.();
+          } catch (e) {
+            console.error('[MP4Player] Auto-play failed:', e);
+          }
         }
       } else if (status.status === 'loading') {
-        console.log('[MP4Player] 📥 Loading video...');
+        console.log('[MP4Player] 📥 Loading video...', processedUri);
         setIsLoading(true);
       } else if (status.status === 'error') {
         let errorMsg = 'Unknown playback error';

@@ -54,7 +54,7 @@ export function MP4DiagnosticTool({
   const handlePickFile = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: 'video/mp4',
+        type: ['video/mp4', 'video/*'],
         copyToCacheDirectory: true,
       });
 
@@ -64,7 +64,13 @@ export function MP4DiagnosticTool({
 
       const file = result.assets[0];
       if (file) {
-        console.log('[MP4DiagnosticTool] File selected:', file);
+        console.log('[MP4DiagnosticTool] ========== File Selected ==========');
+        console.log('[MP4DiagnosticTool] Name:', file.name);
+        console.log('[MP4DiagnosticTool] URI:', file.uri);
+        console.log('[MP4DiagnosticTool] Size:', file.size, 'bytes');
+        console.log('[MP4DiagnosticTool] MIME type:', file.mimeType);
+        console.log('[MP4DiagnosticTool] Platform:', Platform.OS);
+        
         setSelectedFile(file.name);
         setTestUrl(file.uri);
         
@@ -73,7 +79,7 @@ export function MP4DiagnosticTool({
       }
     } catch (error) {
       console.error('[MP4DiagnosticTool] File picker error:', error);
-      Alert.alert('錯誤', '無法選擇文件');
+      Alert.alert('錯誤', '無法選擇文件\n' + (error instanceof Error ? error.message : String(error)));
     }
   };
 

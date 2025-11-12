@@ -8,16 +8,8 @@ import {
   Animated,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { VideoView, useVideoPlayer } from 'expo-video';
+import { useVideoPlayer } from 'expo-video';
 import {
-  Play,
-  Pause,
-  Volume2,
-  VolumeX,
-  Maximize,
-  Minimize,
-  SkipForward,
-  SkipBack,
   AlertCircle,
   ArrowLeft,
 } from 'lucide-react-native';
@@ -27,6 +19,7 @@ import { getSocialMediaConfig } from '@/utils/socialMediaPlayer';
 import { useMembership } from '@/providers/MembershipProvider';
 import SocialMediaPlayer from '@/components/SocialMediaPlayer';
 import YouTubePlayerStandalone from '@/components/YouTubePlayerStandalone';
+import MP4Player from '@/components/MP4Player';
 import Colors from '@/constants/colors';
 
 export interface UniversalVideoPlayerProps {
@@ -56,10 +49,7 @@ export default function UniversalVideoPlayer({
 }: UniversalVideoPlayerProps) {
   const { tier } = useMembership();
   const insets = useSafeAreaInsets();
-  const [isLoading, setIsLoading] = useState(true);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(autoPlay);
-  const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
@@ -91,7 +81,7 @@ export default function UniversalVideoPlayer({
   
   const player = useVideoPlayer(nativePlayerUrl, (player) => {
     player.loop = false;
-    player.muted = isMuted;
+    player.muted = false;
     if (autoPlay && shouldInitializeNativePlayer) {
       player.play();
     }
@@ -194,32 +184,7 @@ export default function UniversalVideoPlayer({
     };
   }, [showControls]);
 
-  const handlePlayPause = () => {
-    if (player) {
-      if (isPlaying) {
-        player.pause();
-      } else {
-        player.play();
-        onPlaybackStart?.();
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
 
-  const handleMute = () => {
-    if (player) {
-      player.muted = !isMuted;
-      setIsMuted(!isMuted);
-    }
-  };
-
-  const handleSeek = (seconds: number) => {
-    if (player) {
-      const currentTime = player.currentTime || 0;
-      const newPosition = Math.max(0, currentTime + seconds);
-      player.currentTime = newPosition;
-    }
-  };
 
   useEffect(() => {
     if (!player) return;
@@ -229,13 +194,8 @@ export default function UniversalVideoPlayer({
       return;
     }
 
-    const subscription = player.addListener('playingChange', (event) => {
-      setIsPlaying(event.isPlaying);
-    });
-
     const statusSubscription = player.addListener('statusChange', (status) => {
       if (status.status === 'readyToPlay') {
-        setIsLoading(false);
         if (autoPlay) {
           onPlaybackStart?.();
         }
@@ -275,7 +235,6 @@ export default function UniversalVideoPlayer({
     });
 
     return () => {
-      subscription.remove();
       statusSubscription.remove();
     };
   }, [player, autoPlay, onPlaybackStart, onError, url, sourceInfo.type, sourceInfo.platform, shouldUseNativePlayer, shouldInitializeNativePlayer, sourceInfo.requiresWebView]);
@@ -300,12 +259,10 @@ export default function UniversalVideoPlayer({
     if (retryCount < maxRetries) {
       console.log(`[UniversalVideoPlayer] Auto-retry initiated (${retryCount + 1}/${maxRetries})`);
       setRetryCount(prev => prev + 1);
-      setIsLoading(true);
       setPlaybackError(null);
     } else {
       console.error('[UniversalVideoPlayer] Max retries reached, giving up');
       setPlaybackError(timeoutError);
-      setIsLoading(false);
       onError?.(timeoutError);
     }
   };
@@ -335,7 +292,6 @@ export default function UniversalVideoPlayer({
           url={url}
           onError={onError}
           onLoad={() => {
-            setIsLoading(false);
             setRetryCount(0);
           }}
           isFullscreen={isFullscreen}
@@ -478,13 +434,11 @@ export default function UniversalVideoPlayer({
         )}
         onLoadStart={() => {
           console.log('[UniversalVideoPlayer] WebView load started for', sourceInfo.platform);
-          setIsLoading(true);
           startLoadTimeout();
         }}
         onLoadEnd={() => {
           console.log('[UniversalVideoPlayer] WebView load ended for', sourceInfo.platform);
           clearLoadTimeout();
-          setIsLoading(false);
           setRetryCount(0);
         }}
         onScroll={handleScroll}
@@ -499,7 +453,7 @@ export default function UniversalVideoPlayer({
               }
               setIsScrolling(false);
             }
-          } catch (e) {}
+          } catch (_e) {}
         }}
         onError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
@@ -536,7 +490,6 @@ export default function UniversalVideoPlayer({
               console.log(`[UniversalVideoPlayer] Retry delay: ${retryDelay}ms`);
               setTimeout(() => {
                 setRetryCount(prev => prev + 1);
-                setIsLoading(true);
                 setPlaybackError(null);
               }, retryDelay);
               return;
@@ -562,7 +515,6 @@ export default function UniversalVideoPlayer({
               console.log(`[UniversalVideoPlayer] Auto-retry for adult platform (${retryCount + 1}/${maxRetries})`);
               setTimeout(() => {
                 setRetryCount(prev => prev + 1);
-                setIsLoading(true);
                 setPlaybackError(null);
               }, 2000);
             } else {
@@ -575,7 +527,6 @@ export default function UniversalVideoPlayer({
               console.log(`[UniversalVideoPlayer] Auto-retry after error (${retryCount + 1}/${maxRetries})`);
               setTimeout(() => {
                 setRetryCount(prev => prev + 1);
-                setIsLoading(true);
                 setPlaybackError(null);
               }, 1000);
             } else {
@@ -649,7 +600,6 @@ export default function UniversalVideoPlayer({
               console.log(`[UniversalVideoPlayer] Retrying after HTTP ${nativeEvent.statusCode} (${retryCount + 1}/${maxRetries})`);
               setTimeout(() => {
                 setRetryCount(prev => prev + 1);
-                setIsLoading(true);
                 setPlaybackError(null);
               }, 2000);
             } else {
@@ -682,84 +632,18 @@ export default function UniversalVideoPlayer({
   };
 
   const renderNativePlayer = () => {
-    console.log('[UniversalVideoPlayer] Rendering native player for:', url);
+    console.log('[UniversalVideoPlayer] Rendering MP4 player for:', url);
 
     return (
-      <TouchableOpacity
-        style={styles.videoContainer}
-        activeOpacity={1}
-        onPress={() => setShowControls(true)}
-      >
-        <VideoView
-          player={player}
-          style={styles.video}
-          contentFit="contain"
-          nativeControls={false}
-          allowsFullscreen
-          allowsPictureInPicture
-        />
-        
-        {showControls && (
-          <View style={styles.controlsOverlay}>
-            <View style={styles.controlsContainer}>
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={() => handleSeek(-10)}
-              >
-                <SkipBack size={24} color="#fff" />
-                <Text style={styles.controlButtonText}>10s</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.controlButtonLarge}
-                onPress={handlePlayPause}
-              >
-                {isPlaying ? (
-                  <Pause size={48} color="#fff" fill="#fff" />
-                ) : (
-                  <Play size={48} color="#fff" fill="#fff" />
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={() => handleSeek(10)}
-              >
-                <SkipForward size={24} color="#fff" />
-                <Text style={styles.controlButtonText}>10s</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.bottomControls}>
-              <TouchableOpacity style={styles.controlButton} onPress={handleMute}>
-                {isMuted ? (
-                  <VolumeX size={24} color="#fff" />
-                ) : (
-                  <Volume2 size={24} color="#fff" />
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={() => setIsFullscreen(!isFullscreen)}
-              >
-                {isFullscreen ? (
-                  <Minimize size={24} color="#fff" />
-                ) : (
-                  <Maximize size={24} color="#fff" />
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {isLoading && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={Colors.primary.accent} />
-            <Text style={styles.loadingText}>Loading video...</Text>
-          </View>
-        )}
-      </TouchableOpacity>
+      <MP4Player
+        uri={url}
+        onError={onError}
+        onPlaybackStart={onPlaybackStart}
+        onPlaybackEnd={onPlaybackEnd}
+        autoPlay={autoPlay}
+        style={style}
+        onBackPress={onBackPress}
+      />
     );
   };
 
@@ -840,7 +724,7 @@ export default function UniversalVideoPlayer({
         <SocialMediaPlayer
           url={url}
           onError={onError}
-          onLoad={() => setIsLoading(false)}
+          onLoad={() => {}}
           onPlaybackStart={onPlaybackStart}
           autoRetry={true}
           maxRetries={3}

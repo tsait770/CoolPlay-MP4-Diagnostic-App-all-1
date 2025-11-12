@@ -201,10 +201,80 @@ const UNSUPPORTED_PLATFORMS = [
   { pattern: /linkedin\.com/i, platform: 'LinkedIn' },
 ];
 
+// Helper functions for better URL processing
+function isValidUrl(url: string): boolean {
+  if (!url || typeof url !== 'string' || url.trim() === '') {
+    return false;
+  }
+  
+  const trimmedUrl = url.trim();
+  return /^(https?:\/\/|rtmp:\/\/|rtsp:\/\/)/.test(trimmedUrl) || 
+    /^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]\.[a-zA-Z]{2,}/.test(trimmedUrl) ||
+    trimmedUrl.startsWith('data:');
+}
+
+function getVideoFileExtension(url: string): string | null {
+  if (!url || typeof url !== 'string') {
+    return null;
+  }
+  
+  const match = url.match(/\.([a-zA-Z0-9]+)(?:[?#].*)?$/);
+  if (match) {
+    return match[1].toLowerCase();
+  }
+  
+  const pathMatch = url.match(/\/[^/]*\.([a-zA-Z0-9]+)(?:[?#/].*)?/);
+  if (pathMatch) {
+    return pathMatch[1].toLowerCase();
+  }
+  
+  if (/\b(mp4|webm|ogg|ogv|mov|avi|mkv|flv|wmv|m4v)\b/i.test(url)) {
+    const formatMatch = url.match(/\b(mp4|webm|ogg|ogv|mov|avi|mkv|flv|wmv|m4v)\b/i);
+    return formatMatch ? formatMatch[1].toLowerCase() : null;
+  }
+  
+  return null;
+}
+
+function isDirectVideoFile(url: string): boolean {
+  const extension = getVideoFileExtension(url);
+  const videoExtensions = ['mp4', 'webm', 'ogg', 'ogv', 'mov', 'avi', 'mkv', 'flv', 'wmv', 'm4v'];
+  return extension ? videoExtensions.includes(extension) : false;
+}
+
+function isStreamingFormat(url: string): boolean {
+  const extension = getVideoFileExtension(url);
+  const streamingExtensions = ['m3u8', 'mpd'];
+  return extension ? streamingExtensions.includes(extension) : url.startsWith('rtmp://');
+}
+
+function convertToPlayableUrl(url: string): string {
+  if (!url || typeof url !== 'string') {
+    return url;
+  }
+  
+  // Google Drive conversion
+  if (url.includes('drive.google.com')) {
+    const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    if (fileIdMatch) {
+      const fileId = fileIdMatch[1];
+      return `https://drive.google.com/uc?export=download&id=${fileId}`;
+    }
+  }
+  
+  // Dropbox conversion
+  if (url.includes('dropbox.com') && !url.includes('dl=1')) {
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}dl=1`;
+  }
+  
+  return url;
+}
+
 export function detectVideoSource(url: string): VideoSourceInfo {
   console.log('[VideoSourceDetector] Detecting source for URL:', url);
   
-  if (!url || typeof url !== 'string' || url.trim() === '') {
+  if (!isValidUrl(url)) {
     console.warn('[VideoSourceDetector] Invalid URL: empty or not a string');
     return {
       type: 'unknown',
@@ -216,21 +286,6 @@ export function detectVideoSource(url: string): VideoSourceInfo {
   }
 
   const trimmedUrl = url.trim();
-  
-  const isValidUrlFormat = /^(https?:\/\/|rtmp:\/\/|rtsp:\/\/)/.test(trimmedUrl) || 
-    /^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]\.[a-zA-Z]{2,}/.test(trimmedUrl) ||
-    trimmedUrl.startsWith('data:');
-  
-  if (!isValidUrlFormat) {
-    console.warn('[VideoSourceDetector] Invalid URL format:', trimmedUrl);
-    return {
-      type: 'unknown',
-      platform: 'Unknown',
-      requiresPremium: false,
-      error: '無效網址',
-      requiresWebView: false,
-    };
-  }
 
   const normalizedUrl = trimmedUrl.toLowerCase();
 
@@ -446,3 +501,5 @@ export function requiresAgeVerification(url: string): boolean {
   const sourceInfo = detectVideoSource(url);
   return sourceInfo.requiresAgeVerification === true;
 }
+
+export { isValidUrl, getVideoFileExtension, isDirectVideoFile, isStreamingFormat, convertToPlayableUrl };

@@ -3,6 +3,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { convertToPlayableUrl } from '@/utils/videoSourceDetector';
 
 export interface MP4PlayerProps {
   uri: string;
@@ -28,7 +29,9 @@ export function MP4Player({
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen] = useState(false);
 
-  const player = useVideoPlayer(uri, (player) => {
+  const processedUri = convertToPlayableUrl(uri);
+
+  const player = useVideoPlayer(processedUri, (player) => {
     player.loop = false;
     player.muted = false;
     if (autoPlay) {
@@ -40,6 +43,7 @@ export function MP4Player({
     if (!player) return;
 
     console.log('[MP4Player] Initializing player for:', uri);
+    console.log('[MP4Player] Processed URI:', processedUri);
 
     const statusSubscription = player.addListener('statusChange', (status) => {
       console.log('[MP4Player] Status change:', status.status);
@@ -80,7 +84,7 @@ export function MP4Player({
       statusSubscription.remove();
       playingSubscription.remove();
     };
-  }, [player, uri, autoPlay, onPlaybackStart, onError]);
+  }, [player, uri, processedUri, autoPlay, onPlaybackStart, onError]);
 
   const handleBackPress = useCallback(() => {
     if (onBackPress) {
@@ -110,6 +114,7 @@ export function MP4Player({
         <View style={styles.errorContainer}>
           <Text style={styles.errorTitle}>Video Load Error</Text>
           <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.errorHint}>Please check the video URL and try again</Text>
         </View>
       </View>
     );
@@ -205,6 +210,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  errorHint: {
+    color: '#6b7280',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 8,
   },
   backButton: {
     position: 'absolute',

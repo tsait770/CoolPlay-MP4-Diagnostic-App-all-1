@@ -1,20 +1,12 @@
-import React, { useEffect, useState, useRef } from 'react';
-import {
-  View,
-  StyleSheet,
-  ActivityIndicator,
-  Text,
-  TouchableOpacity,
-} from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import React, { useState, useCallback, useEffect } from 'react';
+import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Colors from '@/constants/colors';
 
 export interface MP4PlayerProps {
   uri: string;
   onError?: (error: string) => void;
-  onLoad?: () => void;
   onPlaybackStart?: () => void;
   onPlaybackEnd?: () => void;
   autoPlay?: boolean;
@@ -22,89 +14,43 @@ export interface MP4PlayerProps {
   onBackPress?: () => void;
 }
 
-export default function MP4Player({
-  uri,
-  onError,
-  onLoad,
-  onPlaybackStart,
-  onPlaybackEnd,
-  autoPlay = false,
+export function MP4Player({ 
+  uri, 
+  onError, 
+  onPlaybackStart, 
+  onPlaybackEnd, 
+  autoPlay = false, 
   style,
-  onBackPress,
+  onBackPress 
 }: MP4PlayerProps) {
   const insets = useSafeAreaInsets();
-  const videoRef = useRef<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const hasCalledOnLoad = useRef(false);
+  const [isFullscreen] = useState(false);
 
-  // Initialize player with proper configuration
   const player = useVideoPlayer(uri, (player) => {
-    console.log('[MP4Player] Initializing player with URI:', uri);
     player.loop = false;
     player.muted = false;
-    player.volume = 1.0;
-    
     if (autoPlay) {
-      console.log('[MP4Player] AutoPlay enabled, starting playback');
-      // Add a small delay to ensure player is ready
-      setTimeout(() => {
-        player.play().catch((err) => {
-          console.error('[MP4Player] AutoPlay failed:', err);
-        });
-      }, 100);
+      player.play();
     }
   });
 
   useEffect(() => {
-    if (!player) {
-      console.warn('[MP4Player] Player not initialized');
-      return;
-    }
+    if (!player) return;
 
-    console.log('[MP4Player] Setting up event listeners for URI:', uri);
+    console.log('[MP4Player] Initializing player for:', uri);
 
-    // Reset state when URI changes
-    setIsLoading(true);
-    setError(null);
-    hasCalledOnLoad.current = false;
-
-    // Status change listener
     const statusSubscription = player.addListener('statusChange', (status) => {
-      console.log('[MP4Player] Status changed:', status.status, 'URI:', uri);
-
-      if (status.status === 'idle') {
-        console.log('[MP4Player] Player is idle');
-        setIsLoading(true);
-      } else if (status.status === 'loading') {
-        console.log('[MP4Player] Player is loading');
-        setIsLoading(true);
-      } else if (status.status === 'readyToPlay') {
-        console.log('[MP4Player] Player is ready to play');
+      console.log('[MP4Player] Status change:', status.status);
+      
+      if (status.status === 'readyToPlay') {
         setIsLoading(false);
         setError(null);
-        
-        // Only call onLoad once per URI - schedule in next tick
-        if (!hasCalledOnLoad.current && onLoad) {
-          console.log('[MP4Player] Scheduling onLoad callback');
-          hasCalledOnLoad.current = true;
-          setTimeout(() => {
-            onLoad();
-          }, 0);
-        }
-        
-        // Start playing if autoPlay is enabled
-        if (autoPlay && player) {
-          console.log('[MP4Player] Starting autoPlay after ready');
-          player.play().catch((err) => {
-            console.error('[MP4Player] Failed to start autoPlay:', err);
-          });
+        if (autoPlay) {
+          onPlaybackStart?.();
         }
       } else if (status.status === 'error') {
-        console.error('[MP4Player] Player error status detected');
-        setIsLoading(false);
-        
         let errorMsg = 'Unknown playback error';
         if (status.error) {
           if (typeof status.error === 'object' && 'message' in status.error) {
@@ -117,122 +63,77 @@ export default function MP4Player({
         }
         
         console.error('[MP4Player] Playback error:', errorMsg);
+        setIsLoading(false);
         setError(errorMsg);
-        
-        // Schedule error callback in next tick
-        if (onError) {
-          setTimeout(() => {
-            onError(errorMsg);
-          }, 0);
-        }
+        onError?.(errorMsg);
       }
     });
 
-    // Playing change listener
     const playingSubscription = player.addListener('playingChange', (event) => {
-      console.log('[MP4Player] Playing state changed:', event.isPlaying, 'oldIsPlaying:', event.oldIsPlaying);
-      
-      if (event.isPlaying && onPlaybackStart) {
-        console.log('[MP4Player] Playback started, scheduling onPlaybackStart');
-        setTimeout(() => {
-          onPlaybackStart();
-        }, 0);
-      } else if (!event.isPlaying && event.oldIsPlaying) {
-        // Check if video ended
-        const currentTime = player.currentTime || 0;
-        const duration = player.duration || 0;
-        
-        console.log('[MP4Player] Playback paused/stopped. CurrentTime:', currentTime, 'Duration:', duration);
-        
-        if (duration > 0 && currentTime >= duration - 0.5) {
-          console.log('[MP4Player] Video ended, scheduling onPlaybackEnd');
-          if (onPlaybackEnd) {
-            setTimeout(() => {
-              onPlaybackEnd();
-            }, 0);
-          }
-        }
+      console.log('[MP4Player] Playing state:', event.isPlaying);
+      if (event.isPlaying) {
+        onPlaybackStart?.();
       }
     });
 
-    // Cleanup listeners on unmount or URI change
     return () => {
-      console.log('[MP4Player] Cleaning up event listeners');
       statusSubscription.remove();
       playingSubscription.remove();
     };
-  }, [player, uri, autoPlay, onLoad, onError, onPlaybackStart, onPlaybackEnd]);
+  }, [player, uri, autoPlay, onPlaybackStart, onError]);
 
-  const handleBackPress = () => {
-    console.log('[MP4Player] Back button pressed');
+  const handleBackPress = useCallback(() => {
     if (onBackPress) {
       onBackPress();
     }
-  };
+  }, [onBackPress]);
 
-  // Show error state
-  if (error) {
-    return (
-      <View style={[styles.container, style]}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>Video Load Error</Text>
-          <Text style={styles.errorMessage}>{error}</Text>
-        </View>
-        {onBackPress && (
-          <View style={[styles.backButtonContainer, { top: insets.top + 8 }]}>
-            <TouchableOpacity
-              onPress={handleBackPress}
-              style={styles.backButton}
-              activeOpacity={0.7}
-            >
-              <View style={styles.backButtonInner}>
-                <ArrowLeft color="#ffffff" size={20} />
-              </View>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-    );
-  }
-
-  // If no URI, don't render
-  if (!uri || !uri.trim()) {
+  if (!uri || uri.trim() === '') {
     console.warn('[MP4Player] No URI provided');
     return null;
   }
 
-  // Render video player
+  if (isLoading) {
+    return (
+      <View style={[styles.container, isFullscreen && styles.fullscreen, style]}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#10b981" />
+          <Text style={styles.loadingText}>Loading video...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, isFullscreen && styles.fullscreen, style]}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorTitle}>Video Load Error</Text>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, isFullscreen && styles.fullscreen, style]}>
       <VideoView
-        ref={videoRef}
-        player={player}
+        player={player} 
         style={[styles.video, isFullscreen && styles.fullscreenVideo]}
-        contentFit={isFullscreen ? "cover" : "contain"}
         nativeControls={true}
+        contentFit={isFullscreen ? "cover" : "contain"}
         allowsFullscreen={true}
         allowsPictureInPicture={true}
       />
-      
-      {isLoading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={Colors.primary.accent} />
-          <Text style={styles.loadingText}>Loading video...</Text>
-        </View>
-      )}
-
-      {onBackPress && (
-        <View style={[styles.backButtonContainer, { top: insets.top + 8 }]}>
-          <TouchableOpacity
-            onPress={handleBackPress}
-            style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <View style={styles.backButtonInner}>
-              <ArrowLeft color="#ffffff" size={20} />
-            </View>
-          </TouchableOpacity>
-        </View>
+      {isFullscreen && onBackPress && (
+        <TouchableOpacity 
+          onPress={handleBackPress}
+          style={[styles.backButton, { top: insets.top + 16 }]}
+        >
+          <View style={styles.backButtonInner}>
+            <ArrowLeft color="#ffffff" size={24} />
+          </View>
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -240,11 +141,9 @@ export default function MP4Player({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     width: '100%',
-    height: '100%',
+    aspectRatio: 16 / 9,
     backgroundColor: '#000',
-    position: 'relative',
     borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 2,
@@ -266,7 +165,6 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   video: {
-    flex: 1,
     width: '100%',
     height: '100%',
     backgroundColor: '#000',
@@ -275,50 +173,49 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: '#1a1a1a',
+    gap: 16,
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 14,
-    color: '#fff',
+    color: '#10b981',
+    fontSize: 16,
     fontWeight: '500',
+    textAlign: 'center',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#1a1a1a',
-    padding: 24,
+    padding: 20,
     gap: 12,
   },
   errorTitle: {
+    color: '#ef4444',
     fontSize: 18,
     fontWeight: '600',
-    color: '#ef4444',
     textAlign: 'center',
   },
-  errorMessage: {
-    fontSize: 14,
+  errorText: {
     color: '#9ca3af',
+    fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
   },
-  backButtonContainer: {
+  backButton: {
     position: 'absolute',
     left: 16,
-    zIndex: 1001,
-  },
-  backButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 1001,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -330,3 +227,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
+
+export default MP4Player;

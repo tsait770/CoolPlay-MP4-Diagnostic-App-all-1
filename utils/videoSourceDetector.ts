@@ -502,4 +502,34 @@ export function requiresAgeVerification(url: string): boolean {
   return sourceInfo.requiresAgeVerification === true;
 }
 
+// Enhanced video source detection functions
+export function getYouTubeVideoId(url: string): string | null {
+  if (!url || typeof url !== 'string') {
+    return null;
+  }
+
+  let videoId: string | null = null;
+  const regexes = [
+    /(?:youtube\.com\/watch\?.*[&?]v=|youtube\.com\/watch\?v=)([\w-]+)/i,
+    /youtu\.be\/([\w-]+)(?:[?&][^\s]*)?/i,
+    /youtube\.com\/embed\/([\w-]+)(?:[?&][^\s]*)?/i,
+    /youtube\.com\/v\/([\w-]+)(?:[?&][^\s]*)?/i,
+  ];
+
+  for (const regex of regexes) {
+    const match = url.match(regex);
+    if (match) {
+      videoId = match[1];
+      break;
+    }
+  }
+
+  if (videoId) {
+    videoId = videoId.split('&')[0].split('?')[0];
+    return videoId;
+  }
+
+  return null;
+}
+
 export { isValidUrl, getVideoFileExtension, isDirectVideoFile, isStreamingFormat, convertToPlayableUrl };

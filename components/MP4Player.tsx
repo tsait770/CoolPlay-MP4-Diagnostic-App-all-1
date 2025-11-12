@@ -1,5 +1,5 @@
 import { VideoView, useVideoPlayer } from 'expo-video';
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,28 +28,62 @@ export function MP4Player({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
+  const videoRef = useRef<VideoView>(null);
 
-  const processedUri = convertToPlayableUrl(uri);
+  const processedUri = React.useMemo(() => {
+    if (!uri || uri.trim() === '') {
+      return '';
+    }
+    return convertToPlayableUrl(uri);
+  }, [uri]);
 
-  const player = useVideoPlayer(processedUri, (player) => {
+  const player = useVideoPlayer(processedUri && processedUri.trim() !== '' ? processedUri : undefined, (player) => {
+    if (!player) return;
+    
+    console.log('[MP4Player] Initializing player with URI:', processedUri);
     player.loop = false;
     player.muted = false;
+    
     if (autoPlay) {
-      player.play();
+      console.log('[MP4Player] Auto-play enabled, starting playback');
+      try {
+        player.play();
+      } catch (e) {
+        console.warn('[MP4Player] Auto-play failed:', e);
+      }
     }
   });
 
   useEffect(() => {
     if (!player) {
-      console.warn('[MP4Player] Player instance is null or undefined');
+      console.warn('[MP4Player] Player instance is null');
       return;
     }
 
-    console.log('[MP4Player] ========== Initializing Player ==========');
+    if (!processedUri || processedUri.trim() === '') {
+      console.warn('[MP4Player] No valid URI to play');
+      setError('No video URL provided');
+      setIsLoading(false);
+      return;
+    }
+
+    console.log('[MP4Player] ========== Player Status ==========');
     console.log('[MP4Player] Original URI:', uri);
     console.log('[MP4Player] Processed URI:', processedUri);
-    console.log('[MP4Player] Player instance:', player);
     console.log('[MP4Player] Auto-play:', autoPlay);
+    console.log('[MP4Player] Platform:', Platform.OS);
+
+    try {
+      new URL(processedUri);
+    } catch (urlError) {
+      const errorMsg = 'Invalid video URL format';
+      console.error('[MP4Player] URL validation failed:', urlError);
+      setError(errorMsg);
+      setIsLoading(false);
+      onError?.(errorMsg);
+      return;
+    }
 
     const statusSubscription = player.addListener('statusChange', (status) => {
       console.log('[MP4Player] Status change:', {
@@ -61,10 +95,14 @@ export function MP4Player({
       if (status.status === 'readyToPlay') {
         console.log('[MP4Player] ✅ Video ready to play');
         console.log('[MP4Player] Duration:', player.duration);
+        console.log('[MP4Player] Current time:', player.currentTime);
+        
         setIsLoading(false);
         setError(null);
+        setHasInitialized(true);
+        
         if (autoPlay) {
-          console.log('[MP4Player] Auto-playing video...');
+          console.log('[MP4Player] Triggering onPlaybackStart callback');
           onPlaybackStart?.();
         }
       } else if (status.status === 'loading') {
@@ -72,29 +110,27 @@ export function MP4Player({
         setIsLoading(true);
       } else if (status.status === 'error') {
         let errorMsg = 'Unknown playback error';
-        let errorDetails: any = {};
         
         if (status.error) {
           if (typeof status.error === 'object' && 'message' in status.error) {
             errorMsg = String((status.error as any).message || 'Unknown error');
-            errorDetails = status.error;
           } else if (typeof status.error === 'string') {
             errorMsg = status.error;
           } else {
             errorMsg = JSON.stringify(status.error);
-            errorDetails = status.error;
           }
         }
         
         console.error('[MP4Player] ❌ Playback error:', {
           message: errorMsg,
-          details: errorDetails,
           uri: processedUri,
           timestamp: new Date().toISOString(),
         });
+        
+        const fullErrorMsg = `Unable to play video: ${errorMsg}`;
         setIsLoading(false);
-        setError(errorMsg);
-        onError?.(errorMsg);
+        setError(fullErrorMsg);
+        onError?.(fullErrorMsg);
       } else if (status.status === 'idle') {
         console.log('[MP4Player] 💤 Player idle');
       }
@@ -106,7 +142,8 @@ export function MP4Player({
         currentTime: player.currentTime,
         duration: player.duration,
       });
-      if (event.isPlaying) {
+      
+      if (event.isPlaying && hasInitialized) {
         onPlaybackStart?.();
       }
     });
@@ -119,12 +156,12 @@ export function MP4Player({
     });
 
     return () => {
-      console.log('[MP4Player] Cleaning up subscriptions');
+      console.log('[MP4Player] Cleaning up player subscriptions');
       statusSubscription.remove();
       playingSubscription.remove();
       volumeSubscription.remove();
     };
-  }, [player, uri, processedUri, autoPlay, onPlaybackStart, onError]);
+  }, [player, uri, processedUri, autoPlay, hasInitialized, onPlaybackStart, onError]);
 
   const handleBackPress = useCallback(() => {
     if (onBackPress) {
@@ -132,35 +169,7 @@ export function MP4Player({
     }
   }, [onBackPress]);
 
-  useEffect(() => {
-    if (!uri || uri.trim() === '') {
-      console.error('[MP4Player] ❌ No URI provided');
-      return;
-    }
 
-    console.log('[MP4Player] ========== URL Validation ==========');
-    try {
-      const url = new URL(processedUri);
-      console.log('[MP4Player] ✅ URL validation passed:', {
-        protocol: url.protocol,
-        hostname: url.hostname,
-        pathname: url.pathname,
-        search: url.search,
-      });
-
-      if (url.protocol !== 'http:' && url.protocol !== 'https:' && url.protocol !== 'file:') {
-        const warning = `Unsupported protocol: ${url.protocol}`;
-        console.warn('[MP4Player] ⚠️', warning);
-      }
-    } catch (error) {
-      console.error('[MP4Player] ❌ Invalid URL:', {
-        originalUri: uri,
-        processedUri: processedUri,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      setError('Invalid video URL format');
-    }
-  }, [uri, processedUri]);
 
   if (!uri || uri.trim() === '') {
     console.warn('[MP4Player] No URI provided, returning null');
@@ -173,6 +182,7 @@ export function MP4Player({
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#10b981" />
           <Text style={styles.loadingText}>Loading video...</Text>
+          <Text style={styles.loadingSubtext}>Please wait while the video loads</Text>
         </View>
       </View>
     );
@@ -182,9 +192,15 @@ export function MP4Player({
     return (
       <View style={[styles.container, isFullscreen && styles.fullscreen, style]}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>Video Load Error</Text>
+          <Text style={styles.errorTitle}>Unable to Play Video</Text>
           <Text style={styles.errorText}>{error}</Text>
-          <Text style={styles.errorHint}>Please check the video URL and try again</Text>
+          <Text style={styles.errorHint}>
+            Please check:
+            {'\n'}• The video URL is valid
+            {'\n'}• The video file is accessible
+            {'\n'}• Your internet connection is stable
+            {'\n'}• The video format is supported (MP4, WebM, OGG)
+          </Text>
         </View>
       </View>
     );
@@ -193,6 +209,7 @@ export function MP4Player({
   return (
     <View style={[styles.container, isFullscreen && styles.fullscreen, style]}>
       <VideoView
+        ref={videoRef}
         player={player} 
         style={[styles.video, isFullscreen && styles.fullscreenVideo]}
         nativeControls={true}
@@ -254,11 +271,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#1a1a1a',
     gap: 16,
+    padding: 20,
   },
   loadingText: {
     color: '#10b981',
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '500' as const,
+    textAlign: 'center',
+  },
+  loadingSubtext: {
+    color: '#6b7280',
+    fontSize: 14,
     textAlign: 'center',
   },
   errorContainer: {
@@ -266,13 +289,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#1a1a1a',
-    padding: 20,
+    padding: 24,
     gap: 12,
   },
   errorTitle: {
     color: '#ef4444',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     textAlign: 'center',
   },
   errorText: {
@@ -284,8 +307,9 @@ const styles = StyleSheet.create({
   errorHint: {
     color: '#6b7280',
     fontSize: 12,
-    textAlign: 'center',
-    marginTop: 8,
+    textAlign: 'left',
+    marginTop: 12,
+    lineHeight: 18,
   },
   backButton: {
     position: 'absolute',

@@ -186,7 +186,20 @@ export function MP4DiagnosticTool({
 
   const handleLoadVideo = () => {
     if (result && result.isValid && onLoadVideo) {
-      onLoadVideo(testUrl.trim());
+      // For local files, use the prepared URI from prepareResult
+      // For remote URLs, use the original testUrl
+      const uriToLoad = prepareResult?.success && prepareResult.uri 
+        ? prepareResult.uri 
+        : testUrl.trim();
+      
+      console.log('[MP4DiagnosticTool] Loading video:', {
+        isLocalFile: result.isLocalFile,
+        originalUri: testUrl.trim(),
+        preparedUri: prepareResult?.uri,
+        uriToLoad,
+      });
+      
+      onLoadVideo(uriToLoad);
       onClose();
     }
   };

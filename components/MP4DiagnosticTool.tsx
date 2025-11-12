@@ -9,7 +9,9 @@ import {
   Modal,
   TextInput,
   Alert,
+  Platform,
 } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
 import { 
   TestTube2, 
   CheckCircle, 
@@ -41,6 +43,7 @@ export function MP4DiagnosticTool({
   const [testUrl, setTestUrl] = useState(initialUrl);
   const [isTesting, setIsTesting] = useState(false);
   const [result, setResult] = useState<MP4DiagnosticsResult | null>(null);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (visible && initialUrl && initialUrl !== testUrl) {
@@ -48,9 +51,35 @@ export function MP4DiagnosticTool({
     }
   }, [visible, initialUrl, testUrl]);
 
+  const handlePickFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'video/mp4',
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      const file = result.assets[0];
+      if (file) {
+        console.log('[MP4DiagnosticTool] File selected:', file);
+        setSelectedFile(file.name);
+        setTestUrl(file.uri);
+        
+        // Auto-run diagnostics for local files
+        setTimeout(() => handleTest(), 100);
+      }
+    } catch (error) {
+      console.error('[MP4DiagnosticTool] File picker error:', error);
+      Alert.alert('錯誤', '無法選擇文件');
+    }
+  };
+
   const handleTest = async () => {
     if (!testUrl.trim()) {
-      Alert.alert('錯誤', '請輸入 MP4 視頻 URL');
+      Alert.alert('錯誤', '請輸入 MP4 視頻 URL 或選擇本地文件');
       return;
     }
 
@@ -128,6 +157,7 @@ export function MP4DiagnosticTool({
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>視頻 URL</Text>
@@ -135,29 +165,54 @@ export function MP4DiagnosticTool({
                 style={styles.input}
                 placeholder="輸入 MP4 視頻 URL"
                 placeholderTextColor={Colors.primary.textSecondary}
-                value={testUrl}
-                onChangeText={setTestUrl}
+                value={selectedFile ? `本地文件: ${selectedFile}` : testUrl}
+                onChangeText={(text) => {
+                  setTestUrl(text);
+                  setSelectedFile(null);
+                }}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="url"
                 multiline
+                editable={!selectedFile}
               />
+              {selectedFile && (
+                <TouchableOpacity
+                  style={styles.clearFileButton}
+                  onPress={() => {
+                    setSelectedFile(null);
+                    setTestUrl('');
+                    setResult(null);
+                  }}
+                >
+                  <Text style={styles.clearFileText}>清除選擇</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
-            <TouchableOpacity
-              style={[styles.testButton, isTesting && styles.buttonDisabled]}
-              onPress={handleTest}
-              disabled={isTesting || !testUrl.trim()}
-            >
-              {isTesting ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <TestTube2 size={20} color="#fff" />
-              )}
-              <Text style={styles.buttonText}>
-                {isTesting ? '診斷中...' : '開始診斷'}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.selectFileButton]}
+                onPress={handlePickFile}
+              >
+                <Text style={styles.selectFileButtonText}>📁 選擇影片</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.testButton, isTesting && styles.buttonDisabled]}
+                onPress={handleTest}
+                disabled={isTesting || !testUrl.trim()}
+              >
+                {isTesting ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <TestTube2 size={20} color="#fff" />
+                )}
+                <Text style={styles.buttonText}>
+                  {isTesting ? '診斷中...' : '開始診斷'}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             {result && (
               <View style={styles.resultsContainer}>
@@ -314,7 +369,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary.bg,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '90%',
+    height: '85%',
     paddingTop: 20,
   },
   header: {
@@ -364,7 +419,29 @@ const styles = StyleSheet.create({
     borderColor: Colors.card.border,
     minHeight: 60,
   },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  selectFileButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.secondary.bg,
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.primary.accent,
+  },
+  selectFileButtonText: {
+    color: Colors.primary.accent,
+    fontSize: 16,
+    fontWeight: '600' as const,
+  },
   testButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -372,7 +449,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary.accent,
     paddingVertical: 16,
     borderRadius: 12,
-    marginBottom: 20,
+  },
+  clearFileButton: {
+    marginTop: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  clearFileText: {
+    color: Colors.primary.accent,
+    fontSize: 14,
+    fontWeight: '500' as const,
   },
   buttonDisabled: {
     opacity: 0.5,

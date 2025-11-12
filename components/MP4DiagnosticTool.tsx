@@ -92,8 +92,10 @@ export function MP4DiagnosticTool({
   };
 
   const handleTest = async () => {
-    if (!testUrl.trim() && !selectedFile) {
+    const hasValidInput = (testUrl && testUrl.trim()) || selectedFile;
+    if (!hasValidInput) {
       console.error('[MP4DiagnosticTool] ❌ No URL or file selected');
+      Alert.alert('錯誤', '請先選擇影片文件或輸入視頻 URL');
       return;
     }
 
@@ -276,9 +278,9 @@ export function MP4DiagnosticTool({
               </TouchableOpacity>
               
               <TouchableOpacity
-                style={[styles.testButton, isTesting && styles.buttonDisabled]}
+                style={[styles.testButton, (isTesting || (!testUrl.trim() && !selectedFile)) && styles.buttonDisabled]}
                 onPress={handleTest}
-                disabled={isTesting || !testUrl.trim()}
+                disabled={isTesting || (!testUrl.trim() && !selectedFile)}
               >
                 {isTesting ? (
                   <ActivityIndicator size="small" color="#fff" />

@@ -432,7 +432,7 @@ export default function UniversalVideoPlayer({
         renderLoading={() => (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={Colors.primary.accent} />
-            <Text style={styles.loadingText}>{`Loading ${sourceInfo.platform || 'video'}...`}</Text>
+            <Text style={styles.loadingText}>{sourceInfo.platform ? `Loading ${sourceInfo.platform}...` : 'Loading video...'}</Text>
           </View>
         )}
         onLoadStart={() => {

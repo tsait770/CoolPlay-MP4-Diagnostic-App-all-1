@@ -176,10 +176,68 @@ async function copyToCache(
   console.log('[VideoHelpers] Source URI:', sourceUri);
 
   try {
+    // Special case: If file is already in a DocumentPicker cache or accessible cache location
+    // on iOS, use it directly without re-copying
+    if (platform === 'ios' && sourceUri.includes('/Caches/')) {
+      console.log('[VideoHelpers] File already in iOS cache directory');
+      console.log('[VideoHelpers] Verifying direct access...');
+      
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(sourceUri);
+        
+        if (fileInfo.exists && fileInfo.size && fileInfo.size > 0) {
+          console.log('[VideoHelpers] ✅ File accessible directly from cache');
+          console.log('[VideoHelpers] File size:', fileInfo.size, 'bytes');
+          console.log('[VideoHelpers] Using original URI without copy');
+          
+          return {
+            success: true,
+            uri: sourceUri,
+            originUri: sourceUri,
+            size: fileInfo.size,
+            platform,
+            needsCopy: false,
+            isCached: true,
+          };
+        }
+      } catch (directAccessError) {
+        console.warn('[VideoHelpers] Direct access failed, will attempt copy:', directAccessError);
+      }
+    }
+
     // Get cache directory
-    const cacheDir = FileSystem.cacheDirectory || '';
+    const cacheDir = FileSystem.cacheDirectory;
+    
+    // If cache directory is not available, try alternative approaches
     if (!cacheDir) {
-      throw new Error('CACHE_UNAVAILABLE: Cache directory not available');
+      console.warn('[VideoHelpers] ⚠️ FileSystem.cacheDirectory is not available');
+      console.log('[VideoHelpers] Attempting direct file access as fallback...');
+      
+      // Try to use the file directly if it's already in a cache location
+      if (sourceUri.includes('/Caches/') || sourceUri.startsWith('file://')) {
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(sourceUri);
+          
+          if (fileInfo.exists && fileInfo.size && fileInfo.size > 0) {
+            console.log('[VideoHelpers] ✅ Using source file directly (cache unavailable)');
+            console.log('[VideoHelpers] File size:', fileInfo.size, 'bytes');
+            
+            return {
+              success: true,
+              uri: sourceUri,
+              originUri: sourceUri,
+              size: fileInfo.size,
+              platform,
+              needsCopy: false,
+              isCached: false,
+            };
+          }
+        } catch (fallbackError) {
+          console.error('[VideoHelpers] Fallback direct access failed:', fallbackError);
+        }
+      }
+      
+      throw new Error('CACHE_UNAVAILABLE: Cache directory not available and direct access failed');
     }
 
     console.log('[VideoHelpers] Cache directory:', cacheDir);

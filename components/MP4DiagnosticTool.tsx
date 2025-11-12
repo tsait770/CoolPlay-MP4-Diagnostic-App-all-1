@@ -55,9 +55,16 @@ export function MP4DiagnosticTool({
 
   const handlePickFile = async () => {
     try {
+      console.log('[MP4DiagnosticTool] Opening document picker...');
+      
       const result = await DocumentPicker.getDocumentAsync({
         type: ['video/mp4', 'video/*'],
-        copyToCacheDirectory: true,
+        copyToCacheDirectory: Platform.OS === 'ios',
+      });
+      
+      console.log('[MP4DiagnosticTool] Document picker result:', {
+        canceled: result.canceled,
+        assets: result.assets?.length || 0
       });
 
       if (result.canceled) {

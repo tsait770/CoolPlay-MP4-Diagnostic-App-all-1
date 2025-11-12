@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   StyleSheet,
   Text,
@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { VideoView, useVideoPlayer } from "expo-video";
 import UniversalVideoPlayer from "@/components/UniversalVideoPlayer";
 import * as DocumentPicker from "expo-document-picker";
+import MP4DiagnosticTool from "@/components/MP4DiagnosticTool";
 import {
   ChevronDown,
   ChevronUp,
@@ -29,6 +30,7 @@ import {
   Volume2,
   Monitor,
   Gauge,
+  TestTube2,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import PlayStationController from "@/components/PlayStationController";
@@ -141,7 +143,23 @@ export default function PlayerScreen() {
   const [editingCommand, setEditingCommand] = useState<VoiceCommand | null>(null);
   const [commandName, setCommandName] = useState("");
   const [showUrlModal, setShowUrlModal] = useState(false);
+  const [showMp4Diagnostic, setShowMp4Diagnostic] = useState(false);
   const [isContentLoaded, setIsContentLoaded] = useState(false);
+
+  const diagnosticInitialUrl = useMemo(() => {
+    if (videoUrl && videoUrl.trim() !== "") {
+      return videoUrl.trim();
+    }
+    if (
+      videoSource &&
+      videoSource.type === "url" &&
+      videoSource.uri &&
+      videoSource.uri.trim() !== ""
+    ) {
+      return videoSource.uri;
+    }
+    return "";
+  }, [videoUrl, videoSource]);
 
   const [commandAction, setCommandAction] = useState("");
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -605,6 +623,31 @@ export default function PlayerScreen() {
     }
     
     return null;
+  };
+
+  const handleDiagnosticLoadVideo = (inputUrl: string) => {
+    if (!inputUrl.trim()) {
+      Alert.alert(t("error"), t("please_enter_url"));
+      return;
+    }
+
+    const trimmedUrl = inputUrl.trim();
+    const sourceInfo = require('@/utils/videoSourceDetector').detectVideoSource(trimmedUrl);
+
+    console.log('[PlayerScreen] Loading video from MP4 diagnostic:', trimmedUrl);
+    console.log('[PlayerScreen] Diagnostic detected source:', sourceInfo);
+
+    const source = processVideoUrl(trimmedUrl);
+    if (source && source.uri && source.uri.trim() !== '') {
+      setVideoSource(source);
+      setIsContentLoaded(true);
+      setVoiceStatus(t("video_loaded_successfully"));
+      setTimeout(() => setVoiceStatus(""), 3000);
+      setShowMp4Diagnostic(false);
+      return;
+    }
+
+    Alert.alert(t("error"), t("invalid_url"));
   };
 
   const loadVideoFromUrl = () => {
@@ -1099,9 +1142,34 @@ export default function PlayerScreen() {
                   <Text style={styles.selectVideoButtonText}>{t('select_video')}</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.loadUrlButton} onPress={() => setShowUrlModal(true)}>
+                <TouchableOpacity
+                  style={styles.loadUrlButton}
+                  onPress={() => setShowUrlModal(true)}
+                  activeOpacity={0.86}
+                  testID="load-url-button"
+                >
                   <LinkIcon size={getResponsiveSize(20, 22, 24)} color={Colors.accent.primary} />
                   <Text style={styles.loadUrlButtonText}>{t('load_from_url')}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  testID="mp4-diagnostic-button"
+                  style={styles.mp4DiagnosticButton}
+                  onPress={() => {
+                    console.log('[PlayerScreen] MP4 diagnostic button pressed');
+                    setShowMp4Diagnostic(true);
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.mp4DiagnosticButtonContent}>
+                    <View style={styles.mp4DiagnosticIconCircle}>
+                      <TestTube2 size={getResponsiveSize(18, 20, 24)} color={Colors.accent.primary} />
+                    </View>
+                    <View style={styles.mp4DiagnosticTextWrapper}>
+                      <Text style={styles.mp4DiagnosticButtonText}>MP4 錯誤診斷器</Text>
+                      <Text style={styles.mp4DiagnosticButtonSubtitle}>檢查 URL 相容性與修復指南</Text>
+                    </View>
+                  </View>
                 </TouchableOpacity>
 
                 <TouchableOpacity 
@@ -1874,6 +1942,19 @@ export default function PlayerScreen() {
             </ScrollView>
           </View>
         </Modal>
+
+        <MP4DiagnosticTool
+          visible={showMp4Diagnostic}
+          onClose={() => {
+            console.log('[PlayerScreen] MP4 diagnostic closed');
+            setShowMp4Diagnostic(false);
+          }}
+          initialUrl={diagnosticInitialUrl}
+          onLoadVideo={(url) => {
+            console.log('[PlayerScreen] MP4 diagnostic load requested:', url);
+            handleDiagnosticLoadVideo(url);
+          }}
+        />
     </View>
   );
 }
@@ -3133,6 +3214,44 @@ const createStyles = () => {
     ...DesignTokens.typography.body.large,
     fontWeight: "600" as const,
     color: Colors.accent.primary,
+  },
+  mp4DiagnosticButton: {
+    width: "100%",
+    borderRadius: DesignTokens.borderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: Colors.accent.primary + "40",
+    backgroundColor: Colors.card.bg,
+    marginTop: DesignTokens.spacing.md,
+    paddingVertical: DesignTokens.spacing.md,
+    paddingHorizontal: DesignTokens.spacing.lg,
+    ...DesignTokens.shadows.sm,
+  },
+  mp4DiagnosticButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignTokens.spacing.md,
+  },
+  mp4DiagnosticIconCircle: {
+    width: getResponsiveSize(40, 48, 56),
+    height: getResponsiveSize(40, 48, 56),
+    borderRadius: getResponsiveSize(20, 24, 28),
+    backgroundColor: Colors.accent.primary + "15",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mp4DiagnosticTextWrapper: {
+    flex: 1,
+  },
+  mp4DiagnosticButtonText: {
+    fontSize: getResponsiveFontSize(17),
+    fontWeight: "700" as const,
+    color: Colors.primary.text,
+    marginBottom: 4,
+  },
+  mp4DiagnosticButtonSubtitle: {
+    fontSize: getResponsiveFontSize(13),
+    fontWeight: "500" as const,
+    color: Colors.primary.textSecondary,
   },
   
   youtubePlatformBadge: {

@@ -43,12 +43,22 @@ export function useLocalVideoPlayer() {
     prepareResult: null,
   });
 
-  const [currentUri, setCurrentUri] = useState<string>('');
+  const [currentUri, setCurrentUri] = useState<string | null>(null);
   const [, setHasInitialized] = useState(false);
 
-  // Initialize player with empty source
-  const player = useExpoVideoPlayer(currentUri || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4');
+  // Initialize player with current URI or a valid placeholder
+  // expo-video requires a valid source for initialization
+  const player = useExpoVideoPlayer(
+    currentUri || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    (player) => {
+      // Initialize player settings when created
+      player.loop = false;
+      player.muted = false;
+      player.volume = 1.0;
+    }
+  );
 
+  // Track if the current URI is a local file
   const isLocalFile = useMemo(() => {
     if (!currentUri) return false;
     return currentUri.startsWith('file://') || 
@@ -56,6 +66,13 @@ export function useLocalVideoPlayer() {
            currentUri.startsWith('ph://') ||
            currentUri.startsWith('assets-library://');
   }, [currentUri]);
+  
+  // Listen to currentUri changes to update player
+  useEffect(() => {
+    if (!currentUri || !player) return;
+    
+    console.log('[useLocalVideoPlayer] URI changed, player will auto-update via useExpoVideoPlayer');
+  }, [currentUri, player]);
 
   const loadVideo = useCallback(async (uri: string, title?: string) => {
     if (!uri?.trim()) {
@@ -113,24 +130,13 @@ export function useLocalVideoPlayer() {
         duration: 0,
       }));
 
-      setCurrentUri('');
-      setHasInitialized(false);
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Set new video source
+      // Update state with new source - this will trigger player re-initialization via useExpoVideoPlayer dependency
+      console.log('[useLocalVideoPlayer] 🔄 Setting new video source:', processedUri);
       setCurrentUri(processedUri);
       setHasInitialized(true);
-
-      // Replace player source
-      if (player) {
-        try {
-          await player.replace({ uri: processedUri });
-          console.log('[useLocalVideoPlayer] ✅ Player source replaced');
-        } catch (replaceError) {
-          const errorMsg = `Failed to load video: ${replaceError instanceof Error ? replaceError.message : 'Unknown player error'}`;
-          throw new Error(errorMsg);
-        }
-      }
+      
+      // Wait for player to initialize with new source
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       // Update state
       setState(prev => ({
@@ -145,7 +151,7 @@ export function useLocalVideoPlayer() {
     } catch (error) {
       console.error('[useLocalVideoPlayer] ❌ Load error:', error);
       
-      setCurrentUri('');
+      setCurrentUri(null);
       setHasInitialized(false);
       
       setState(prev => ({
@@ -160,7 +166,7 @@ export function useLocalVideoPlayer() {
         prepareResult: null,
       }));
     }
-  }, [player]);
+  }, []);
 
   const play = useCallback(async () => {
     try {

@@ -180,11 +180,19 @@ async function copyToCache(
     
     if (Platform.OS === 'ios' || Platform.OS === 'android') {
       // For iOS and Android, prefer cacheDirectory
-      cacheDirPath = FileSystem.cacheDirectory;
+      cacheDirPath = FileSystem.cacheDirectory || null;
       
-      if (!cacheDirPath && FileSystem.documentDirectory) {
-        // Fallback to documentDirectory/cache/
-        cacheDirPath = FileSystem.documentDirectory + 'cache/';
+      console.log('[VideoHelpers] Primary cache directory:', cacheDirPath);
+      console.log('[VideoHelpers] Document directory available:', !!FileSystem.documentDirectory);
+      
+      if (!cacheDirPath) {
+        if (FileSystem.documentDirectory) {
+          // Fallback to documentDirectory/cache/
+          cacheDirPath = FileSystem.documentDirectory + 'cache/';
+          console.log('[VideoHelpers] Using fallback document directory cache');
+        } else {
+          throw new Error('CACHE_UNAVAILABLE: Neither cacheDirectory nor documentDirectory available');
+        }
       }
     } else if (FileSystem.documentDirectory) {
       // For web or other platforms
@@ -209,9 +217,41 @@ async function copyToCache(
       console.error('[VideoHelpers] Failed to create cache directory:', mkdirError);
     }
     
-    // For iOS files already in DocumentPicker cache, try direct access first
-    if (platform === 'ios' && sourceUri.includes('/Caches/')) {
-      console.log('[VideoHelpers] File already in iOS cache directory');
+    // For iOS files in DocumentPicker cache, we MUST read and access immediately
+    // iOS DocumentPicker cache files are temporary and can be cleared at any time
+    if (platform === 'ios' && sourceUri.includes('/Caches/DocumentPicker/')) {
+      console.log('[VideoHelpers] ⚠️ iOS DocumentPicker cache file detected');
+      console.log('[VideoHelpers] These files are temporary and MUST be copied immediately');
+      console.log('[VideoHelpers] Source:', sourceUri);
+      
+      // Check if file exists and is accessible NOW
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(sourceUri);
+        
+        if (!fileInfo.exists) {
+          throw new Error('FILE_NOT_FOUND: DocumentPicker temporary file no longer exists. This can happen if the file picker cache was cleared.');
+        }
+        
+        if (!fileInfo.size || fileInfo.size === 0) {
+          throw new Error('FILE_EMPTY: DocumentPicker file exists but has no content');
+        }
+        
+        console.log('[VideoHelpers] ✅ DocumentPicker file accessible');
+        console.log('[VideoHelpers] File size:', fileInfo.size, 'bytes');
+        console.log('[VideoHelpers] Will copy to permanent cache...');
+        
+        // IMPORTANT: Do NOT return here - continue to copy
+        // DocumentPicker files are temporary and MUST be copied
+      } catch (accessError) {
+        const errorMsg = accessError instanceof Error ? accessError.message : String(accessError);
+        console.error('[VideoHelpers] ❌ Cannot access DocumentPicker file:', errorMsg);
+        throw new Error(`DOCUMENTPICKER_ACCESS_FAILED: ${errorMsg}`);
+      }
+    }
+    
+    // For other iOS cache files (not DocumentPicker), try direct access
+    if (platform === 'ios' && sourceUri.includes('/Caches/') && !sourceUri.includes('/DocumentPicker/')) {
+      console.log('[VideoHelpers] File in iOS cache (non-DocumentPicker)');
       console.log('[VideoHelpers] Attempting direct access...');
       
       try {

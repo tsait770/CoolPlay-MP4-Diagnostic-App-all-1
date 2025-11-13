@@ -10,7 +10,7 @@
  * 4. Player compatibility with different URI schemes
  */
 
-import { File, Directory } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
 
 export interface PrepareLocalVideoResult {
@@ -93,23 +93,19 @@ export async function prepareLocalVideo(originalUri: string): Promise<PrepareLoc
       if (isFileUri) {
         console.log('[VideoHelpers] 🔍 Android file:// - checking accessibility');
         try {
-          const file = new File(cleanUri);
-          const fileExists = await file.exists();
+          const fileInfo = await FileSystem.getInfoAsync(cleanUri);
           
-          if (fileExists) {
-            const size = await file.size();
-            if (size && size > 0) {
-              console.log('[VideoHelpers] ✅ File accessible directly on Android');
-              console.log('[VideoHelpers] File size:', size, 'bytes');
-              return {
-                success: true,
-                uri: cleanUri,
-                originUri: cleanUri,
-                size: size,
-                platform,
-                needsCopy: false,
-              };
-            }
+          if (fileInfo.exists && fileInfo.size && fileInfo.size > 0) {
+            console.log('[VideoHelpers] ✅ File accessible directly on Android');
+            console.log('[VideoHelpers] File size:', fileInfo.size, 'bytes');
+            return {
+              success: true,
+              uri: cleanUri,
+              originUri: cleanUri,
+              size: fileInfo.size,
+              platform,
+              needsCopy: false,
+            };
           }
           console.warn('[VideoHelpers] ⚠️ File exists check failed, attempting cache copy');
           return await copyToCache(cleanUri, platform);
@@ -179,20 +175,19 @@ async function copyToCache(
   console.log('[VideoHelpers] Source URI:', sourceUri);
 
   try {
-    // Get cache directory using new API
-    const cacheDirPath = Directory.cacheDirectory;
+    // Get cache directory
+    const cacheDirPath = FileSystem.documentDirectory ? FileSystem.documentDirectory + 'cache/' : null;
     if (!cacheDirPath) {
       throw new Error('CACHE_UNAVAILABLE: Cache directory not available on this platform');
     }
-    const cacheDir = new Directory(cacheDirPath);
     
     console.log('[VideoHelpers] Cache directory path:', cacheDirPath);
     
     // Ensure cache directory exists
     try {
-      const dirExists = await cacheDir.exists();
-      if (!dirExists) {
-        await cacheDir.create();
+      const dirInfo = await FileSystem.getInfoAsync(cacheDirPath);
+      if (!dirInfo.exists) {
+        await FileSystem.makeDirectoryAsync(cacheDirPath, { intermediates: true });
         console.log('[VideoHelpers] ✅ Created cache directory');
       }
     } catch (mkdirError) {
@@ -205,26 +200,22 @@ async function copyToCache(
       console.log('[VideoHelpers] Attempting direct access...');
       
       try {
-        const sourceFile = new File(sourceUri);
-        const sourceExists = await sourceFile.exists();
+        const fileInfo = await FileSystem.getInfoAsync(sourceUri);
         
-        if (sourceExists) {
-          const size = await sourceFile.size();
-          if (size && size > 0) {
-            console.log('[VideoHelpers] ✅ File accessible directly from cache');
-            console.log('[VideoHelpers] File size:', size, 'bytes');
-            console.log('[VideoHelpers] Using original URI without copy');
-            
-            return {
-              success: true,
-              uri: sourceUri,
-              originUri: sourceUri,
-              size: size,
-              platform,
-              needsCopy: false,
-              isCached: true,
-            };
-          }
+        if (fileInfo.exists && fileInfo.size && fileInfo.size > 0) {
+          console.log('[VideoHelpers] ✅ File accessible directly from cache');
+          console.log('[VideoHelpers] File size:', fileInfo.size, 'bytes');
+          console.log('[VideoHelpers] Using original URI without copy');
+          
+          return {
+            success: true,
+            uri: sourceUri,
+            originUri: sourceUri,
+            size: fileInfo.size,
+            platform,
+            needsCopy: false,
+            isCached: true,
+          };
         }
       } catch (directAccessError) {
         console.warn('[VideoHelpers] Direct access failed, will attempt copy:', directAccessError);
@@ -251,31 +242,27 @@ async function copyToCache(
     const timestamp = Date.now();
     const uniqueFilename = `${timestamp}_${filename}`;
     const destFilePath = cacheDirPath.endsWith('/') ? cacheDirPath + uniqueFilename : cacheDirPath + '/' + uniqueFilename;
-    const destFile = new File(destFilePath);
 
     console.log('[VideoHelpers] Destination filename:', uniqueFilename);
-    console.log('[VideoHelpers] Destination URI:', destFile.uri);
+    console.log('[VideoHelpers] Destination URI:', destFilePath);
 
     // Check if file already exists in cache (avoid re-copying)
     try {
-      const destExists = await destFile.exists();
+      const destInfo = await FileSystem.getInfoAsync(destFilePath);
       
-      if (destExists) {
-        const existingSize = await destFile.size();
-        if (existingSize && existingSize > 0) {
-          console.log('[VideoHelpers] ✅ File already exists in cache');
-          console.log('[VideoHelpers] Cached file size:', existingSize, 'bytes');
-          
-          return {
-            success: true,
-            uri: destFile.uri,
-            originUri: sourceUri,
-            size: existingSize,
-            platform,
-            needsCopy: false,
-            isCached: true,
-          };
-        }
+      if (destInfo.exists && destInfo.size && destInfo.size > 0) {
+        console.log('[VideoHelpers] ✅ File already exists in cache');
+        console.log('[VideoHelpers] Cached file size:', destInfo.size, 'bytes');
+        
+        return {
+          success: true,
+          uri: destFilePath,
+          originUri: sourceUri,
+          size: destInfo.size,
+          platform,
+          needsCopy: false,
+          isCached: true,
+        };
       }
     } catch {
       console.log('[VideoHelpers] File not in cache, will copy');
@@ -284,22 +271,24 @@ async function copyToCache(
     // Copy file to cache
     console.log('[VideoHelpers] 📋 Copying file to cache...');
     console.log('[VideoHelpers] From:', sourceUri);
-    console.log('[VideoHelpers] To:', destFile.uri);
+    console.log('[VideoHelpers] To:', destFilePath);
 
-    // Perform the copy operation using new FileSystem API
-    const sourceFile = new File(sourceUri);
-    await sourceFile.copy(destFile);
+    // Perform the copy operation
+    await FileSystem.copyAsync({
+      from: sourceUri,
+      to: destFilePath
+    });
 
     console.log('[VideoHelpers] ✅ File copy completed');
 
     // Verify copied file
-    const copiedExists = await destFile.exists();
+    const copiedInfo = await FileSystem.getInfoAsync(destFilePath);
     
-    if (!copiedExists) {
+    if (!copiedInfo.exists) {
       throw new Error('COPY_VERIFICATION_FAILED: File was copied but cannot be verified');
     }
 
-    const copiedSize = await destFile.size();
+    const copiedSize = copiedInfo.size || 0;
     const copyDuration = Date.now() - copyStartTime;
     const fileSizeMB = (copiedSize / 1024 / 1024).toFixed(2);
     const copySpeedMBps = (copiedSize / 1024 / 1024 / (copyDuration / 1000)).toFixed(2);
@@ -309,11 +298,11 @@ async function copyToCache(
     console.log('[VideoHelpers] File size (MB):', fileSizeMB, 'MB');
     console.log('[VideoHelpers] Copy duration:', copyDuration, 'ms');
     console.log('[VideoHelpers] Copy speed:', copySpeedMBps, 'MB/s');
-    console.log('[VideoHelpers] Destination URI:', destFile.uri);
+    console.log('[VideoHelpers] Destination URI:', destFilePath);
 
     return {
       success: true,
-      uri: destFile.uri,
+      uri: destFilePath,
       originUri: sourceUri,
       size: copiedSize,
       platform,
@@ -377,20 +366,19 @@ export async function cleanupCachedVideos(olderThanDays: number = 7): Promise<{
   let freedSpace = 0;
 
   try {
-    const cacheDirPath = Directory.cacheDirectory;
+    const cacheDirPath = FileSystem.documentDirectory ? FileSystem.documentDirectory + 'cache/' : null;
     if (!cacheDirPath) {
       console.error('[VideoHelpers] Cache directory not available');
       return { removed, errors: 1, freedSpace };
     }
-    const cacheDir = new Directory(cacheDirPath);
-    const dirExists = await cacheDir.exists();
     
-    if (!dirExists) {
+    const dirInfo = await FileSystem.getInfoAsync(cacheDirPath);
+    if (!dirInfo.exists) {
       console.error('[VideoHelpers] Cache directory not available');
       return { removed, errors: 1, freedSpace };
     }
     
-    const files = await cacheDir.list();
+    const files = await FileSystem.readDirectoryAsync(cacheDirPath);
     const now = Date.now();
     const maxAge = olderThanDays * 24 * 60 * 60 * 1000;
 
@@ -403,12 +391,10 @@ export async function cleanupCachedVideos(olderThanDays: number = 7): Promise<{
 
       try {
         const filePath = cacheDirPath.endsWith('/') ? cacheDirPath + fileName : cacheDirPath + '/' + fileName;
-        const file = new File(filePath);
-        const fileExists = await file.exists();
+        const fileInfo = await FileSystem.getInfoAsync(filePath);
 
-        if (fileExists) {
-          const metadata = await file.metadata();
-          const modTime = metadata.modificationTime || 0;
+        if (fileInfo.exists) {
+          const modTime = fileInfo.modificationTime || 0;
           
           if (modTime) {
             const age = now - modTime;
@@ -417,8 +403,8 @@ export async function cleanupCachedVideos(olderThanDays: number = 7): Promise<{
               console.log('[VideoHelpers] Removing old cached file:', fileName);
               console.log('[VideoHelpers] Age:', (age / 1000 / 60 / 60 / 24).toFixed(1), 'days');
               
-              const size = await file.size();
-              await file.delete();
+              const size = fileInfo.size || 0;
+              await FileSystem.deleteAsync(filePath, { idempotent: true });
               
               removed++;
               freedSpace += size;
@@ -459,18 +445,17 @@ export async function getCacheStats(): Promise<{
   oldestFileAge?: string;
 }> {
   try {
-    const cacheDirPath = Directory.cacheDirectory;
+    const cacheDirPath = FileSystem.documentDirectory ? FileSystem.documentDirectory + 'cache/' : null;
     if (!cacheDirPath) {
       return { totalFiles: 0, totalSize: 0, totalSizeMB: '0.00' };
     }
-    const cacheDir = new Directory(cacheDirPath);
-    const dirExists = await cacheDir.exists();
     
-    if (!dirExists) {
+    const dirInfo = await FileSystem.getInfoAsync(cacheDirPath);
+    if (!dirInfo.exists) {
       return { totalFiles: 0, totalSize: 0, totalSizeMB: '0.00' };
     }
     
-    const files = await cacheDir.list();
+    const files = await FileSystem.readDirectoryAsync(cacheDirPath);
     let totalFiles = 0;
     let totalSize = 0;
     let oldestTime = Date.now();
@@ -483,16 +468,14 @@ export async function getCacheStats(): Promise<{
 
       try {
         const filePath = cacheDirPath.endsWith('/') ? cacheDirPath + fileName : cacheDirPath + '/' + fileName;
-        const file = new File(filePath);
-        const fileExists = await file.exists();
+        const fileInfo = await FileSystem.getInfoAsync(filePath);
 
-        if (fileExists) {
+        if (fileInfo.exists) {
           totalFiles++;
-          const size = await file.size();
+          const size = fileInfo.size || 0;
           totalSize += size;
           
-          const metadata = await file.metadata();
-          const modTime = metadata.modificationTime || 0;
+          const modTime = fileInfo.modificationTime || 0;
 
           if (modTime && modTime < oldestTime) {
             oldestTime = modTime;

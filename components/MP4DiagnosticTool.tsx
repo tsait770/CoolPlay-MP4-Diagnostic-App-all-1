@@ -55,10 +55,13 @@ export function MP4DiagnosticTool({
   const handlePickFile = async () => {
     try {
       console.log('[MP4DiagnosticTool] Opening document picker...');
+      console.log('[MP4DiagnosticTool] Platform:', Platform.OS);
       
+      // For iOS, MUST copy to cache to preserve file access
       const result = await DocumentPicker.getDocumentAsync({
         type: ['video/mp4', 'video/*'],
-        copyToCacheDirectory: Platform.OS === 'ios',
+        copyToCacheDirectory: true,
+        multiple: false,
       });
       
       console.log('[MP4DiagnosticTool] Document picker result:', {

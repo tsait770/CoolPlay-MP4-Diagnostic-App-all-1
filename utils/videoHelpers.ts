@@ -175,13 +175,28 @@ async function copyToCache(
   console.log('[VideoHelpers] Source URI:', sourceUri);
 
   try {
-    // Get cache directory
-    const cacheDirPath = FileSystem.documentDirectory ? FileSystem.documentDirectory + 'cache/' : null;
+    // Get cache directory - use cacheDirectory as primary, documentDirectory as fallback
+    let cacheDirPath: string | null = null;
+    
+    if (Platform.OS === 'ios' || Platform.OS === 'android') {
+      // For iOS and Android, prefer cacheDirectory
+      cacheDirPath = FileSystem.cacheDirectory;
+      
+      if (!cacheDirPath && FileSystem.documentDirectory) {
+        // Fallback to documentDirectory/cache/
+        cacheDirPath = FileSystem.documentDirectory + 'cache/';
+      }
+    } else if (FileSystem.documentDirectory) {
+      // For web or other platforms
+      cacheDirPath = FileSystem.documentDirectory + 'cache/';
+    }
+    
     if (!cacheDirPath) {
       throw new Error('CACHE_UNAVAILABLE: Cache directory not available on this platform');
     }
     
     console.log('[VideoHelpers] Cache directory path:', cacheDirPath);
+    console.log('[VideoHelpers] Platform:', Platform.OS);
     
     // Ensure cache directory exists
     try {
@@ -222,14 +237,13 @@ async function copyToCache(
       }
     }
 
-    // For iOS DocumentPicker files, extract just the filename
+    // Extract filename from source URI
     let filename = sourceUri.split('/').pop() || `video_${Date.now()}.mp4`;
-    
-    // iOS DocumentPicker may provide files with UUID names in cache
-    // We need to work with the actual file in that location
     
     // Clean up filename (remove query parameters, decode URL encoding)
     filename = decodeURIComponent(filename.split('?')[0]);
+    
+    console.log('[VideoHelpers] Original filename:', filename);
     
     // Ensure valid video extension
     if (!filename.toLowerCase().endsWith('.mp4') && 
@@ -241,7 +255,10 @@ async function copyToCache(
     // Generate unique filename to avoid conflicts
     const timestamp = Date.now();
     const uniqueFilename = `${timestamp}_${filename}`;
-    const destFilePath = cacheDirPath.endsWith('/') ? cacheDirPath + uniqueFilename : cacheDirPath + '/' + uniqueFilename;
+    
+    // Ensure path ends with / for proper concatenation
+    const normalizedCachePath = cacheDirPath.endsWith('/') ? cacheDirPath : cacheDirPath + '/';
+    const destFilePath = normalizedCachePath + uniqueFilename;
 
     console.log('[VideoHelpers] Destination filename:', uniqueFilename);
     console.log('[VideoHelpers] Destination URI:', destFilePath);
